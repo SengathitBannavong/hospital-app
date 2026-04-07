@@ -93,9 +93,9 @@ bool get isAuthenticated => _token != null;
 String _token = '';
 void _handleLogin() {}
  
-// ✓ Constants: upper case + snake_case (Dart convention)
-const DEFAULT_PADDING = 16.0;
-const API_TIMEOUT = Duration(seconds: 30);
+// ✓ Constants: lowerCamelCase (Dart convention)
+const defaultPadding = 16.0;
+const apiTimeout = Duration(seconds: 30);
 ```
 
 ## Project Structure

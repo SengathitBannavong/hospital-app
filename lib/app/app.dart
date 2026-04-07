@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../core/theme/hospital_theme.dart';
+import '../core/theme/theme_controller.dart';
 import '../features/home/presentation/pages/home_page.dart';
 
 class MyApp extends StatelessWidget {
@@ -6,13 +8,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Hospital App',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const HomePage(title: 'Hospital App Home'),
+    return ListenableBuilder(
+      listenable: themeController,
+      builder: (context, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Hospital App',
+          // USING CUSTOM THEME SYSTEM
+          theme: HospitalTheme.light,
+          darkTheme: HospitalTheme.dark,
+          themeMode: themeController.themeMode,
+          home: const HomePage(title: 'Hospital App Home'),
+        );
+      },
     );
   }
 }

@@ -1,0 +1,30 @@
+name: Flutter Quality Bot
+
+on:
+        push:
+                branches: [main]
+        pull_request:
+                branches: [main]
+
+jobs:
+        quality-check:
+                runs-on: ubuntu-latest
+
+                steps:
+                        - uses: actions/checkout@v4
+
+                        - name: Setup Flutter
+                          uses: subosito/flutter-action@v2
+                          with:
+                                  channel: "stable"
+
+                        - name: Install dependencies
+                          run: flutter pub get
+
+                        - name: Check Formatting (Spaces/Indentation)
+                          # This will fail if the code is not formatted correctly
+                          run: dart format --output=none --set-exit-if-changed .
+
+                        - name: Analyze Code (Errors/Complexity/Depth)
+                          # This will fail if there are linter warnings or errors
+                          run: flutter analyze
