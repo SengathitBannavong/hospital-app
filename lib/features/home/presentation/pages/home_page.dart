@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
+import '../../../../core/utils/app_toast.dart';
 import '../../../../core/widgets/medical_info_card.dart';
 
 class HomePage extends StatefulWidget {
@@ -90,6 +91,51 @@ class _HomePageState extends State<HomePage> {
               value: '42 Specialists',
               icon: Icons.medical_services,
               color: AppColors.secondary,
+            ),
+
+            const SizedBox(height: AppSpacing.xl),
+
+            // Toast Test Buttons
+            Text('Toast Test', style: context.textTheme.titleMedium),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () =>
+                        AppToast.showSuccess('Appointment booked successfully'),
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Success'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () =>
+                        AppToast.showWarning('Doctor is not available yet'),
+                    icon: const Icon(Icons.warning_amber_outlined),
+                    label: const Text('Warning'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.warning,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () =>
+                        AppToast.showError('Failed to load patient data'),
+                    icon: const Icon(Icons.error_outline),
+                    label: const Text('Error'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                    ),
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: AppSpacing.xl),

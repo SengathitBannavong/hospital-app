@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/hospital_theme.dart';
 import '../core/theme/theme_controller.dart';
 import '../features/home/presentation/pages/home_page.dart';
+import '../core/utils/app_toast.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -12,6 +13,8 @@ class MyApp extends StatelessWidget {
       listenable: themeController,
       builder: (context, child) {
         return MaterialApp(
+          scaffoldMessengerKey: AppToast.scaffoldKey,
+          navigatorKey: AppToast.navigatorKey,
           debugShowCheckedModeBanner: false,
           title: 'Hospital App',
           // USING CUSTOM THEME SYSTEM
