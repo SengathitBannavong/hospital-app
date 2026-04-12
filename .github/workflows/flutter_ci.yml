@@ -25,6 +25,9 @@ jobs:
                           # This will fail if the code is not formatted correctly
                           run: dart format --output=none --set-exit-if-changed .
 
+                        - name: Create placeholder .env for asset resolution
+                          run: touch .env
+
                         - name: Analyze Code (Errors/Complexity/Depth)
                           # This will fail if there are linter warnings or errors
                           run: flutter analyze
