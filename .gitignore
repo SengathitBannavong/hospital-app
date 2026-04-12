@@ -67,7 +67,7 @@ build/
 coverage/
 
 # Context
-.context/
+context/
 .agent/
 .GEMINI/
 .CLAUDE/
