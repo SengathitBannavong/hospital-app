@@ -1,11 +1,27 @@
 import 'package:flutter/material.dart';
-import '../core/theme/hospital_theme.dart';
-import '../core/theme/theme_controller.dart';
-import '../features/home/presentation/pages/home_page.dart';
-import '../core/utils/app_toast.dart';
 
-class MyApp extends StatelessWidget {
+import 'package:hospital_app/core/network/token_repository.dart';
+import 'package:hospital_app/core/theme/hospital_theme.dart';
+import 'package:hospital_app/core/theme/theme_controller.dart';
+import 'package:hospital_app/core/utils/app_toast.dart';
+import 'package:hospital_app/features/auth/presentation/pages/login_otp_page.dart';
+import 'package:hospital_app/features/home/presentation/pages/home_page.dart';
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final Future<bool> _hasSessionFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _hasSessionFuture = TokenRepository.hasToken();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +37,21 @@ class MyApp extends StatelessWidget {
           theme: HospitalTheme.light,
           darkTheme: HospitalTheme.dark,
           themeMode: themeController.themeMode,
-          home: const HomePage(title: 'Hospital App Home'),
+          home: FutureBuilder<bool>(
+            future: _hasSessionFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final hasSession = snapshot.data ?? false;
+              return hasSession
+                  ? const HomePage(title: 'Hospital App Home')
+                  : const LoginOtpPage();
+            },
+          ),
         );
       },
     );
