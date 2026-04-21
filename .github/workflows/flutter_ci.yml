@@ -21,6 +21,9 @@ jobs:
                         - name: Install dependencies
                           run: flutter pub get
 
+                        - name: Generate models (Freezed/JSON)
+                          run: dart run build_runner build --delete-conflicting-outputs
+
                         - name: Check Formatting (Spaces/Indentation)
                           # This will fail if the code is not formatted correctly
                           run: dart format --output=none --set-exit-if-changed .
