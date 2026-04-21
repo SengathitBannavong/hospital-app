@@ -16,7 +16,10 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
   AuthNotifier(this._repository) : super(null);
 
   // Step 1 of multi-step login: verify credentials but don't log in yet
-  Future<AuthUser> verifyCredentials(String phoneNumber, String password) async {
+  Future<AuthUser> verifyCredentials(
+    String phoneNumber,
+    String password,
+  ) async {
     return await _repository.login(
       phoneNumber: phoneNumber,
       password: password,
@@ -32,7 +35,8 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     await saveTokenAndSetUser(user);
   }
 
-  // To be called when we already have the AuthUser (e.g. from verifyCredentials then OTP)
+  // To be called when we already have the AuthUser
+  // (e.g. from verifyCredentials then OTP)
   Future<void> saveTokenAndSetUser(AuthUser user) async {
     await TokenRepository.saveToken(user.token);
     state = user;

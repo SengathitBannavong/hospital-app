@@ -18,7 +18,8 @@ class MyApp extends ConsumerWidget {
         return MaterialApp.router(
           routerConfig: router,
           scaffoldMessengerKey: AppToast.scaffoldKey,
-          // go_router handles its own navigation key, but AppToast might need one
+          // go_router handles its own navigation key,
+          // but AppToast might need one
           // We can set it in the router if needed.
           debugShowCheckedModeBanner: false,
           title: 'Hospital App',

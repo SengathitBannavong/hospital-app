@@ -20,7 +20,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -129,7 +129,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: AppSpacing.xxl),
 
                   // Register Form Card
@@ -141,7 +141,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: AppRadius.borderLg,
                         side: BorderSide(
-                          color: context.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                          color: context.colorScheme.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
                       child: Padding(
@@ -204,7 +206,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               child: FilledButton(
                                 onPressed: _isLoading ? null : _submit,
                                 style: FilledButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
+                                  shape: const RoundedRectangleBorder(
                                     borderRadius: AppRadius.borderMd,
                                   ),
                                 ),
@@ -214,7 +216,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         height: 24,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2.5,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
                                         ),
                                       )
                                     : const Text(
@@ -231,7 +236,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: AppSpacing.xl),
 
                   // Footer Section

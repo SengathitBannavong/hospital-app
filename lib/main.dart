@@ -11,9 +11,5 @@ void main() async {
     debugPrint("missing file .env please initailize it\n");
   }
 
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }

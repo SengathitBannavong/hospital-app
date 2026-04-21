@@ -14,6 +14,5 @@ class AuthApiResponse<T> with _$AuthApiResponse<T> {
   factory AuthApiResponse.fromJson(
     Map<String, dynamic> json,
     T Function(Object? json) fromJsonT,
-  ) =>
-      _$AuthApiResponseFromJson(json, fromJsonT);
+  ) => _$AuthApiResponseFromJson(json, fromJsonT);
 }

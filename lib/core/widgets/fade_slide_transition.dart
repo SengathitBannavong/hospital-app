@@ -29,7 +29,8 @@ class _FadeSlideTransitionState extends State<FadeSlideTransition>
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
 
-    // Using easeOutQuart as recommended in the delight skill for refined, natural deceleration
+    // Using easeOutQuart as recommended in the delight skill
+    // for refined, natural deceleration
     const curve = Cubic(0.25, 1, 0.5, 1);
 
     _fadeAnimation = Tween<double>(

@@ -208,7 +208,10 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: AppSpacing.md),
               const FadeSlideTransition(
                 delay: Duration(milliseconds: 350),
-                child: Text('Thông báo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'Thông báo',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               FadeSlideTransition(

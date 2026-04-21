@@ -23,7 +23,8 @@ class AuthRepository {
         (json) => AuthUser.fromJson(json as Map<String, dynamic>),
       );
 
-      if (apiResponse.code == ApiResponseCodes.success && apiResponse.data != null) {
+      if (apiResponse.code == ApiResponseCodes.success &&
+          apiResponse.data != null) {
         return apiResponse.data!;
       }
 
@@ -54,7 +55,8 @@ class AuthRepository {
         (json) => OtpResponse.fromJson(json as Map<String, dynamic>),
       );
 
-      if (apiResponse.code == ApiResponseCodes.success && apiResponse.data != null) {
+      if (apiResponse.code == ApiResponseCodes.success &&
+          apiResponse.data != null) {
         return apiResponse.data!;
       }
       throw Exception(apiResponse.message);
@@ -75,6 +77,7 @@ class AuthRepository {
         data: {
           'phone_number': phoneNumber,
           'otp': otp,
+          // ignore: use_null_aware_elements
           if (otpType != null) 'otp_type': otpType,
         },
       );
@@ -93,15 +96,13 @@ class AuthRepository {
   }
 
   // Resend OTP verification code
-  Future<void> resendOtp({
-    required String phoneNumber,
-    String? otpType,
-  }) async {
+  Future<void> resendOtp({required String phoneNumber, String? otpType}) async {
     try {
       final response = await ApiClient.instance.post(
         ApiEndpoints.resendOtp,
         data: {
           'phone_number': phoneNumber,
+          // ignore: use_null_aware_elements
           if (otpType != null) 'otp_type': otpType,
         },
       );
@@ -132,7 +133,8 @@ class AuthRepository {
         (json) => OtpResponse.fromJson(json as Map<String, dynamic>),
       );
 
-      if (apiResponse.code == ApiResponseCodes.success && apiResponse.data != null) {
+      if (apiResponse.code == ApiResponseCodes.success &&
+          apiResponse.data != null) {
         return apiResponse.data!;
       }
       throw Exception(apiResponse.message);

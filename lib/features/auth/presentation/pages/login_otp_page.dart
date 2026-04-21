@@ -48,10 +48,14 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
 
     try {
       // 1. Verify credentials (Step 1)
-      final user = await ref.read(authStateProvider.notifier).verifyCredentials(phoneNumber, password);
-      
+      final user = await ref
+          .read(authStateProvider.notifier)
+          .verifyCredentials(phoneNumber, password);
+
       // 2. Trigger OTP (Step 2)
-      await ref.read(authRepositoryProvider).resendOtp(phoneNumber: phoneNumber, otpType: 'login');
+      await ref
+          .read(authRepositoryProvider)
+          .resendOtp(phoneNumber: phoneNumber, otpType: 'login');
 
       if (mounted) {
         AppToast.showSuccess('Mã xác thực đã được gửi.');
@@ -117,7 +121,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: AppSpacing.xxl),
 
                 // Login Form Card
@@ -129,7 +133,9 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: AppRadius.borderLg,
                       side: BorderSide(
-                        color: context.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        color: context.colorScheme.outlineVariant.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     ),
                     child: Padding(
@@ -183,7 +189,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                             child: FilledButton(
                               onPressed: _isLoading ? null : _signIn,
                               style: FilledButton.styleFrom(
-                                shape: RoundedRectangleBorder(
+                                shape: const RoundedRectangleBorder(
                                   borderRadius: AppRadius.borderMd,
                                 ),
                               ),
@@ -193,7 +199,10 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                                       height: 24,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2.5,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
                                       ),
                                     )
                                   : const Text(
@@ -210,7 +219,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: AppSpacing.xl),
 
                 // Footer Section

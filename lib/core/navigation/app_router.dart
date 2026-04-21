@@ -38,9 +38,13 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
         context.push('/verify-otp/$phone/forgot_password');
       }
     } catch (e) {
-      if (mounted) AppToast.showError(e.toString().replaceFirst('Exception: ', ''));
+      if (mounted) {
+        AppToast.showError(e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -59,7 +63,10 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Quên mật khẩu', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              'Quên mật khẩu',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: AppSpacing.md),
             const Text('Nhập số điện thoại để nhận mã khôi phục.'),
             const SizedBox(height: AppSpacing.xl),
@@ -72,9 +79,13 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
             const SizedBox(height: AppSpacing.xl),
             FilledButton(
               onPressed: _isLoading ? null : _submit,
-              child: _isLoading 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
-                : const Text('Gửi mã'),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Gửi mã'),
             ),
           ],
         ),
@@ -90,18 +101,19 @@ class RouterNotifier extends ChangeNotifier {
   RouterNotifier(this._ref) {
     _ref.listen<AuthUser?>(
       authStateProvider,
-      (_, __) => notifyListeners(),
+      (previous, next) => notifyListeners(),
     );
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
     final authUser = _ref.read(authStateProvider);
     final isLoggedIn = authUser != null;
-    
-    final isLoggingIn = state.matchedLocation == '/login' || 
-                        state.matchedLocation == '/register' ||
-                        state.matchedLocation == '/forgot-password' ||
-                        state.matchedLocation.startsWith('/verify-otp');
+
+    final isLoggingIn =
+        state.matchedLocation == '/login' ||
+        state.matchedLocation == '/register' ||
+        state.matchedLocation == '/forgot-password' ||
+        state.matchedLocation.startsWith('/verify-otp');
 
     if (!isLoggedIn) {
       return isLoggingIn ? null : '/login';
@@ -153,7 +165,7 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
           final extra = state.extra as Map<String, dynamic>?;
           final pendingUser = extra?['pendingUser'] as AuthUser?;
           final password = extra?['password'] as String?;
-          
+
           return OtpVerificationPage(
             phoneNumber: phone,
             otpType: type,
