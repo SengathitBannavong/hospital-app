@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:hospital_app/core/network/api_response_codes.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 
 class ErrorInterceptor extends Interceptor {
@@ -7,11 +8,12 @@ class ErrorInterceptor extends Interceptor {
     String errorMessage = _mapDioExceptionToMessage(err);
 
     // Handle global status code actions
-    if (err.response?.statusCode == 401) {
+    final statusCode = err.response?.statusCode;
+    if (statusCode == ApiResponseCodes.httpUnauthorized) {
       AppToast.showWarning("Unauthorized - 401: Trigger logout logic");
-    } else if (err.response?.statusCode == 403) {
+    } else if (statusCode == ApiResponseCodes.httpForbidden) {
       AppToast.showWarning("Forbidden - 403: Handle permission issues");
-    } else if (err.response?.statusCode == 500) {
+    } else if (statusCode == ApiResponseCodes.httpInternalServerError) {
       AppToast.showWarning(
         "Internal Server Error - 500: Display a general error message",
       );
@@ -43,19 +45,18 @@ class ErrorInterceptor extends Interceptor {
   }
 
   String _mapStatusCodeToMessage(int? statusCode) {
-    switch (statusCode) {
-      case 400:
-        return 'Bad request';
-      case 401:
-        return 'Unauthorized access';
-      case 403:
-        return 'Access forbidden';
-      case 404:
-        return 'Resource not found';
-      case 500:
-        return 'Internal server error';
-      default:
-        return 'Received invalid status code: $statusCode';
+    if (statusCode == ApiResponseCodes.httpBadRequest) {
+      return 'Bad request';
+    } else if (statusCode == ApiResponseCodes.httpUnauthorized) {
+      return 'Unauthorized access';
+    } else if (statusCode == ApiResponseCodes.httpForbidden) {
+      return 'Access forbidden';
+    } else if (statusCode == ApiResponseCodes.httpNotFound) {
+      return 'Resource not found';
+    } else if (statusCode == ApiResponseCodes.httpInternalServerError) {
+      return 'Internal server error';
+    } else {
+      return 'Received invalid status code: $statusCode';
     }
   }
 }
