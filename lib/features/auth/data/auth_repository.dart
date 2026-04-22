@@ -39,6 +39,8 @@ class AuthRepository {
     required String phoneNumber,
     required String password,
     required String fullName,
+    required String dob, // yyyy-MM-dd
+    required int gender, // 0 = male, 1 = female, etc.
   }) async {
     try {
       final response = await ApiClient.instance.post(
@@ -47,6 +49,8 @@ class AuthRepository {
           'phone_number': phoneNumber,
           'password': password,
           'full_name': fullName,
+          'dob': dob,
+          'gender': gender,
         },
       );
 
@@ -155,6 +159,33 @@ class AuthRepository {
         data: {
           'phone_number': phoneNumber,
           'otp': otp,
+          'new_password': newPassword,
+        },
+      );
+
+      final apiResponse = AuthApiResponse<dynamic>.fromJson(
+        response.data,
+        (json) => json,
+      );
+
+      if (apiResponse.code != ApiResponseCodes.success) {
+        throw Exception(apiResponse.message);
+      }
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  // Change password (requires authentication)
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await ApiClient.instance.post(
+        ApiEndpoints.changePassword,
+        data: {
+          'old_password': oldPassword,
           'new_password': newPassword,
         },
       );

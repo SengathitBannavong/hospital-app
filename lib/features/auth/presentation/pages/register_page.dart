@@ -20,16 +20,40 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
+  DateTime? _selectedDob;
+  int _selectedGender = 0; // 0 = male, 1 = female, 2 = other
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectDateOfBirth() async {
+    final now = DateTime.now();
+    final firstDate = DateTime(1950);
+    final initialDate = DateTime(now.year - 18, now.month, now.day);
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: initialDate,
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDob = picked;
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -37,24 +61,65 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       return;
     }
 
+    if (_selectedDob == null) {
+      AppToast.showError('Vui lòng chọn ngày sinh.');
+      return;
+    }
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      AppToast.showError('Mật khẩu không khớp.');
+      return;
+    }
+
     final phone = _phoneController.text.trim();
     final password = _passwordController.text;
+    final fullName = _nameController.text.trim();
+    // Format date as yyyy-MM-dd
+    final dob =
+        '${_selectedDob!.year}-${_selectedDob!.month.toString().padLeft(2, '0')}-${_selectedDob!.day.toString().padLeft(2, '0')}';
 
     setState(() => _isLoading = true);
 
     try {
-      final repository = ref.read(authRepositoryProvider);
-      final response = await repository.signup(
-        phoneNumber: phone,
-        password: password,
-        fullName: _nameController.text.trim(),
-      );
+      final response = await ref.read(authStateProvider.notifier).signup(
+            phoneNumber: phone,
+            password: password,
+            fullName: fullName,
+            dob: dob,
+            gender: _selectedGender,
+          );
 
       if (mounted) {
-        AppToast.showSuccess('Mã OTP của bạn là: ${response.otpCode}');
+        // Show OTP code for development (mock API)
+        if (response.otpCode != null) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Mã OTP (Chỉ để test)'),
+              content: Text(
+                response.otpCode!,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        AppToast.showSuccess('Mã xác thực đã được gửi.');
         context.push(
-          '/verify-otp/$phone/register',
-          extra: {'password': password},
+          '/verify-otp/$phone/signup',
+          extra: {
+            'password': password,
+            'fullName': fullName,
+          },
         );
       }
     } catch (error) {
@@ -71,8 +136,18 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     });
   }
 
+  void _toggleConfirmPasswordVisibility() {
+    setState(() {
+      _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final dobFormatted = _selectedDob != null
+        ? '${_selectedDob!.day.toString().padLeft(2, '0')}/${_selectedDob!.month.toString().padLeft(2, '0')}/${_selectedDob!.year}'
+        : 'Chọn ngày sinh';
+
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
@@ -164,8 +239,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               prefixIcon: Icons.person_outline,
                               validator: (value) =>
                                   (value == null || value.trim().isEmpty)
-                                  ? 'Nhập họ tên của bạn'
-                                  : null,
+                                      ? 'Nhập họ tên của bạn'
+                                      : null,
                             ),
                             const SizedBox(height: AppSpacing.md),
                             AuthTextField(
@@ -175,10 +250,128 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               prefixIcon: Icons.phone_outlined,
                               validator: (value) =>
                                   (value == null || value.trim().length < 8)
-                                  ? 'Số điện thoại không hợp lệ'
-                                  : null,
+                                      ? 'Số điện thoại không hợp lệ'
+                                      : null,
                             ),
                             const SizedBox(height: AppSpacing.md),
+                            // Date of Birth Picker
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _selectDateOfBirth,
+                                borderRadius: AppRadius.borderMd,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.lg,
+                                    vertical: AppSpacing.md,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: context.colorScheme.outlineVariant,
+                                    ),
+                                    borderRadius: AppRadius.borderMd,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_today_outlined,
+                                        color: context
+                                            .colorScheme.onSurfaceVariant,
+                                      ),
+                                      const SizedBox(width: AppSpacing.md),
+                                      Expanded(
+                                        child: Text(
+                                          dobFormatted,
+                                          style:
+                                              context.textTheme.bodyMedium,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            // Gender Dropdown
+                            Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: context.colorScheme.outlineVariant,
+                                ),
+                                borderRadius: AppRadius.borderMd,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                ),
+                                child: DropdownButton<int>(
+                                  value: _selectedGender,
+                                  isExpanded: true,
+                                  underline: const SizedBox(),
+                                  items: [
+                                    DropdownMenuItem(
+                                      value: 0,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.male_outlined,
+                                            color: context.colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                          const SizedBox(
+                                              width: AppSpacing.md),
+                                          const Text('Nam'),
+                                        ],
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 1,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.female_outlined,
+                                            color: context.colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                          const SizedBox(
+                                              width: AppSpacing.md),
+                                          const Text('Nữ'),
+                                        ],
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 2,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.wc_outlined,
+                                            color: context.colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                          const SizedBox(
+                                              width: AppSpacing.md),
+                                          const Text('Khác'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    if (value != null) {
+                                      setState(
+                                          () => _selectedGender = value);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xl),
+                            Text(
+                              'Thông tin bảo mật',
+                              style: context.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xl),
                             AuthTextField(
                               controller: _passwordController,
                               hintText: 'Mật khẩu',
@@ -196,11 +389,34 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                     : 'Hiện mật khẩu',
                               ),
                               validator: (value) =>
-                                  (value == null || value.trim().length < 8)
-                                  ? 'Mật khẩu tối thiểu 8 ký tự'
-                                  : null,
+                                  (value == null || value.trim().length < 6)
+                                      ? 'Mật khẩu tối thiểu 6 ký tự'
+                                      : null,
                             ),
-                            const SizedBox(height: AppSpacing.xl),
+                            const SizedBox(height: AppSpacing.md),
+                            AuthTextField(
+                              controller: _confirmPasswordController,
+                              hintText: 'Xác nhận mật khẩu',
+                              obscureText: !_isConfirmPasswordVisible,
+                              prefixIcon: Icons.lock_outline,
+                              suffixIcon: IconButton(
+                                onPressed:
+                                    _toggleConfirmPasswordVisibility,
+                                icon: Icon(
+                                  _isConfirmPasswordVisible
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                ),
+                                tooltip: _isConfirmPasswordVisible
+                                    ? 'Ẩn mật khẩu'
+                                    : 'Hiện mật khẩu',
+                              ),
+                              validator: (value) =>
+                                  (value == null || value.trim().isEmpty)
+                                      ? 'Vui lòng xác nhận mật khẩu'
+                                      : null,
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
                             SizedBox(
                               height: 56,
                               child: FilledButton(

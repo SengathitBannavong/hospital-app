@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/network/token_repository.dart';
+import 'package:hospital_app/features/auth/domain/models/otp_response.dart';
 import '../../data/auth_repository.dart';
 import '../../domain/models/auth_user.dart';
 
@@ -67,5 +68,66 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
   // For OTP verification success that leads to login
   void setUser(AuthUser user) {
     state = user;
+  }
+
+  // Signup with phone, password, fullName, dob, and gender
+  // Returns OtpResponse containing userId and otpCode
+  Future<OtpResponse> signup({
+    required String phoneNumber,
+    required String password,
+    required String fullName,
+    required String dob,
+    required int gender,
+  }) async {
+    return await _repository.signup(
+      phoneNumber: phoneNumber,
+      password: password,
+      fullName: fullName,
+      dob: dob,
+      gender: gender,
+    );
+  }
+
+  // Verify OTP for signup, forgot_password, or login flows
+  Future<void> verifyOtp({
+    required String phoneNumber,
+    required String otp,
+    String? otpType,
+  }) async {
+    return await _repository.verifyOtp(
+      phoneNumber: phoneNumber,
+      otp: otp,
+      otpType: otpType,
+    );
+  }
+
+  // Request OTP for password recovery
+  Future<OtpResponse> forgotPassword(String phoneNumber) async {
+    return await _repository.forgotPassword(phoneNumber);
+  }
+
+  // Reset password with OTP
+  Future<void> resetPassword({
+    required String phoneNumber,
+    required String otp,
+    required String newPassword,
+  }) async {
+    return await _repository.resetPassword(
+      phoneNumber: phoneNumber,
+      otp: otp,
+      newPassword: newPassword,
+    );
+  }
+
+  // Change password (requires authentication)
+  // On 401 (token invalid), will be caught by interceptor and trigger logout
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    return await _repository.changePassword(
+      oldPassword: oldPassword,
+      newPassword: newPassword,
+    );
   }
 }
