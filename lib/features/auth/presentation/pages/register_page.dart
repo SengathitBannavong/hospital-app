@@ -76,7 +76,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final fullName = _nameController.text.trim();
     // Format date as yyyy-MM-dd
     final dob =
-        '${_selectedDob!.year}-${_selectedDob!.month.toString().padLeft(2, '0')}-${_selectedDob!.day.toString().padLeft(2, '0')}';
+        '${_selectedDob!.year}-'
+        '${_selectedDob!.month.toString().padLeft(2, '0')}-'
+        '${_selectedDob!.day.toString().padLeft(2, '0')}';
 
     setState(() => _isLoading = true);
 
