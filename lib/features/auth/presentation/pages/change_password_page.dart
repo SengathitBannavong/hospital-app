@@ -79,10 +79,9 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(authStateProvider.notifier).changePassword(
-            oldPassword: oldPassword,
-            newPassword: newPassword,
-          );
+      await ref
+          .read(authStateProvider.notifier)
+          .changePassword(oldPassword: oldPassword, newPassword: newPassword);
 
       if (mounted) {
         AppToast.showSuccess('Mật khẩu đã được thay đổi thành công.');
@@ -96,13 +95,16 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
     } catch (error) {
       if (!mounted) return;
       final errorMessage = error.toString().replaceFirst('Exception: ', '');
-      
+
       // Handle 401 - token invalid scenario
-      if (errorMessage.contains('401') || errorMessage.contains('Unauthorized')) {
+      if (errorMessage.contains('401') ||
+          errorMessage.contains('Unauthorized')) {
         // Token is invalid, logout and redirect to login
         await ref.read(authStateProvider.notifier).logout();
         if (mounted) {
-          AppToast.showError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+          AppToast.showError(
+            'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.',
+          );
           context.go('/login');
         }
       } else {
@@ -250,7 +252,9 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
                               ),
-                              tooltip: _isConfirmPasswordVisible ? 'Ẩn' : 'Hiện',
+                              tooltip: _isConfirmPasswordVisible
+                                  ? 'Ẩn'
+                                  : 'Hiện',
                             ),
                           ),
                           const SizedBox(height: AppSpacing.lg),

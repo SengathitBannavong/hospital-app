@@ -35,8 +35,7 @@ class RouterNotifier extends ChangeNotifier {
         state.matchedLocation.startsWith('/verify-otp') ||
         state.matchedLocation.startsWith('/reset-password');
 
-    final isProtected = 
-        state.matchedLocation == '/change-password';
+    final isProtected = state.matchedLocation == '/change-password';
 
     // Not logged in: redirect to login unless on auth pages
     if (!isLoggedIn) {
@@ -109,10 +108,7 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
           final phone = state.pathParameters['phone'] ?? '';
           final otp = state.pathParameters['otp'] ?? '';
 
-          return ResetPasswordPage(
-            phoneNumber: phone,
-            otp: otp,
-          );
+          return ResetPasswordPage(phoneNumber: phone, otp: otp);
         },
       ),
       GoRoute(

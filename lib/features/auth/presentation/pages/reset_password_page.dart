@@ -71,7 +71,9 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(authStateProvider.notifier).resetPassword(
+      await ref
+          .read(authStateProvider.notifier)
+          .resetPassword(
             phoneNumber: widget.phoneNumber,
             otp: widget.otp,
             newPassword: password,
@@ -203,7 +205,9 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
                               ),
-                              tooltip: _isConfirmPasswordVisible ? 'Ẩn' : 'Hiện',
+                              tooltip: _isConfirmPasswordVisible
+                                  ? 'Ẩn'
+                                  : 'Hiện',
                             ),
                           ),
                           const SizedBox(height: AppSpacing.lg),

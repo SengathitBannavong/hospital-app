@@ -36,8 +36,9 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     setState(() => _isLoading = true);
 
     try {
-      final response =
-          await ref.read(authStateProvider.notifier).forgotPassword(phoneNumber);
+      final response = await ref
+          .read(authStateProvider.notifier)
+          .forgotPassword(phoneNumber);
 
       if (mounted) {
         // Show OTP code for development (mock API)
@@ -65,9 +66,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
         AppToast.showSuccess('Mã xác thực đã được gửi.');
         // Navigate to OTP verification page
-        context.push(
-          '/verify-otp/$phoneNumber/forgot_password',
-        );
+        context.push('/verify-otp/$phoneNumber/forgot_password');
       }
     } catch (error) {
       if (!mounted) return;

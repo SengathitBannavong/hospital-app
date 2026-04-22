@@ -81,7 +81,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await ref.read(authStateProvider.notifier).signup(
+      final response = await ref
+          .read(authStateProvider.notifier)
+          .signup(
             phoneNumber: phone,
             password: password,
             fullName: fullName,
@@ -116,10 +118,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         AppToast.showSuccess('Mã xác thực đã được gửi.');
         context.push(
           '/verify-otp/$phone/signup',
-          extra: {
-            'password': password,
-            'fullName': fullName,
-          },
+          extra: {'password': password, 'fullName': fullName},
         );
       }
     } catch (error) {
@@ -239,8 +238,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               prefixIcon: Icons.person_outline,
                               validator: (value) =>
                                   (value == null || value.trim().isEmpty)
-                                      ? 'Nhập họ tên của bạn'
-                                      : null,
+                                  ? 'Nhập họ tên của bạn'
+                                  : null,
                             ),
                             const SizedBox(height: AppSpacing.md),
                             AuthTextField(
@@ -250,8 +249,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               prefixIcon: Icons.phone_outlined,
                               validator: (value) =>
                                   (value == null || value.trim().length < 8)
-                                      ? 'Số điện thoại không hợp lệ'
-                                      : null,
+                                  ? 'Số điện thoại không hợp lệ'
+                                  : null,
                             ),
                             const SizedBox(height: AppSpacing.md),
                             // Date of Birth Picker
@@ -276,14 +275,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                       Icon(
                                         Icons.calendar_today_outlined,
                                         color: context
-                                            .colorScheme.onSurfaceVariant,
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                       ),
                                       const SizedBox(width: AppSpacing.md),
                                       Expanded(
                                         child: Text(
                                           dobFormatted,
-                                          style:
-                                              context.textTheme.bodyMedium,
+                                          style: context.textTheme.bodyMedium,
                                         ),
                                       ),
                                     ],
@@ -315,11 +314,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         children: [
                                           Icon(
                                             Icons.male_outlined,
-                                            color: context.colorScheme
+                                            color: context
+                                                .colorScheme
                                                 .onSurfaceVariant,
                                           ),
-                                          const SizedBox(
-                                              width: AppSpacing.md),
+                                          const SizedBox(width: AppSpacing.md),
                                           const Text('Nam'),
                                         ],
                                       ),
@@ -330,11 +329,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         children: [
                                           Icon(
                                             Icons.female_outlined,
-                                            color: context.colorScheme
+                                            color: context
+                                                .colorScheme
                                                 .onSurfaceVariant,
                                           ),
-                                          const SizedBox(
-                                              width: AppSpacing.md),
+                                          const SizedBox(width: AppSpacing.md),
                                           const Text('Nữ'),
                                         ],
                                       ),
@@ -345,11 +344,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         children: [
                                           Icon(
                                             Icons.wc_outlined,
-                                            color: context.colorScheme
+                                            color: context
+                                                .colorScheme
                                                 .onSurfaceVariant,
                                           ),
-                                          const SizedBox(
-                                              width: AppSpacing.md),
+                                          const SizedBox(width: AppSpacing.md),
                                           const Text('Khác'),
                                         ],
                                       ),
@@ -357,8 +356,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                   ],
                                   onChanged: (value) {
                                     if (value != null) {
-                                      setState(
-                                          () => _selectedGender = value);
+                                      setState(() => _selectedGender = value);
                                     }
                                   },
                                 ),
@@ -390,8 +388,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               ),
                               validator: (value) =>
                                   (value == null || value.trim().length < 6)
-                                      ? 'Mật khẩu tối thiểu 6 ký tự'
-                                      : null,
+                                  ? 'Mật khẩu tối thiểu 6 ký tự'
+                                  : null,
                             ),
                             const SizedBox(height: AppSpacing.md),
                             AuthTextField(
@@ -400,8 +398,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               obscureText: !_isConfirmPasswordVisible,
                               prefixIcon: Icons.lock_outline,
                               suffixIcon: IconButton(
-                                onPressed:
-                                    _toggleConfirmPasswordVisibility,
+                                onPressed: _toggleConfirmPasswordVisibility,
                                 icon: Icon(
                                   _isConfirmPasswordVisible
                                       ? Icons.visibility_off_outlined
@@ -413,8 +410,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               ),
                               validator: (value) =>
                                   (value == null || value.trim().isEmpty)
-                                      ? 'Vui lòng xác nhận mật khẩu'
-                                      : null,
+                                  ? 'Vui lòng xác nhận mật khẩu'
+                                  : null,
                             ),
                             const SizedBox(height: AppSpacing.lg),
                             SizedBox(

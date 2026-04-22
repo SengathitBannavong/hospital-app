@@ -184,10 +184,7 @@ class AuthRepository {
     try {
       final response = await ApiClient.instance.post(
         ApiEndpoints.changePassword,
-        data: {
-          'old_password': oldPassword,
-          'new_password': newPassword,
-        },
+        data: {'old_password': oldPassword, 'new_password': newPassword},
       );
 
       final apiResponse = AuthApiResponse<dynamic>.fromJson(

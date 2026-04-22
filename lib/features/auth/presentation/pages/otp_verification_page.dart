@@ -49,7 +49,9 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
 
     try {
       // 1. Verify OTP with Backend
-      await ref.read(authStateProvider.notifier).verifyOtp(
+      await ref
+          .read(authStateProvider.notifier)
+          .verifyOtp(
             phoneNumber: widget.phoneNumber,
             otp: otp,
             otpType: widget.otpType,
@@ -73,10 +75,9 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
         case 'signup':
           // Signup flow: Have password, need to auto-login
           if (widget.password != null) {
-            await ref.read(authStateProvider.notifier).login(
-                  widget.phoneNumber,
-                  widget.password!,
-                );
+            await ref
+                .read(authStateProvider.notifier)
+                .login(widget.phoneNumber, widget.password!);
           }
           AppToast.showSuccess('Đăng ký thành công! Đang đăng nhập...');
           if (mounted) context.go('/');
@@ -86,9 +87,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
           // Forgot password flow: Navigate to reset password page
           AppToast.showSuccess('Xác thực thành công!');
           if (mounted) {
-            context.push(
-              '/reset-password/${widget.phoneNumber}/$otp',
-            );
+            context.push('/reset-password/${widget.phoneNumber}/$otp');
           }
           break;
 
@@ -121,16 +120,16 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
     final (title, description) = switch (widget.otpType) {
       'login' => ('Xác thực đăng nhập', 'Nhập mã OTP để xác thực đăng nhập'),
       'signup' => ('Xác thực đăng ký', 'Nhập mã OTP để hoàn thành đăng ký'),
-      'forgot_password' => ('Xác thực lấy lại mật khẩu', 'Nhập mã OTP để đặt lại mật khẩu'),
+      'forgot_password' => (
+        'Xác thực lấy lại mật khẩu',
+        'Nhập mã OTP để đặt lại mật khẩu',
+      ),
       _ => ('Xác thực OTP', 'Nhập mã OTP'),
     };
 
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
         child: Padding(
           padding: AppSpacing.pagePadding,
