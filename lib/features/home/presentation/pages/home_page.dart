@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/widgets/medical_info_card.dart';
+import '../../../profile/presentation/pages/medical_profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -84,6 +85,20 @@ class _HomePageState extends State<HomePage> {
             ),
 
             const SizedBox(height: AppSpacing.md),
+
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const MedicalProfilePage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.health_and_safety),
+              label: const Text('Update Medical Profile'),
+            ),
+
+            const SizedBox(height: AppSpacing.xl),
 
             const MedicalInfoCard(
               label: 'Available Doctors',
