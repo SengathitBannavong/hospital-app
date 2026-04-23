@@ -4,7 +4,7 @@ import 'package:hospital_app/core/network/token_repository.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
-import 'package:hospital_app/features/auth/presentation/pages/login_otp_page.dart';
+import 'package:hospital_app/features/auth/presentation/pages/login_page.dart';
 import 'package:hospital_app/features/home/presentation/pages/home_page.dart';
 
 class WelcomePage extends StatelessWidget {
