@@ -39,6 +39,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
   }
 
   Future<void> _verifyOtp() async {
+    FocusScope.of(context).unfocus();
     final otp = _otpController.text.trim();
     if (otp.length < 6) {
       AppToast.showError('Vui lòng nhập đầy đủ mã OTP.');
@@ -116,6 +117,9 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final isSmallScreen = screenHeight < 700;
+
     // Determine title and description based on otp_type
     final (title, description) = switch (widget.otpType) {
       'login' => ('Xác thực đăng nhập', 'Nhập mã OTP để xác thực đăng nhập'),
@@ -129,36 +133,45 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
 
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: isSmallScreen ? 40 : null,
+      ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: AppSpacing.pagePadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: AppSpacing.lg),
+              SizedBox(height: isSmallScreen ? AppSpacing.md : AppSpacing.lg),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 100),
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      padding: EdgeInsets.all(
+                        isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+                      ),
                       decoration: BoxDecoration(
                         color: context.colorScheme.primaryContainer,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.shield_rounded,
-                        size: 64,
+                        size: isSmallScreen ? 48 : 64,
                         color: context.colorScheme.primary,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      height: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+                    ),
                     Text(
                       title,
                       textAlign: TextAlign.center,
                       style: context.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
+                        fontSize: isSmallScreen ? 20 : null,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
@@ -167,12 +180,13 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                       textAlign: TextAlign.center,
                       style: context.textTheme.bodyMedium?.copyWith(
                         color: context.colorScheme.onSurfaceVariant,
+                        fontSize: isSmallScreen ? 13 : null,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.xxl),
+              SizedBox(height: isSmallScreen ? AppSpacing.xl : AppSpacing.xxl),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 200),
                 child: Text(
@@ -180,10 +194,11 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                   textAlign: TextAlign.center,
                   style: context.textTheme.bodySmall?.copyWith(
                     color: context.colorScheme.onSurfaceVariant,
+                    fontSize: isSmallScreen ? 11 : 15,
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
+              SizedBox(height: isSmallScreen ? AppSpacing.md : AppSpacing.lg),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 300),
                 child: Card(
@@ -191,27 +206,29 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                   color: context.colorScheme.surfaceContainerLow,
                   shape: RoundedRectangleBorder(
                     borderRadius: AppRadius.borderLg,
-                    side: BorderSide(
-                      color: context.colorScheme.outlineVariant.withValues(
-                        alpha: 0.5,
-                      ),
-                    ),
+                    side: BorderSide(color: context.colorScheme.outlineVariant),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    padding: EdgeInsets.all(
+                      isSmallScreen ? AppSpacing.lg : AppSpacing.xl,
+                    ),
                     child: Column(
                       children: [
                         OtpPinInput(controller: _otpController, length: 6),
-                        const SizedBox(height: AppSpacing.xl),
+                        SizedBox(
+                          height: isSmallScreen ? AppSpacing.lg : AppSpacing.xl,
+                        ),
                         OtpCountdownButton(
                           onSendOtp: _resendOtp,
                           initialCountdown: 60,
                           buttonLabel: 'Gửi lại mã',
                         ),
-                        const SizedBox(height: AppSpacing.xl),
+                        SizedBox(
+                          height: isSmallScreen ? AppSpacing.lg : AppSpacing.xl,
+                        ),
                         SizedBox(
                           width: double.infinity,
-                          height: 56,
+                          height: isSmallScreen ? 48 : 56,
                           child: FilledButton(
                             onPressed: _isVerifying ? null : _verifyOtp,
                             style: FilledButton.styleFrom(

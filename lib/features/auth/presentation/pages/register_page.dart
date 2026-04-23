@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -57,6 +58,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
@@ -66,24 +69,17 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       return;
     }
 
-    if (_passwordController.text != _confirmPasswordController.text) {
-      AppToast.showError('Mật khẩu không khớp.');
-      return;
-    }
-
     final phone = _phoneController.text.trim();
     final password = _passwordController.text;
     final fullName = _nameController.text.trim();
+
     // Format date as yyyy-MM-dd
-    final dob =
-        '${_selectedDob!.year}-'
-        '${_selectedDob!.month.toString().padLeft(2, '0')}-'
-        '${_selectedDob!.day.toString().padLeft(2, '0')}';
+    final dob = _selectedDob!.toIso8601String().split('T')[0];
 
     setState(() => _isLoading = true);
 
     try {
-      final response = await ref
+      await ref
           .read(authStateProvider.notifier)
           .signup(
             phoneNumber: phone,
@@ -94,29 +90,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           );
 
       if (mounted) {
-        // Show OTP code for development (mock API)
-        if (response.otpCode != null) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Mã OTP (Chỉ để test)'),
-              content: Text(
-                response.otpCode!,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-        }
-
         AppToast.showSuccess('Mã xác thực đã được gửi.');
         context.push(
           '/verify-otp/$phone/signup',
@@ -145,6 +118,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final isSmallScreen = screenHeight < 700;
+
     final dobFormatted = _selectedDob != null
         ? '${_selectedDob!.day.toString().padLeft(2, '0')}/${_selectedDob!.month.toString().padLeft(2, '0')}/${_selectedDob!.year}'
         : 'Chọn ngày sinh';
@@ -154,6 +130,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        toolbarHeight: isSmallScreen ? 40 : null,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -175,23 +152,28 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     child: Column(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          padding: EdgeInsets.all(
+                            isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+                          ),
                           decoration: BoxDecoration(
                             color: context.colorScheme.secondaryContainer,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.person_add_rounded,
-                            size: 64,
+                            size: isSmallScreen ? 48 : 64,
                             color: context.colorScheme.secondary,
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.lg),
+                        SizedBox(
+                          height: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+                        ),
                         Text(
                           'Tạo tài khoản',
                           textAlign: TextAlign.center,
                           style: context.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 20 : null,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xs),
@@ -200,13 +182,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           textAlign: TextAlign.center,
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: context.colorScheme.onSurfaceVariant,
+                            fontSize: isSmallScreen ? 13 : null,
                           ),
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: AppSpacing.xxl),
+                  SizedBox(
+                    height: isSmallScreen ? AppSpacing.lg : AppSpacing.xxl,
+                  ),
 
                   // Register Form Card
                   FadeSlideTransition(
@@ -217,13 +202,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: AppRadius.borderLg,
                         side: BorderSide(
-                          color: context.colorScheme.outlineVariant.withValues(
-                            alpha: 0.5,
-                          ),
+                          color: context.colorScheme.outlineVariant,
                         ),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        padding: EdgeInsets.all(
+                          isSmallScreen ? AppSpacing.lg : AppSpacing.xl,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -233,7 +218,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.xl),
+                            SizedBox(
+                              height: isSmallScreen
+                                  ? AppSpacing.lg
+                                  : AppSpacing.xl,
+                            ),
                             AuthTextField(
                               controller: _nameController,
                               hintText: 'Họ và tên',
@@ -249,6 +238,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               hintText: 'Số điện thoại',
                               keyboardType: TextInputType.phone,
                               prefixIcon: Icons.phone_outlined,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              maxLength: 11,
                               validator: (value) =>
                                   (value == null || value.trim().length < 8)
                                   ? 'Số điện thoại không hợp lệ'
@@ -364,14 +357,22 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.xl),
+                            SizedBox(
+                              height: isSmallScreen
+                                  ? AppSpacing.lg
+                                  : AppSpacing.xl,
+                            ),
                             Text(
                               'Thông tin bảo mật',
                               style: context.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.xl),
+                            SizedBox(
+                              height: isSmallScreen
+                                  ? AppSpacing.lg
+                                  : AppSpacing.xl,
+                            ),
                             AuthTextField(
                               controller: _passwordController,
                               hintText: 'Mật khẩu',
@@ -387,6 +388,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                 tooltip: _isPasswordVisible
                                     ? 'Ẩn mật khẩu'
                                     : 'Hiện mật khẩu',
+                                visualDensity: VisualDensity.compact,
                               ),
                               validator: (value) =>
                                   (value == null || value.trim().length < 6)
@@ -409,15 +411,25 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                 tooltip: _isConfirmPasswordVisible
                                     ? 'Ẩn mật khẩu'
                                     : 'Hiện mật khẩu',
+                                visualDensity: VisualDensity.compact,
                               ),
-                              validator: (value) =>
-                                  (value == null || value.trim().isEmpty)
-                                  ? 'Vui lòng xác nhận mật khẩu'
-                                  : null,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Vui lòng xác nhận mật khẩu';
+                                }
+                                if (value != _passwordController.text) {
+                                  return 'Mật khẩu không khớp';
+                                }
+                                return null;
+                              },
                             ),
-                            const SizedBox(height: AppSpacing.lg),
                             SizedBox(
-                              height: 56,
+                              height: isSmallScreen
+                                  ? AppSpacing.md
+                                  : AppSpacing.lg,
+                            ),
+                            SizedBox(
+                              height: isSmallScreen ? 48 : 56,
                               child: FilledButton(
                                 onPressed: _isLoading ? null : _submit,
                                 style: FilledButton.styleFrom(
@@ -452,7 +464,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                   ),
 
-                  const SizedBox(height: AppSpacing.xl),
+                  SizedBox(
+                    height: isSmallScreen ? AppSpacing.lg : AppSpacing.xl,
+                  ),
 
                   // Footer Section
                   FadeSlideTransition(
@@ -464,13 +478,17 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           'Đã có tài khoản?',
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: context.colorScheme.onSurfaceVariant,
+                            fontSize: isSmallScreen ? 13 : null,
                           ),
                         ),
                         TextButton(
                           onPressed: () => context.pop(),
-                          child: const Text(
+                          child: Text(
                             'Đăng nhập ngay',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: isSmallScreen ? 13 : null,
+                            ),
                           ),
                         ),
                       ],

@@ -50,6 +50,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   }
 
   Future<void> _resetPassword() async {
+    FocusScope.of(context).unfocus();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
@@ -94,11 +95,15 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final isSmallScreen = screenHeight < 700;
+
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        toolbarHeight: isSmallScreen ? 40 : null,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -118,23 +123,28 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        padding: EdgeInsets.all(
+                          isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+                        ),
                         decoration: BoxDecoration(
                           color: context.colorScheme.tertiaryContainer,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.vpn_key_rounded,
-                          size: 64,
+                          size: isSmallScreen ? 48 : 64,
                           color: context.colorScheme.tertiary,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        height: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+                      ),
                       Text(
                         'Đặt lại mật khẩu',
                         textAlign: TextAlign.center,
                         style: context.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
+                          fontSize: isSmallScreen ? 20 : null,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xs),
@@ -143,13 +153,16 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         textAlign: TextAlign.center,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
+                          fontSize: isSmallScreen ? 13 : null,
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.xxl),
+                SizedBox(
+                  height: isSmallScreen ? AppSpacing.lg : AppSpacing.xxl,
+                ),
 
                 // Form Card
                 FadeSlideTransition(
@@ -160,13 +173,13 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: AppRadius.borderLg,
                       side: BorderSide(
-                        color: context.colorScheme.outlineVariant.withValues(
-                          alpha: 0.5,
-                        ),
+                        color: context.colorScheme.outlineVariant,
                       ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      padding: EdgeInsets.all(
+                        isSmallScreen ? AppSpacing.lg : AppSpacing.xl,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -176,7 +189,11 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.xl),
+                          SizedBox(
+                            height: isSmallScreen
+                                ? AppSpacing.lg
+                                : AppSpacing.xl,
+                          ),
                           AuthTextField(
                             controller: _passwordController,
                             hintText: 'Mật khẩu mới',
@@ -190,6 +207,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                                     : Icons.visibility_outlined,
                               ),
                               tooltip: _isPasswordVisible ? 'Ẩn' : 'Hiện',
+                              visualDensity: VisualDensity.compact,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.md),
@@ -208,11 +226,16 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                               tooltip: _isConfirmPasswordVisible
                                   ? 'Ẩn'
                                   : 'Hiện',
+                              visualDensity: VisualDensity.compact,
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.lg),
                           SizedBox(
-                            height: 56,
+                            height: isSmallScreen
+                                ? AppSpacing.md
+                                : AppSpacing.lg,
+                          ),
+                          SizedBox(
+                            height: isSmallScreen ? 48 : 56,
                             child: FilledButton(
                               onPressed: _isLoading ? null : _resetPassword,
                               style: FilledButton.styleFrom(
@@ -247,7 +270,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.xl),
+                SizedBox(height: isSmallScreen ? AppSpacing.lg : AppSpacing.xl),
 
                 // Footer
                 FadeSlideTransition(
@@ -259,13 +282,17 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         'Đã nhớ mật khẩu?',
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
+                          fontSize: isSmallScreen ? 13 : null,
                         ),
                       ),
                       TextButton(
                         onPressed: () => context.go('/login'),
-                        child: const Text(
+                        child: Text(
                           'Đăng nhập',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 13 : null,
+                          ),
                         ),
                       ),
                     ],

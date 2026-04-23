@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
@@ -36,6 +36,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
   }
 
   Future<void> _signIn() async {
+    FocusScope.of(context).unfocus();
     final phoneNumber = _phoneController.text.trim();
     final password = _passwordController.text;
 
@@ -75,6 +76,9 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final isSmallScreen = screenHeight < 700;
+
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       body: SafeArea(
@@ -91,23 +95,28 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        padding: EdgeInsets.all(
+                          isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+                        ),
                         decoration: BoxDecoration(
                           color: context.colorScheme.primaryContainer,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.health_and_safety_rounded,
-                          size: 64,
+                          size: isSmallScreen ? 48 : 64,
                           color: context.colorScheme.primary,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        height: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+                      ),
                       Text(
                         'Chào mừng trở lại',
                         textAlign: TextAlign.center,
                         style: context.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
+                          fontSize: isSmallScreen ? 20 : null,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xs),
@@ -116,13 +125,16 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                         textAlign: TextAlign.center,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
+                          fontSize: isSmallScreen ? 13 : null,
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.xxl),
+                SizedBox(
+                  height: isSmallScreen ? AppSpacing.lg : AppSpacing.xxl,
+                ),
 
                 // Login Form Card
                 FadeSlideTransition(
@@ -133,13 +145,13 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: AppRadius.borderLg,
                       side: BorderSide(
-                        color: context.colorScheme.outlineVariant.withValues(
-                          alpha: 0.5,
-                        ),
+                        color: context.colorScheme.outlineVariant,
                       ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      padding: EdgeInsets.all(
+                        isSmallScreen ? AppSpacing.lg : AppSpacing.xl,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -149,12 +161,20 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.xl),
+                          SizedBox(
+                            height: isSmallScreen
+                                ? AppSpacing.lg
+                                : AppSpacing.xl,
+                          ),
                           AuthTextField(
                             controller: _phoneController,
                             hintText: 'Số điện thoại',
                             keyboardType: TextInputType.phone,
                             prefixIcon: Icons.phone_outlined,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            maxLength: 11,
                           ),
                           const SizedBox(height: AppSpacing.md),
                           AuthTextField(
@@ -170,6 +190,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                                     : Icons.visibility_outlined,
                               ),
                               tooltip: _isPasswordVisible ? 'Ẩn' : 'Hiện',
+                              visualDensity: VisualDensity.compact,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.xs),
@@ -183,9 +204,13 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                               child: const Text('Quên mật khẩu?'),
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.lg),
                           SizedBox(
-                            height: 56,
+                            height: isSmallScreen
+                                ? AppSpacing.md
+                                : AppSpacing.lg,
+                          ),
+                          SizedBox(
+                            height: isSmallScreen ? 48 : 56,
                             child: FilledButton(
                               onPressed: _isLoading ? null : _signIn,
                               style: FilledButton.styleFrom(
@@ -220,7 +245,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.xl),
+                SizedBox(height: isSmallScreen ? AppSpacing.lg : AppSpacing.xl),
 
                 // Footer Section
                 FadeSlideTransition(
@@ -232,13 +257,17 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                         'Chưa có tài khoản?',
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
+                          fontSize: isSmallScreen ? 13 : null,
                         ),
                       ),
                       TextButton(
                         onPressed: () => context.push('/register'),
-                        child: const Text(
+                        child: Text(
                           'Đăng ký ngay',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 13 : null,
+                          ),
                         ),
                       ),
                     ],

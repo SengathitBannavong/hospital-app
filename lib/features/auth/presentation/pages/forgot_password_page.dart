@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -26,6 +27,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   }
 
   Future<void> _requestOtp() async {
+    FocusScope.of(context).unfocus();
     final phoneNumber = _phoneController.text.trim();
 
     if (phoneNumber.isEmpty) {
@@ -43,29 +45,9 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       if (mounted) {
         // Show OTP code for development (mock API)
         if (response.otpCode != null) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Mã OTP (Chỉ để test)'),
-              content: Text(
-                response.otpCode!,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
+          AppToast.showSuccess('Mã xác thực đã được gửi.');
+          // Navigate to OTP verification page
         }
-
-        AppToast.showSuccess('Mã xác thực đã được gửi.');
-        // Navigate to OTP verification page
         context.push('/verify-otp/$phoneNumber/forgot_password');
       }
     } catch (error) {
@@ -78,11 +60,15 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final isSmallScreen = screenHeight < 700;
+
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        toolbarHeight: isSmallScreen ? 40 : null,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -102,23 +88,28 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        padding: EdgeInsets.all(
+                          isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+                        ),
                         decoration: BoxDecoration(
                           color: context.colorScheme.tertiaryContainer,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.lock_reset_rounded,
-                          size: 64,
+                          size: isSmallScreen ? 48 : 64,
                           color: context.colorScheme.tertiary,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        height: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+                      ),
                       Text(
                         'Quên mật khẩu?',
                         textAlign: TextAlign.center,
                         style: context.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
+                          fontSize: isSmallScreen ? 20 : null,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xs),
@@ -127,13 +118,16 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                         textAlign: TextAlign.center,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
+                          fontSize: isSmallScreen ? 13 : null,
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.xxl),
+                SizedBox(
+                  height: isSmallScreen ? AppSpacing.lg : AppSpacing.xxl,
+                ),
 
                 // Form Card
                 FadeSlideTransition(
@@ -144,13 +138,13 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: AppRadius.borderLg,
                       side: BorderSide(
-                        color: context.colorScheme.outlineVariant.withValues(
-                          alpha: 0.5,
-                        ),
+                        color: context.colorScheme.outlineVariant,
                       ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      padding: EdgeInsets.all(
+                        isSmallScreen ? AppSpacing.lg : AppSpacing.xl,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -160,16 +154,28 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.xl),
+                          SizedBox(
+                            height: isSmallScreen
+                                ? AppSpacing.lg
+                                : AppSpacing.xl,
+                          ),
                           AuthTextField(
                             controller: _phoneController,
                             hintText: 'Số điện thoại',
                             keyboardType: TextInputType.phone,
                             prefixIcon: Icons.phone_outlined,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            maxLength: 11,
                           ),
-                          const SizedBox(height: AppSpacing.lg),
                           SizedBox(
-                            height: 56,
+                            height: isSmallScreen
+                                ? AppSpacing.md
+                                : AppSpacing.lg,
+                          ),
+                          SizedBox(
+                            height: isSmallScreen ? 48 : 56,
                             child: FilledButton(
                               onPressed: _isLoading ? null : _requestOtp,
                               style: FilledButton.styleFrom(
@@ -204,7 +210,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.xl),
+                SizedBox(height: isSmallScreen ? AppSpacing.lg : AppSpacing.xl),
 
                 // Footer
                 FadeSlideTransition(
@@ -216,13 +222,17 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                         'Đã nhớ mật khẩu?',
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
+                          fontSize: isSmallScreen ? 13 : null,
                         ),
                       ),
                       TextButton(
                         onPressed: () => context.pop(),
-                        child: const Text(
+                        child: Text(
                           'Đăng nhập',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 13 : null,
+                          ),
                         ),
                       ),
                     ],

@@ -6,7 +6,7 @@ import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/auth/domain/models/auth_user.dart';
 import 'package:hospital_app/features/auth/presentation/pages/change_password_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/forgot_password_page.dart';
-import 'package:hospital_app/features/auth/presentation/pages/login_otp_page.dart';
+import 'package:hospital_app/features/auth/presentation/pages/login_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/otp_verification_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/register_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/reset_password_page.dart';
