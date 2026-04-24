@@ -4,13 +4,9 @@ import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../../../../core/widgets/medical_info_card.dart';
-<<<<<<< HEAD
-import '../../../profile/presentation/pages/medical_profile_page.dart';
-=======
 import '../../../../core/widgets/fade_slide_transition.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/home_repository.dart';
->>>>>>> b0ea5271d9965a079dbd314f852472f8c1d91a09
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key, required this.title});
@@ -263,62 +259,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
               const SizedBox(height: AppSpacing.xl),
 
-<<<<<<< HEAD
-            // Using our New Reusable Component
-            Text('Patient Overview', style: context.textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.md),
-
-            MedicalInfoCard(
-              label: 'Total Appointments',
-              value: '$_counter Today',
-              icon: Icons.calendar_month,
-              onTap: () {
-                debugPrint('Tapped appointments card');
-              },
-            ),
-
-            const SizedBox(height: AppSpacing.md),
-
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const MedicalProfilePage(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.health_and_safety),
-              label: const Text('Update Medical Profile'),
-            ),
-
-            const SizedBox(height: AppSpacing.xl),
-
-            const MedicalInfoCard(
-              label: 'Available Doctors',
-              value: '42 Specialists',
-              icon: Icons.medical_services,
-              color: AppColors.secondary,
-            ),
-
-            const SizedBox(height: AppSpacing.xl),
-
-            // Status Badge Example
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(
-                color: context.colorScheme.surfaceContainerHighest,
-                borderRadius: AppRadius.borderLg,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: const BoxDecoration(
-                      color: AppColors.statusAvailable,
-                      shape: BoxShape.circle,
-                    ),
-=======
               // Status Badge Example
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 450),
@@ -327,7 +267,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                   decoration: BoxDecoration(
                     color: context.colorScheme.surfaceContainerHighest,
                     borderRadius: AppRadius.borderLg,
->>>>>>> b0ea5271d9965a079dbd314f852472f8c1d91a09
                   ),
                   child: Row(
                     children: [
@@ -348,6 +287,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
+
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),

@@ -153,16 +153,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
-<<<<<<< HEAD
-  cross_file:
-    dependency: transitive
-    description:
-      name: cross_file
-      sha256: "28bb3ae56f117b5aec029d702a90f57d285cd975c3c5c281eaca38dbc47c5937"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.5+2"
-=======
   convert:
     dependency: transitive
     description:
@@ -171,7 +161,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
->>>>>>> b0ea5271d9965a079dbd314f852472f8c1d91a09
+  cross_file:
+    dependency: transitive
+    description:
+      name: cross_file
+      sha256: "28bb3ae56f117b5aec029d702a90f57d285cd975c3c5c281eaca38dbc47c5937"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.5+2"
   crypto:
     dependency: transitive
     description:
@@ -236,7 +233,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
-<<<<<<< HEAD
   file_selector_linux:
     dependency: transitive
     description:
@@ -269,7 +265,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.9.3+5"
-=======
   fixnum:
     dependency: transitive
     description:
@@ -278,7 +273,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
->>>>>>> b0ea5271d9965a079dbd314f852472f8c1d91a09
   flutter:
     dependency: "direct main"
     description: flutter
@@ -300,7 +294,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.0"
-<<<<<<< HEAD
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -309,7 +302,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.34"
-=======
   flutter_riverpod:
     dependency: "direct main"
     description:
@@ -366,7 +358,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
->>>>>>> b0ea5271d9965a079dbd314f852472f8c1d91a09
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -377,8 +368,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-<<<<<<< HEAD
-=======
   freezed:
     dependency: "direct dev"
     description:
@@ -403,7 +392,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
->>>>>>> b0ea5271d9965a079dbd314f852472f8c1d91a09
   glob:
     dependency: transitive
     description:
@@ -440,10 +428,10 @@ packages:
     dependency: transitive
     description:
       name: hooks
-      sha256: e79ed1e8e1929bc6ecb6ec85f0cb519c887aa5b423705ded0d0f2d9226def388
+      sha256: "025f060e86d2d4c3c47b56e33caf7f93bf9283340f26d23424ebcfccf34f621e"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.2"
+    version: "1.0.3"
   http:
     dependency: transitive
     description:
@@ -468,7 +456,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
-<<<<<<< HEAD
   image_picker:
     dependency: "direct main"
     description:
@@ -533,7 +520,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.2"
-=======
   io:
     dependency: transitive
     description:
@@ -542,6 +528,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
+  jni:
+    dependency: transitive
+    description:
+      name: jni
+      sha256: c2230682d5bc2362c1c9e8d3c7f406d9cbba23ab3f2e203a025dd47e0fb2e68f
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
+  jni_flutter:
+    dependency: transitive
+    description:
+      name: jni_flutter
+      sha256: "8b59e590786050b1cd866677dddaf76b1ade5e7bc751abe04b86e84d379d3ba6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   js:
     dependency: transitive
     description:
@@ -566,7 +568,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.9.5"
->>>>>>> b0ea5271d9965a079dbd314f852472f8c1d91a09
   leak_tracker:
     dependency: transitive
     description:
@@ -683,10 +684,10 @@ packages:
     dependency: transitive
     description:
       name: path_provider_android
-      sha256: "149441ca6e4f38193b2e004c0ca6376a3d11f51fa5a77552d8bd4d2b0c0912ba"
+      sha256: "69cbd515a62b94d32a7944f086b2f82b4ac40a1d45bebfc00813a430ab2dabcd"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.23"
+    version: "2.3.1"
   path_provider_foundation:
     dependency: transitive
     description:
@@ -759,6 +760,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
+  record_use:
+    dependency: transitive
+    description:
+      name: record_use
+      sha256: "2551bd8eecfe95d14ae75f6021ad0248be5c27f138c2ec12fcb52b500b3ba1ed"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.0"
   riverpod:
     dependency: transitive
     description:
@@ -904,10 +913,10 @@ packages:
     dependency: transitive
     description:
       name: vm_service
-      sha256: "45caa6c5917fa127b5dbcfbd1fa60b14e583afdc08bfc96dda38886ca252eb60"
+      sha256: "046d3928e16fa4dc46e8350415661755ab759d9fc97fc21b5ab295f71e4f0499"
       url: "https://pub.dev"
     source: hosted
-    version: "15.0.2"
+    version: "15.1.0"
   watcher:
     dependency: transitive
     description:

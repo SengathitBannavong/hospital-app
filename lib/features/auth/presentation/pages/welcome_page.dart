@@ -1,36 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import 'package:hospital_app/core/network/token_repository.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
-import 'package:hospital_app/features/auth/presentation/pages/login_page.dart';
-import 'package:hospital_app/features/home/presentation/pages/home_page.dart';
+import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 
-class WelcomePage extends StatelessWidget {
+class WelcomePage extends ConsumerWidget {
   const WelcomePage({super.key});
 
-  Future<void> _logout(BuildContext context) async {
-    await TokenRepository.deleteToken();
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    await ref.read(authStateProvider.notifier).logout();
     if (!context.mounted) {
       return;
     }
 
     AppToast.showSuccess('Đã đăng xuất thành công.');
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginOtpPage()),
-      (route) => false,
-    );
+    // GoRouter will automatically redirect to /login due to authState change
   }
 
   void _continueToHome(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const HomePage(title: 'Trang chủ')),
-    );
+    context.go('/');
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       body: SafeArea(
@@ -110,7 +105,7 @@ class WelcomePage extends StatelessWidget {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
-                            onPressed: () => _logout(context),
+                            onPressed: () => _logout(context, ref),
                             icon: const Icon(Icons.logout_rounded, size: 20),
                             label: const Text('Đăng xuất'),
                             style: OutlinedButton.styleFrom(
