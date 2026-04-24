@@ -287,6 +287,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
+
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),

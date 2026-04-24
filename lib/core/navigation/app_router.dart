@@ -10,8 +10,11 @@ import 'package:hospital_app/features/auth/presentation/pages/login_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/otp_verification_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/register_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/reset_password_page.dart';
+import 'package:hospital_app/features/auth/presentation/pages/welcome_page.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/home/presentation/pages/home_page.dart';
+import 'package:hospital_app/features/profile/presentation/page/profile_page.dart';
+import 'package:hospital_app/features/main/presentation/pages/main_shell.dart';
 
 // RouterNotifier to handle reactive redirection
 class RouterNotifier extends ChangeNotifier {
@@ -44,7 +47,7 @@ class RouterNotifier extends ChangeNotifier {
 
     // Logged in: don't allow access to auth pages except protected routes
     if (isLoggedIn && isLoggingIn && !isProtected) {
-      return '/';
+      return '/welcome';
     }
 
     // Allow access to protected routes only if logged in
@@ -65,13 +68,41 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: AppToast.navigatorKey,
-    initialLocation: '/',
+    initialLocation: '/welcome',
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      // Main Application Shell with Bottom Navigation
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainShell(navigationShell: navigationShell);
+        },
+        branches: [
+          // Home Branch
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const HomePage(title: 'Trang chủ'),
+              ),
+            ],
+          ),
+          // Profile Branch
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (context, state) => const ProfilePage(),
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      // Auth Routes
       GoRoute(
-        path: '/',
-        builder: (context, state) => const HomePage(title: 'Trang chủ'),
+        path: '/welcome',
+        builder: (context, state) => const WelcomePage(),
       ),
       GoRoute(
         path: '/login',
