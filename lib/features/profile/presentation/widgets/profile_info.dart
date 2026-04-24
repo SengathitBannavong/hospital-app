@@ -6,11 +6,7 @@ class ProfileInfo extends StatelessWidget {
   final UserProfile profile;
   final VoidCallback onEdit;
 
-  const ProfileInfo({
-    super.key,
-    required this.profile,
-    required this.onEdit,
-  });
+  const ProfileInfo({super.key, required this.profile, required this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -67,14 +63,12 @@ class ProfileInfo extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
-              color: context.colorScheme.primaryContainer.withValues(alpha: 0.4),
+              color: context.colorScheme.primaryContainer.withValues(
+                alpha: 0.4,
+              ),
               borderRadius: AppRadius.borderSm,
             ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: context.colorScheme.primary,
-            ),
+            child: Icon(icon, size: 20, color: context.colorScheme.primary),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

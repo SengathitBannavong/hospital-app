@@ -30,7 +30,7 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
 
   void _showPicker(BuildContext context) {
     if (widget.isReadOnly) return;
-    
+
     showModalBottomSheet(
       context: context,
       builder: (BuildContext bc) {
@@ -68,11 +68,16 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
           CircleAvatar(
             radius: 60,
             backgroundColor: context.colorScheme.primaryContainer,
-            backgroundImage: widget.imageUrl != null && widget.imageUrl!.isNotEmpty
+            backgroundImage:
+                widget.imageUrl != null && widget.imageUrl!.isNotEmpty
                 ? NetworkImage(widget.imageUrl!)
                 : null,
             child: widget.imageUrl == null || widget.imageUrl!.isEmpty
-                ? Icon(Icons.person, size: 60, color: context.colorScheme.primary)
+                ? Icon(
+                    Icons.person,
+                    size: 60,
+                    color: context.colorScheme.primary,
+                  )
                 : null,
           ),
           if (!widget.isReadOnly)
@@ -86,7 +91,10 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
                   decoration: BoxDecoration(
                     color: context.colorScheme.primary,
                     shape: BoxShape.circle,
-                    border: Border.all(color: context.colorScheme.surface, width: 2),
+                    border: Border.all(
+                      color: context.colorScheme.surface,
+                      width: 2,
+                    ),
                   ),
                   child: Icon(
                     Icons.camera_alt,

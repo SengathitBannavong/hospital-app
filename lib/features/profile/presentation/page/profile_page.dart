@@ -54,7 +54,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   initialProfile: profile,
                   onCancel: () => setState(() => _isEditing = false),
                   onSave: (fullName, dob, gender) async {
-                    await ref.read(profileProvider.notifier).updateProfile(
+                    await ref
+                        .read(profileProvider.notifier)
+                        .updateProfile(
                           fullName: fullName,
                           dob: dob,
                           gender: gender,

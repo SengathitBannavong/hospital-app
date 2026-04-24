@@ -9,10 +9,11 @@ final profileRepositoryProvider = Provider<IProfileRepository>((ref) {
 
 final profileProvider =
     StateNotifierProvider.autoDispose<ProfileNotifier, AsyncValue<UserProfile>>(
-        (ref) {
-  final repository = ref.watch(profileRepositoryProvider);
-  return ProfileNotifier(repository)..fetchProfile();
-});
+      (ref) {
+        final repository = ref.watch(profileRepositoryProvider);
+        return ProfileNotifier(repository)..fetchProfile();
+      },
+    );
 
 class ProfileNotifier extends StateNotifier<AsyncValue<UserProfile>> {
   final IProfileRepository _repository;
@@ -39,7 +40,8 @@ class ProfileNotifier extends StateNotifier<AsyncValue<UserProfile>> {
       );
       return updatedProfile;
     });
-    
-    // If update fails, we might want to revert or just show error (guarded state handles error)
+
+    // If update fails, we might want to revert or just show error
+    // (guarded state handles error)
   }
 }

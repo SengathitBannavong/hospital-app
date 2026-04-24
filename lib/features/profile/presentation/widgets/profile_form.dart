@@ -50,8 +50,10 @@ class _ProfileFormState extends State<ProfileForm> {
     );
     if (picked != null) {
       setState(() {
-        _dobController.text =
-            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+        final year = picked.year;
+        final month = picked.month.toString().padLeft(2, '0');
+        final day = picked.day.toString().padLeft(2, '0');
+        _dobController.text = "$year-$month-$day";
       });
     }
   }
