@@ -48,23 +48,10 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Verify credentials (Step 1)
-      final user = await ref
-          .read(authStateProvider.notifier)
-          .verifyCredentials(phoneNumber, password);
-
-      // 2. Trigger OTP (Step 2)
-      await ref
-          .read(authRepositoryProvider)
-          .resendOtp(phoneNumber: phoneNumber, otpType: 'login');
+      await ref.read(authStateProvider.notifier).login(phoneNumber, password);
 
       if (mounted) {
-        AppToast.showSuccess('Mã xác thực đã được gửi.');
-        // 3. Go to OTP Page (Step 3)
-        context.push(
-          '/verify-otp/$phoneNumber/login',
-          extra: {'pendingUser': user},
-        );
+        context.go('/');
       }
     } catch (error) {
       if (!mounted) return;
