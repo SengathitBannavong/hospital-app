@@ -14,6 +14,7 @@ class OtpVerificationPage extends ConsumerStatefulWidget {
   final String otpType;
   final AuthUser? pendingUser;
   final String? password;
+  final String? otpCode;
 
   const OtpVerificationPage({
     super.key,
@@ -21,6 +22,7 @@ class OtpVerificationPage extends ConsumerStatefulWidget {
     required this.otpType,
     this.pendingUser,
     this.password,
+    this.otpCode,
   });
 
   @override
@@ -80,7 +82,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                 .read(authStateProvider.notifier)
                 .login(widget.phoneNumber, widget.password!);
           }
-          AppToast.showSuccess('Đăng ký thành công! Đang đăng nhập...');
+          AppToast.showSuccess('Đăng nhập thành công!');
           if (mounted) context.go('/');
           break;
 
@@ -191,6 +193,18 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                 delay: const Duration(milliseconds: 200),
                 child: Text(
                   'Mã được gửi đến ${widget.phoneNumber}',
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: context.colorScheme.onSurfaceVariant,
+                    fontSize: isSmallScreen ? 11 : 15,
+                  ),
+                ),
+              ),
+              SizedBox(height: isSmallScreen ? AppSpacing.xl : AppSpacing.xxl),
+              FadeSlideTransition(
+                delay: const Duration(milliseconds: 200),
+                child: Text(
+                  'Mã được gửi là ${widget.otpCode ?? 'NULL'}',
                   textAlign: TextAlign.center,
                   style: context.textTheme.bodySmall?.copyWith(
                     color: context.colorScheme.onSurfaceVariant,
