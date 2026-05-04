@@ -79,7 +79,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
-      await ref
+      final response = await ref
           .read(authStateProvider.notifier)
           .signup(
             phoneNumber: phone,
@@ -93,7 +93,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         AppToast.showSuccess('Mã xác thực đã được gửi.');
         context.push(
           '/verify-otp/$phone/signup',
-          extra: {'password': password, 'fullName': fullName},
+          extra: {
+            'password': password,
+            'fullName': fullName,
+            'otp_code': response.otpCode,
+          },
         );
       }
     } catch (error) {
