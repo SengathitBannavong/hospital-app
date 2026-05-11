@@ -2,9 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
 import 'package:hospital_app/core/network/api_response_codes.dart';
-import '../domain/models/auth_api_response.dart';
-import '../domain/models/auth_user.dart';
-import '../domain/models/otp_response.dart';
+import 'models/auth_api_response.dart';
+import 'models/auth_user.dart';
+import 'models/otp_response.dart';
 
 class AuthRepository {
   // Login with phone and password

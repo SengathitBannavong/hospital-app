@@ -1,9 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/profile_repository.dart';
-import '../../domain/models/user_profile.dart';
-import '../../domain/repositories/profile_repository.dart';
+import '../../data/models/user_profile.dart';
 
-final profileRepositoryProvider = Provider<IProfileRepository>((ref) {
+final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepository();
 });
 
@@ -16,7 +15,7 @@ final profileProvider =
     );
 
 class ProfileNotifier extends StateNotifier<AsyncValue<UserProfile>> {
-  final IProfileRepository _repository;
+  final ProfileRepository _repository;
 
   ProfileNotifier(this._repository) : super(const AsyncValue.loading());
 
