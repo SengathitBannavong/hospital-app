@@ -13,6 +13,7 @@ import 'package:hospital_app/features/auth/presentation/pages/reset_password_pag
 import 'package:hospital_app/features/auth/presentation/pages/welcome_page.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/home/presentation/pages/home_page.dart';
+import 'package:hospital_app/features/map/presentation/pages/map_page.dart';
 import 'package:hospital_app/features/profile/presentation/page/profile_page.dart';
 import 'package:hospital_app/features/main/presentation/pages/main_shell.dart';
 
@@ -84,6 +85,15 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/',
                 builder: (context, state) => const HomePage(title: 'Trang chủ'),
+              ),
+            ],
+          ),
+          // Map Branch
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/map',
+                builder: (context, state) => const MapPage(),
               ),
             ],
           ),
