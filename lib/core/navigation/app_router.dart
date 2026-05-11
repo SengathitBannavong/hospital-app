@@ -91,6 +91,7 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+<<<<<<< HEAD
           // Medical Branch
           StatefulShellBranch(
             routes: [
@@ -110,6 +111,8 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+=======
+>>>>>>> 8009d76 (feat(map): add indoor navigation map feature)
           // Map Branch
           StatefulShellBranch(
             routes: [
