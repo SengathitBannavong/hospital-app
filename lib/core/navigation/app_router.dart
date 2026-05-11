@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:hospital_app/core/utils/app_toast.dart';
-import 'package:hospital_app/features/auth/domain/models/auth_user.dart';
+import 'package:hospital_app/features/auth/data/models/auth_user.dart';
 import 'package:hospital_app/features/auth/presentation/pages/change_password_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/login_page.dart';

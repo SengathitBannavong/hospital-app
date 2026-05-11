@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/hospital_theme.dart';
-import '../../domain/models/user_profile.dart';
+import '../../data/models/user_profile.dart';
 
 class ProfileInfo extends StatelessWidget {
   final UserProfile profile;

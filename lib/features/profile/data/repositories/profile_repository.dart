@@ -2,12 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
 import 'package:hospital_app/core/network/api_response_codes.dart';
-import '../../../auth/domain/models/auth_api_response.dart';
-import '../../domain/models/user_profile.dart';
-import '../../domain/repositories/profile_repository.dart';
+import '../../../auth/data/models/auth_api_response.dart';
+import '../models/user_profile.dart';
 
-class ProfileRepository implements IProfileRepository {
-  @override
+class ProfileRepository {
   Future<UserProfile> getProfile() async {
     try {
       final response = await ApiClient.instance.get(ApiEndpoints.getProfile);
@@ -28,7 +26,6 @@ class ProfileRepository implements IProfileRepository {
     }
   }
 
-  @override
   Future<UserProfile> updateProfile({
     String? fullName,
     String? dob,

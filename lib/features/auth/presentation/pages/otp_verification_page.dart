@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
-import 'package:hospital_app/features/auth/domain/models/auth_user.dart';
+import 'package:hospital_app/features/auth/data/models/auth_user.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/otp_pin_input.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/otp_countdown_button.dart';

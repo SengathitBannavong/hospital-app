@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/network/token_repository.dart';
-import 'package:hospital_app/features/auth/domain/models/otp_response.dart';
+import 'package:hospital_app/features/auth/data/models/otp_response.dart';
 import '../../data/auth_repository.dart';
-import '../../domain/models/auth_user.dart';
+import '../../data/models/auth_user.dart';
 
 final authRepositoryProvider = Provider((ref) => AuthRepository());
 
