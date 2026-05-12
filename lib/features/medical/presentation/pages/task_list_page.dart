@@ -328,9 +328,9 @@ class _ActionCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             Text(
               subtitle,
