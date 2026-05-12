@@ -11,6 +11,7 @@ class MapRoutePanel extends StatelessWidget {
   final List<int> routeLocations;
   final VoidCallback onClear;
   final ValueChanged<String> onModeChanged;
+  final VoidCallback onHide;
 
   const MapRoutePanel({
     super.key,
@@ -21,6 +22,7 @@ class MapRoutePanel extends StatelessWidget {
     required this.routeLocations,
     required this.onClear,
     required this.onModeChanged,
+    required this.onHide,
   });
 
   @override
@@ -69,6 +71,11 @@ class MapRoutePanel extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                IconButton(
+                  onPressed: onHide,
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  tooltip: 'Hide route panel',
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -109,6 +116,43 @@ class MapRoutePanel extends StatelessWidget {
               routeLocations: routeLocations,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class MapRoutePanelCollapsed extends StatelessWidget {
+  final VoidCallback onShow;
+
+  const MapRoutePanelCollapsed({super.key, required this.onShow});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottomSheetTheme = theme.bottomSheetTheme;
+
+    return Material(
+      color: bottomSheetTheme.backgroundColor ?? theme.colorScheme.surface,
+      surfaceTintColor: bottomSheetTheme.surfaceTintColor,
+      shape:
+          bottomSheetTheme.shape ??
+          const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+      elevation: bottomSheetTheme.elevation ?? 12,
+      child: InkWell(
+        onTap: onShow,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.alt_route_rounded),
+              SizedBox(width: 8),
+              Text('Show route'),
+            ],
+          ),
         ),
       ),
     );

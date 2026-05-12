@@ -10,6 +10,9 @@ class MapGridPainter extends CustomPainter {
   final List<MapEdge> edges;
   final List<MapPoi> pois;
   final List<int> routeLocations;
+  final Offset? debugTap;
+  final Offset? debugPoiCenter;
+  final bool? showDebug;
 
   MapGridPainter({
     required this.rows,
@@ -17,6 +20,9 @@ class MapGridPainter extends CustomPainter {
     required this.edges,
     required this.pois,
     required this.routeLocations,
+    this.debugTap,
+    this.debugPoiCenter,
+    this.showDebug,
   });
 
   @override
@@ -83,13 +89,27 @@ class MapGridPainter extends CustomPainter {
     }
 
     final radius = math.min(cellWidth, cellHeight) * 0.35;
+
     for (final poi in pois) {
       final center = Offset(
-        poi.gridCol * cellWidth + cellWidth / 2,
-        poi.gridRow * cellHeight + cellHeight / 2,
+        poi.gridCol * cellWidth, // + cellWidth / 2,
+        poi.gridRow * cellHeight, // + cellHeight / 2,
       );
+
       final paint = Paint()..color = _poiColor(poi.poiType);
       canvas.drawCircle(center, radius, paint);
+    }
+
+    if (showDebug ?? false) {
+      final debugRadius = math.min(cellWidth, cellHeight) * 0.2;
+      if (debugTap != null) {
+        final tapPaint = Paint()..color = const Color(0xFFE53935);
+        canvas.drawCircle(debugTap!, debugRadius, tapPaint);
+      }
+      if (debugPoiCenter != null) {
+        final poiPaint = Paint()..color = const Color(0xFF43A047);
+        canvas.drawCircle(debugPoiCenter!, debugRadius, poiPaint);
+      }
     }
   }
 
@@ -127,6 +147,11 @@ class MapGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant MapGridPainter oldDelegate) {
-    return true;
+    return oldDelegate.pois != pois ||
+        oldDelegate.edges != edges ||
+        oldDelegate.routeLocations != routeLocations ||
+        oldDelegate.debugTap != debugTap ||
+        oldDelegate.debugPoiCenter != debugPoiCenter ||
+        (oldDelegate.showDebug ?? false) != (showDebug ?? false);
   }
 }

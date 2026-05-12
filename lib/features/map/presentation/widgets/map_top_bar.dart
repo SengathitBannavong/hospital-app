@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class MapTopBar extends StatelessWidget {
   final TextEditingController controller;
+  final VoidCallback onHide;
 
-  const MapTopBar({super.key, required this.controller});
+  const MapTopBar({super.key, required this.controller, required this.onHide});
 
   @override
   Widget build(BuildContext context) {
@@ -27,8 +28,31 @@ class MapTopBar extends StatelessWidget {
                 ),
               ),
             ),
+            IconButton(
+              onPressed: onHide,
+              icon: const Icon(Icons.keyboard_arrow_up_rounded),
+              tooltip: 'Hide search',
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class MapTopBarCollapsedButton extends StatelessWidget {
+  final VoidCallback onShow;
+
+  const MapTopBarCollapsedButton({super.key, required this.onShow});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: IconButton(
+        onPressed: onShow,
+        icon: const Icon(Icons.search),
+        tooltip: 'Show search',
       ),
     );
   }

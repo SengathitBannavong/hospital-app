@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
@@ -9,6 +10,7 @@ import 'package:hospital_app/features/map/presentation/widgets/map_grid_painter.
 import 'package:hospital_app/features/map/presentation/widgets/map_route_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_search_results_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_top_bar.dart';
+import 'package:hospital_app/features/map/presentation/widgets/poi_metadata_sheet.dart';
 
 class MapPage extends ConsumerStatefulWidget {
   const MapPage({super.key});
@@ -17,7 +19,8 @@ class MapPage extends ConsumerStatefulWidget {
   ConsumerState<MapPage> createState() => _MapPageState();
 }
 
-class _MapPageState extends ConsumerState<MapPage> {
+class _MapPageState extends ConsumerState<MapPage>
+    with TickerProviderStateMixin {
   static const int _defaultMapId = 1;
   static const int _defaultRows = 33;
   static const int _defaultCols = 57;
@@ -25,14 +28,29 @@ class _MapPageState extends ConsumerState<MapPage> {
 
   late final TextEditingController _searchController;
   TransformationController? _transformController;
+  late final AnimationController _cameraAnimationController;
+  Animation<Matrix4>? _cameraAnimation;
   Size _viewportSize = Size.zero;
   Size _childSize = Size.zero;
-  bool _isClamping = false;
+  bool _showTopBar = true;
+  bool _showRoutePanel = true;
+  bool _showDebugHitTest = kDebugMode;
+  Offset? _debugTapScene;
+  Offset? _debugPoiCenter;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController()..addListener(_onSearchChanged);
+    _cameraAnimationController =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 400),
+        )..addListener(() {
+          if (_cameraAnimation != null && _transformController != null) {
+            _transformController!.value = _cameraAnimation!.value;
+          }
+        });
     _ensureTransformController();
   }
 
@@ -41,9 +59,8 @@ class _MapPageState extends ConsumerState<MapPage> {
     _searchController
       ..removeListener(_onSearchChanged)
       ..dispose();
-    _transformController
-      ?..removeListener(_onTransformChanged)
-      ..dispose();
+    _cameraAnimationController.dispose();
+    _transformController?.dispose();
     _transformController = null;
     super.dispose();
   }
@@ -58,14 +75,9 @@ class _MapPageState extends ConsumerState<MapPage> {
       return existing;
     }
 
-    final controller = TransformationController()
-      ..addListener(_onTransformChanged);
+    final controller = TransformationController();
     _transformController = controller;
     return controller;
-  }
-
-  void _onTransformChanged() {
-    _clampTransform();
   }
 
   void _updateSizes(Size viewportSize, Size childSize) {
@@ -75,56 +87,6 @@ class _MapPageState extends ConsumerState<MapPage> {
 
     _viewportSize = viewportSize;
     _childSize = childSize;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _clampTransform();
-      }
-    });
-  }
-
-  void _clampTransform() {
-    if (_isClamping || _viewportSize == Size.zero || _childSize == Size.zero) {
-      return;
-    }
-
-    _isClamping = true;
-
-    final controller = _transformController;
-    if (controller == null) {
-      _isClamping = false;
-      return;
-    }
-
-    final matrix = controller.value;
-    final scale = matrix.getMaxScaleOnAxis();
-    final translation = matrix.getTranslation();
-
-    final scaledWidth = _childSize.width * scale;
-    final scaledHeight = _childSize.height * scale;
-
-    final viewportWidth = _viewportSize.width;
-    final viewportHeight = _viewportSize.height;
-
-    final minX = scaledWidth <= viewportWidth
-        ? (viewportWidth - scaledWidth) / 2
-        : viewportWidth - scaledWidth;
-    final maxX = scaledWidth <= viewportWidth ? minX : 0.0;
-    final minY = scaledHeight <= viewportHeight
-        ? (viewportHeight - scaledHeight) / 2
-        : viewportHeight - scaledHeight;
-    final maxY = scaledHeight <= viewportHeight ? minY : 0.0;
-
-    final clampedX = translation.x.clamp(minX, maxX);
-    final clampedY = translation.y.clamp(minY, maxY);
-
-    if (clampedX != translation.x || clampedY != translation.y) {
-      controller.value = Matrix4.identity()
-        ..translate(clampedX, clampedY)
-        ..scale(scale);
-    }
-
-    _isClamping = false;
   }
 
   @override
@@ -142,7 +104,7 @@ class _MapPageState extends ConsumerState<MapPage> {
     final edges = edgesAsync.value ?? <MapEdge>[];
     final routeLocations = _extractRouteLocations(routeResultAsync.value);
 
-    final showSearchPanel = keyword.trim().isNotEmpty;
+    final showSearchPanel = _showTopBar && keyword.trim().isNotEmpty;
 
     return Scaffold(
       body: Stack(
@@ -162,24 +124,26 @@ class _MapPageState extends ConsumerState<MapPage> {
                   Size(gridWidth, gridHeight),
                 );
 
-                return InteractiveViewer(
-                  transformationController: _ensureTransformController(),
-                  alignment: Alignment.topLeft,
-                  clipBehavior: Clip.hardEdge,
-                  minScale: 0.5,
-                  maxScale: 4,
-                  boundaryMargin: EdgeInsets.zero,
-                  child: SizedBox(
-                    width: gridWidth,
-                    height: gridHeight,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTapDown: (details) => _handleTap(
-                        details.localPosition,
-                        cellSize,
-                        cellSize,
-                        nodes,
-                      ),
+                final controller = _ensureTransformController();
+
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapDown: (details) => _handleTap(
+                    controller.toScene(details.localPosition),
+                    cellSize,
+                    cellSize,
+                    nodes,
+                  ),
+                  child: InteractiveViewer(
+                    transformationController: controller,
+                    alignment: Alignment.topLeft,
+                    clipBehavior: Clip.hardEdge,
+                    minScale: 0.5,
+                    maxScale: 4,
+                    boundaryMargin: EdgeInsets.zero,
+                    child: SizedBox(
+                      width: gridWidth,
+                      height: gridHeight,
                       child: CustomPaint(
                         size: Size(gridWidth, gridHeight),
                         painter: MapGridPainter(
@@ -188,6 +152,9 @@ class _MapPageState extends ConsumerState<MapPage> {
                           edges: edges,
                           pois: nodes,
                           routeLocations: routeLocations,
+                          debugTap: _debugTapScene,
+                          debugPoiCenter: _debugPoiCenter,
+                          showDebug: _showDebugHitTest,
                         ),
                       ),
                     ),
@@ -202,12 +169,24 @@ class _MapPageState extends ConsumerState<MapPage> {
                 child: Center(child: CircularProgressIndicator()),
               ),
             ),
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 12,
-            left: 12,
-            right: 12,
-            child: MapTopBar(controller: _searchController),
-          ),
+          if (_showTopBar)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 12,
+              left: 12,
+              right: 12,
+              child: MapTopBar(
+                controller: _searchController,
+                onHide: () => setState(() => _showTopBar = false),
+              ),
+            )
+          else
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 12,
+              left: 12,
+              child: MapTopBarCollapsedButton(
+                onShow: () => setState(() => _showTopBar = true),
+              ),
+            ),
           AnimatedPositioned(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
@@ -222,85 +201,160 @@ class _MapPageState extends ConsumerState<MapPage> {
                 opacity: showSearchPanel ? 1 : 0,
                 child: MapSearchResultsPanel(
                   results: searchResultsAsync,
-                  onSelect: (poi) => _selectPoiFromSearch(poi, start, dest),
+                  onSelect: (poi) => _selectPoiFromSearch(poi, start),
                 ),
               ),
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: MapRoutePanel(
-              start: start,
-              dest: dest,
-              mode: mode,
-              routeResult: routeResultAsync,
-              routeLocations: routeLocations,
-              onClear: _clearRoute,
-              onModeChanged: (value) =>
-                  ref.read(routeModeProvider.notifier).state = value,
+          if (_showRoutePanel)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: MapRoutePanel(
+                start: start,
+                dest: dest,
+                mode: mode,
+                routeResult: routeResultAsync,
+                routeLocations: routeLocations,
+                onClear: _clearRoute,
+                onModeChanged: (value) =>
+                    ref.read(routeModeProvider.notifier).state = value,
+                onHide: () => setState(() => _showRoutePanel = false),
+              ),
+            )
+          else
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 12,
+              child: Center(
+                child: MapRoutePanelCollapsed(
+                  onShow: () => setState(() => _showRoutePanel = true),
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  void _handleTap(
-    Offset localPosition,
+  Future<void> _handleTap(
+    Offset scenePosition,
     double cellWidth,
     double cellHeight,
     List<MapPoi> pois,
-  ) {
+  ) async {
     if (pois.isEmpty) {
       return;
     }
 
-    final row = (localPosition.dy / cellHeight).floor().clamp(
-      0,
-      _defaultRows - 1,
-    );
-    final col = (localPosition.dx / cellWidth).floor().clamp(
-      0,
-      _defaultCols - 1,
-    );
-
     MapPoi? nearest;
-    double bestDistance = double.infinity;
+    Offset? nearestCenter;
+    double bestDistanceSq = double.infinity;
 
     for (final poi in pois) {
-      final dx = (poi.gridCol - col).toDouble();
-      final dy = (poi.gridRow - row).toDouble();
-      final dist = dx * dx + dy * dy;
-      if (dist < bestDistance) {
-        bestDistance = dist;
+      final center = Offset(
+        poi.gridCol * cellWidth + cellWidth / 2,
+        poi.gridRow * cellHeight + cellHeight / 2,
+      );
+
+      final dx = center.dx - scenePosition.dx;
+      final dy = center.dy - scenePosition.dy;
+      final distSq = dx * dx + dy * dy;
+
+      if (distSq < bestDistanceSq) {
+        bestDistanceSq = distSq;
         nearest = poi;
+        nearestCenter = center;
       }
     }
 
-    if (nearest == null) {
+    if (_showDebugHitTest) {
+      setState(() {
+        _debugTapScene = scenePosition;
+        _debugPoiCenter = nearestCenter;
+      });
+    }
+
+    final maxHitboxRadius = math.max(cellWidth, cellHeight) * 2.0;
+
+    if (nearest == null || bestDistanceSq > maxHitboxRadius * maxHitboxRadius) {
       return;
     }
 
-    final start = ref.read(routeStartProvider);
-    final dest = ref.read(routeDestProvider);
-
-    if (start == null) {
-      ref.read(routeStartProvider.notifier).state = nearest;
-    } else if (dest == null) {
-      ref.read(routeDestProvider.notifier).state = nearest;
-    } else {
-      ref.read(routeStartProvider.notifier).state = nearest;
-      ref.read(routeDestProvider.notifier).state = null;
-    }
+    await _focusAndShowSheet(nearest, cellWidth, cellHeight);
   }
 
-  void _selectPoiFromSearch(MapPoi poi, MapPoi? start, MapPoi? dest) {
+  Future<void> _animateCameraToPoi(
+    MapPoi poi,
+    double cellWidth,
+    double cellHeight,
+  ) async {
+    final controller = _ensureTransformController();
+
+    if (_viewportSize == Size.zero) {
+      return;
+    }
+
+    final scale = controller.value.getMaxScaleOnAxis();
+    final centerX = poi.gridCol * cellWidth; // + cellWidth / 2;
+    final centerY = poi.gridRow * cellHeight; // + cellHeight / 2;
+
+    final targetTranslateX = _viewportSize.width / 2 - centerX; // * scale;
+    final targetTranslateY = _viewportSize.height / 2 - centerY; // * scale;
+
+    final targetMatrix = Matrix4.identity()
+      ..translate(targetTranslateX, targetTranslateY)
+      ..scale(scale);
+
+    if (_cameraAnimationController.isAnimating) {
+      _cameraAnimationController.stop();
+    }
+
+    _cameraAnimation = Matrix4Tween(begin: controller.value, end: targetMatrix)
+        .animate(
+          CurvedAnimation(
+            parent: _cameraAnimationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
+    await _cameraAnimationController.forward(from: 0);
+  }
+
+  Future<void> _focusAndShowSheet(
+    MapPoi poi,
+    double cellWidth,
+    double cellHeight,
+  ) async {
+    await _animateCameraToPoi(poi, cellWidth, cellHeight);
+
+    if (!mounted) {
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => PoiMetadataSheet(
+        poi: poi,
+        onSetStart: () {
+          ref.read(routeStartProvider.notifier).state = poi;
+          Navigator.pop(context);
+        },
+        onSetDestination: () {
+          ref.read(routeDestProvider.notifier).state = poi;
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  void _selectPoiFromSearch(MapPoi poi, MapPoi? start) {
     if (start == null) {
       ref.read(routeStartProvider.notifier).state = poi;
-    } else if (dest == null) {
-      ref.read(routeDestProvider.notifier).state = poi;
     } else {
       ref.read(routeDestProvider.notifier).state = poi;
     }
