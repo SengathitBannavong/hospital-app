@@ -120,8 +120,8 @@ class _MapPageState extends ConsumerState<MapPage> {
 
     if (clampedX != translation.x || clampedY != translation.y) {
       controller.value = Matrix4.identity()
-        ..translate(clampedX, clampedY)
-        ..scale(scale);
+        ..translateByDouble(clampedX, clampedY, 0.0, 1.0)
+        ..scaleByDouble(scale, scale, scale, 1.0);
     }
 
     _isClamping = false;
