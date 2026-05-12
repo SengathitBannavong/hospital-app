@@ -16,6 +16,9 @@ import 'package:hospital_app/features/home/presentation/pages/home_page.dart';
 import 'package:hospital_app/features/map/presentation/pages/map_page.dart';
 import 'package:hospital_app/features/profile/presentation/page/profile_page.dart';
 import 'package:hospital_app/features/main/presentation/pages/main_shell.dart';
+import 'package:hospital_app/features/medical/presentation/pages/task_list_page.dart';
+import 'package:hospital_app/features/medical/presentation/pages/queue_page.dart';
+import 'package:hospital_app/features/medical/presentation/pages/prescription_page.dart';
 
 // RouterNotifier to handle reactive redirection
 class RouterNotifier extends ChangeNotifier {
@@ -85,6 +88,25 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/',
                 builder: (context, state) => const HomePage(title: 'Trang chủ'),
+              ),
+            ],
+          ),
+          // Medical Branch
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/medical',
+                builder: (context, state) => const TaskListPage(),
+                routes: [
+                  GoRoute(
+                    path: 'queue',
+                    builder: (context, state) => const QueuePage(),
+                  ),
+                  GoRoute(
+                    path: 'prescription',
+                    builder: (context, state) => const PrescriptionPage(),
+                  ),
+                ],
               ),
             ],
           ),

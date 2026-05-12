@@ -13,6 +13,15 @@ class ApiEndpoints {
   static const String patients = 'patients';
   static const String appointments = 'appointments';
   static const String getTasks = 'medical/get_tasks';
+  static const String medicalGetQueue = 'medical/get_queue';
+  static const String medicalCheckinRoom = 'medical/checkin_room';
+  static const String medicalCheckoutRoom = 'medical/checkout_room';
+  static const String medicalResultStatus = 'medical/result_status';
+  static const String medicalGetPrescription = 'medical/get_prescription';
+  static const String medicalSyncNow = 'medical/sync_now';
+  static const String medicalRoomOpen = 'medical/room_open';
+  static const String medicalCancelTask = 'medical/cancel_task';
+  static const String medicalGetHistory = 'medical/get_history';
   static const String getProfile = 'user/get_profile';
   static const String setProfile = 'user/set_profile';
 
