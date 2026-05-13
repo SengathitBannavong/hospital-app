@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/app_toast.dart';
@@ -190,6 +191,31 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onTap: () {
                     debugPrint('Tapped appointments card');
                   },
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.md),
+
+              FadeSlideTransition(
+                delay: const Duration(milliseconds: 270),
+                child: MedicalInfoCard(
+                  label: 'Dịch vụ thiết bị',
+                  value: 'Mượn xe lăn & thiết bị',
+                  icon: Icons.accessible_rounded,
+                  onTap: () => context.go('/device'),
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.md),
+
+              FadeSlideTransition(
+                delay: const Duration(milliseconds: 290),
+                child: MedicalInfoCard(
+                  label: 'Hỗ trợ & Thông báo',
+                  value: 'SOS & Chat Support',
+                  icon: Icons.support_agent_rounded,
+                  color: AppColors.error,
+                  onTap: () => context.go('/support'),
                 ),
               ),
 

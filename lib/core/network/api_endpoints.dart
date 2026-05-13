@@ -43,4 +43,21 @@ class ApiEndpoints {
   static const String routeOrderUnordered = 'route/order_unordered';
   static const String routeHistory = 'route/get_history';
   static const String routeClearHistory = 'route/clear_history';
+
+  // Device
+  static const String assetStations = 'asset/asset_stations';
+  static const String findWheelchairs = 'asset/find_wheelchairs';
+  static const String assetHealth = 'asset/asset_health';
+  static const String trackAsset = 'asset/track_asset';
+  static const String bookAsset = 'asset/book_asset';
+  static const String releaseAsset = 'asset/release_asset';
+  static const String reportBrokenAsset = 'asset/report_broken_asset';
+  static const String requestStaff = 'staff/request_staff';
+
+  // Notification & Support
+  static const String getNotifications = 'notification/get_list';
+  static const String setNotificationRead = 'notification/set_read';
+  static const String deleteNotification = 'notification/delete';
+  static const String createSos = 'sos/create';
+  static const String createChatRoom = 'chat/create_room';
 }

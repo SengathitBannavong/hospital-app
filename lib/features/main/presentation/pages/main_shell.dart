@@ -35,6 +35,16 @@ class MainShell extends StatelessWidget {
             label: 'Bản đồ',
           ),
           NavigationDestination(
+            icon: Icon(Icons.accessible_outlined),
+            selectedIcon: Icon(Icons.accessible_rounded),
+            label: 'Thiết bị',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.support_agent_outlined),
+            selectedIcon: Icon(Icons.support_agent_rounded),
+            label: 'Hỗ trợ',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),
             selectedIcon: Icon(Icons.person_rounded),
             label: 'Hồ sơ',
