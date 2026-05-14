@@ -25,14 +25,11 @@ class MainShell extends StatelessWidget {
             label: 'Trang chủ',
           ),
           NavigationDestination(
-<<<<<<< HEAD
             icon: Icon(Icons.local_hospital_outlined),
             selectedIcon: Icon(Icons.local_hospital_rounded),
             label: 'Y tế',
           ),
           NavigationDestination(
-=======
->>>>>>> 8009d76 (feat(map): add indoor navigation map feature)
             icon: Icon(Icons.map_outlined),
             selectedIcon: Icon(Icons.map_rounded),
             label: 'Bản đồ',
