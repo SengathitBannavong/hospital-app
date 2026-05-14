@@ -40,6 +40,27 @@ flutter run
   flutter build ios --release
   ```
 
+### Running Tests
+Unit tests live under `test/` mirroring the `lib/` layout.
+
+- Run the full suite:
+  ```bash
+  flutter test
+  ```
+- Run a single feature's tests (example: map module):
+  ```bash
+  flutter test test/features/map
+  ```
+- Run a single file with verbose output:
+  ```bash
+  flutter test test/features/map/presentation/providers/map_provider_test.dart -r expanded
+  ```
+- Static analysis (must be clean before pushing):
+  ```bash
+  dart analyze lib test
+  ```
+  When working on a single feature you can scope it: `dart analyze lib/features/map test/features/map`.
+
 # Project Rule
 ---
 ## Define Name
