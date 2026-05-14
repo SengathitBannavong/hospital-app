@@ -27,6 +27,8 @@ class MapGridPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // The page gives this painter a square-cell grid size. Keep all drawing
+    // derived from rows and cols so visual positions match tap hitboxes.
     final cellWidth = size.width / cols;
     final cellHeight = size.height / rows;
 
@@ -91,10 +93,11 @@ class MapGridPainter extends CustomPainter {
     final radius = math.min(cellWidth, cellHeight) * 0.35;
 
     for (final poi in pois) {
-      final center = Offset(
-        poi.gridCol * cellWidth, // + cellWidth / 2,
-        poi.gridRow * cellHeight, // + cellHeight / 2,
-      );
+      if (!_isPoiInBounds(poi)) {
+        continue;
+      }
+
+      final center = _poiCenter(poi, cellWidth, cellHeight);
 
       final paint = Paint()..color = _poiColor(poi.poiType);
       canvas.drawCircle(center, radius, paint);
@@ -114,12 +117,29 @@ class MapGridPainter extends CustomPainter {
   }
 
   Offset _cellCenter(int location, double cellWidth, double cellHeight) {
+    // Route locations are flattened row-major indexes from the backend.
     final row = location ~/ cols;
     final col = location % cols;
     return Offset(
       col * cellWidth + cellWidth / 2,
       row * cellHeight + cellHeight / 2,
     );
+  }
+
+  Offset _poiCenter(MapPoi poi, double cellWidth, double cellHeight) {
+    // POIs use row/col cell coordinates; draw them at the same center point
+    // used by MapPage hit testing.
+    return Offset(
+      poi.gridCol * cellWidth + cellWidth / 2,
+      poi.gridRow * cellHeight + cellHeight / 2,
+    );
+  }
+
+  bool _isPoiInBounds(MapPoi poi) {
+    return poi.gridRow >= 0 &&
+        poi.gridRow < rows &&
+        poi.gridCol >= 0 &&
+        poi.gridCol < cols;
   }
 
   Color _poiColor(String type) {
