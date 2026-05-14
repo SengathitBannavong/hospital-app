@@ -35,6 +35,7 @@ class _MapPageState extends ConsumerState<MapPage> {
   TransformationController? _transformController;
   Size _lastViewportSize = Size.zero;
   Size _lastGridSize = Size.zero;
+  double _lastMinScale = 0;
   MapPoi? _selectedPoi;
   bool _showTopBar = true;
   bool _showRoutePanel = true;
@@ -77,13 +78,17 @@ class _MapPageState extends ConsumerState<MapPage> {
   void _syncTransformToLayout({
     required Size viewportSize,
     required Size gridSize,
+    required double minScale,
   }) {
-    if (_lastViewportSize == viewportSize && _lastGridSize == gridSize) {
+    if (_lastViewportSize == viewportSize &&
+        _lastGridSize == gridSize &&
+        _lastMinScale == minScale) {
       return;
     }
 
     _lastViewportSize = viewportSize;
     _lastGridSize = gridSize;
+    _lastMinScale = minScale;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -96,10 +101,7 @@ class _MapPageState extends ConsumerState<MapPage> {
       }
 
       final current = controller.value;
-      final scale = current.getMaxScaleOnAxis().clamp(
-        _minMapScale,
-        _maxMapScale,
-      );
+      final scale = current.getMaxScaleOnAxis().clamp(minScale, _maxMapScale);
       final translateX = _clampTranslate(
         current.storage[12],
         viewportSize.width,
@@ -151,15 +153,17 @@ class _MapPageState extends ConsumerState<MapPage> {
           Positioned.fill(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // Fit the backend grid into the viewport using square cells.
+                // Cover the viewport with square cells. Wide maps can overflow
+                // horizontally, but the map never starts with empty bands.
                 // Painter and tap hitbox calculations use this same cell size
                 // so POI coordinates stay aligned.
                 final cellWidth = constraints.maxWidth / cols;
                 final cellHeight = constraints.maxHeight / rows;
-                final cellSize = math.min(cellWidth, cellHeight);
+                final cellSize = math.max(cellWidth, cellHeight);
 
                 final gridWidth = cols * cellSize;
                 final gridHeight = rows * cellSize;
+                const minScale = _minMapScale;
 
                 final controller = _ensureTransformController();
                 _syncTransformToLayout(
@@ -168,6 +172,7 @@ class _MapPageState extends ConsumerState<MapPage> {
                     constraints.maxHeight,
                   ),
                   gridSize: Size(gridWidth, gridHeight),
+                  minScale: minScale,
                 );
 
                 return InteractiveViewer(
@@ -177,7 +182,7 @@ class _MapPageState extends ConsumerState<MapPage> {
                   // The child must keep the exact painted grid size; otherwise
                   // InteractiveViewer can stretch the tap coordinate space.
                   constrained: false,
-                  minScale: _minMapScale,
+                  minScale: minScale,
                   maxScale: _maxMapScale,
                   boundaryMargin: EdgeInsets.zero,
                   child: GestureDetector(
@@ -252,6 +257,7 @@ class _MapPageState extends ConsumerState<MapPage> {
                 opacity: showSearchPanel ? 1 : 0,
                 child: MapSearchResultsPanel(
                   results: searchResultsAsync,
+                  query: keyword.trim(),
                   onSelect: (poi) => _selectPoiFromSearch(poi, start),
                 ),
               ),
@@ -551,7 +557,7 @@ class _MapPageState extends ConsumerState<MapPage> {
     double gridExtent,
   ) {
     if (gridExtent <= viewportExtent) {
-      return (viewportExtent - gridExtent) / 2;
+      return 0;
     }
 
     return translate.clamp(viewportExtent - gridExtent, 0).toDouble();
@@ -747,10 +753,25 @@ class _RoutePoiPickerSheetState extends State<_RoutePoiPickerSheet> {
       return widget.pois;
     }
 
+    final normalizedQuery = _normalizeSearchText(_query);
     return widget.pois.where((poi) {
-      final text = '${poi.poiName} ${poi.poiCode} ${poi.poiType}'.toLowerCase();
-      return text.contains(_query);
+      final text = _normalizeSearchText(poi.poiName);
+      return text.contains(normalizedQuery);
     }).toList();
+  }
+
+  String _normalizeSearchText(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[àáạảãâầấậẩẫăằắặẳẵ]'), 'a')
+        .replaceAll(RegExp(r'[èéẹẻẽêềếệểễ]'), 'e')
+        .replaceAll(RegExp(r'[ìíịỉĩ]'), 'i')
+        .replaceAll(RegExp(r'[òóọỏõôồốộổỗơờớợởỡ]'), 'o')
+        .replaceAll(RegExp(r'[ùúụủũưừứựửữ]'), 'u')
+        .replaceAll(RegExp(r'[ỳýỵỷỹ]'), 'y')
+        .replaceAll('đ', 'd')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 }
 

@@ -4,11 +4,13 @@ import 'package:hospital_app/features/map/data/models/map_poi.dart';
 
 class MapSearchResultsPanel extends StatelessWidget {
   final AsyncValue<List<MapPoi>> results;
+  final String query;
   final ValueChanged<MapPoi> onSelect;
 
   const MapSearchResultsPanel({
     super.key,
     required this.results,
+    required this.query,
     required this.onSelect,
   });
 
@@ -19,7 +21,15 @@ class MapSearchResultsPanel extends StatelessWidget {
       child: results.when(
         data: (items) {
           if (items.isEmpty) {
-            return const Center(child: Text('No results'));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No results for "$query"',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
           }
           return ListView.separated(
             padding: const EdgeInsets.all(8),
@@ -29,14 +39,27 @@ class MapSearchResultsPanel extends StatelessWidget {
               final poi = items[index];
               return ListTile(
                 title: Text(poi.poiName),
-                subtitle: Text(poi.poiType),
+                subtitle: Text('${poi.poiType} • ${poi.poiCode}'),
                 onTap: () => onSelect(poi),
               );
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Search failed: ${error.toString()}',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
       ),
     );
   }

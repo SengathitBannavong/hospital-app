@@ -39,15 +39,50 @@ final searchResultsProvider = FutureProvider.family<List<MapPoi>, int>((
   ref,
   mapId,
 ) async {
-  final repository = ref.watch(mapRepositoryProvider);
   final keyword = ref.watch(searchKeywordProvider).trim();
 
   if (keyword.isEmpty) {
     return [];
   }
 
-  return repository.searchLocation(keyword: keyword, mapId: mapId);
+  final nodes = await ref.watch(mapNodesProvider(mapId).future);
+  return _filterPois(nodes, keyword);
 });
+
+List<MapPoi> _filterPois(List<MapPoi> pois, String keyword) {
+  final normalizedKeyword = _normalizeForSearch(keyword);
+  if (normalizedKeyword.isEmpty) {
+    return [];
+  }
+
+  return pois.where((poi) {
+    final normalizedName = _normalizeForSearch(poi.poiName);
+    return normalizedName.contains(normalizedKeyword);
+  }).toList()..sort((a, b) {
+    final aName = _normalizeForSearch(a.poiName);
+    final bName = _normalizeForSearch(b.poiName);
+    final aStarts = aName.startsWith(normalizedKeyword);
+    final bStarts = bName.startsWith(normalizedKeyword);
+    if (aStarts != bStarts) {
+      return aStarts ? -1 : 1;
+    }
+    return aName.compareTo(bName);
+  });
+}
+
+String _normalizeForSearch(String value) {
+  return value
+      .toLowerCase()
+      .replaceAll(RegExp(r'[àáạảãâầấậẩẫăằắặẳẵ]'), 'a')
+      .replaceAll(RegExp(r'[èéẹẻẽêềếệểễ]'), 'e')
+      .replaceAll(RegExp(r'[ìíịỉĩ]'), 'i')
+      .replaceAll(RegExp(r'[òóọỏõôồốộổỗơờớợởỡ]'), 'o')
+      .replaceAll(RegExp(r'[ùúụủũưừứựửữ]'), 'u')
+      .replaceAll(RegExp(r'[ỳýỵỷỹ]'), 'y')
+      .replaceAll('đ', 'd')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
 
 // Route state
 final routeStartProvider = StateProvider<MapPoi?>((ref) => null);
