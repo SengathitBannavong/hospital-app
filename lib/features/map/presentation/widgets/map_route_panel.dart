@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'map_route_status.dart';
 
@@ -11,6 +12,8 @@ class MapRoutePanel extends StatelessWidget {
   final List<int> routeLocations;
   final VoidCallback onClear;
   final ValueChanged<String> onModeChanged;
+  final VoidCallback onPickStart;
+  final VoidCallback onPickDestination;
   final VoidCallback onHide;
 
   const MapRoutePanel({
@@ -22,6 +25,8 @@ class MapRoutePanel extends StatelessWidget {
     required this.routeLocations,
     required this.onClear,
     required this.onModeChanged,
+    required this.onPickStart,
+    required this.onPickDestination,
     required this.onHide,
   });
 
@@ -52,23 +57,12 @@ class MapRoutePanel extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.place, size: 18),
-                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    start?.poiName ?? 'Select start point',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Icon(Icons.flag, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    dest?.poiName ?? 'Select destination',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    'Route',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -78,11 +72,27 @@ class MapRoutePanel extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
+            _RouteEndpointRow(
+              icon: Icons.my_location_rounded,
+              label: 'Start',
+              value: start?.poiName ?? 'Not selected',
+              isSet: start != null,
+              onPick: onPickStart,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            _RouteEndpointRow(
+              icon: Icons.flag_rounded,
+              label: 'Destination',
+              value: dest?.poiName ?? 'Not selected',
+              isSet: dest != null,
+              onPick: onPickDestination,
+            ),
+            const SizedBox(height: AppSpacing.md),
             Row(
               children: [
                 const Text('Mode:'),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 DropdownButton<String>(
                   value: mode,
                   onChanged: (value) {
@@ -114,10 +124,77 @@ class MapRoutePanel extends StatelessWidget {
             MapRouteStatus(
               routeResult: routeResult,
               routeLocations: routeLocations,
+              hasStart: start != null,
+              hasDestination: dest != null,
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RouteEndpointRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool isSet;
+  final VoidCallback onPick;
+
+  const _RouteEndpointRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.isSet,
+    required this.onPick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isSet
+        ? context.colorScheme.primary
+        : context.colorScheme.onSurfaceVariant;
+
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: AppSpacing.sm),
+        SizedBox(
+          width: 88,
+          child: Text(
+            label,
+            style: context.textTheme.labelMedium?.copyWith(
+              color: context.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: isSet
+                  ? context.colorScheme.onSurface
+                  : context.colorScheme.onSurfaceVariant,
+              fontWeight: isSet ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        OutlinedButton.icon(
+          onPressed: onPick,
+          icon: Icon(isSet ? Icons.swap_horiz_rounded : Icons.list_rounded),
+          label: Text(isSet ? 'Change' : 'Select'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            foregroundColor: color,
+          ),
+        ),
+      ],
     );
   }
 }
