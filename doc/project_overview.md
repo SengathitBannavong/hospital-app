@@ -115,3 +115,32 @@ bool isLoggedIn = await TokenRepository.hasToken();
 - `lib/core/network/api_client.dart`
 - `lib/core/network/token_repository.dart`
 - `lib/core/network/interceptors/error_interceptor.dart`
+
+---
+
+## 🗺️ Map Module
+
+The map feature (`lib/features/map/`) renders a hospital floor grid with POIs, walkable cells, and previewed routes. It is built on Riverpod providers, a single `CustomPainter`, and `InteractiveViewer` for pan/zoom.
+
+### Layout
+- **Data**: `data/map_repository.dart` plus freezed models (`map_floor`, `map_poi`, `map_edge`, etc.).
+- **Providers** (`presentation/providers/map_provider.dart`):
+  - Raw fetches — `mapMetaProvider`, `mapNodesProvider`, `mapEdgesProvider`.
+  - Derived caches — `normalizedPoiNamesProvider`, `poiByIdProvider`, `poiByCellProvider`, `walkableCellsProvider`, `adjacencyProvider`.
+  - Route state — `routeStartProvider`, `routeDestProvider`, `routeModeProvider`, `routeResultProvider`, `routeLocationsProvider`.
+- **Utils**: `presentation/utils/search_utils.dart` — accent-insensitive `normalizeForSearch` with top-level `RegExp` instances (parsed once).
+- **Tokens**: `presentation/theme/map_tokens.dart` — `MapMotion` durations/curves, `MapSurface` colors, `MapPoiPalette` (muted, semantically grouped POI palette + labels).
+- **Painter**: `widgets/map_grid_painter.dart` — pooled `Paint` objects, viewport culling, animated `routeProgress` (0–1) for route draw-on.
+- **Page**: `pages/map_page.dart` — collapsible search bar (top), top-left route pill, bottom-left legend/recenter FABs, bottom-right "Plan route" FAB. POI taps, route planning, and the legend all open as modal bottom sheets, leaving the map unobstructed.
+- **Widgets**: `map_top_bar`, `map_search_results_panel` (skeleton + suggestion chips), `map_poi_metadata_panel`, `map_route_panel`, `map_route_status`, `map_legend_sheet`.
+
+### Performance notes
+- `MapPage.build` scopes provider reads with `.select()` to avoid full-tree rebuilds.
+- `CustomPaint` is wrapped in `RepaintBoundary`; the painter uses identity comparisons in `shouldRepaint`.
+- POI tap uses `poiByCellProvider` (O(1) cell index, 3×3 neighborhood search) instead of a linear scan.
+- Vietnamese search normalization is computed once per POI and cached in `normalizedPoiNamesProvider`.
+
+### Tests
+- `test/features/map/presentation/utils/search_utils_test.dart` — normalization correctness.
+- `test/features/map/presentation/providers/map_provider_test.dart` — search results, derived providers, route extraction.
+- Run with `flutter test test/features/map`.

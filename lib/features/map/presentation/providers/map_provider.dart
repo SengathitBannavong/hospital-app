@@ -3,6 +3,7 @@ import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 
 final mapRepositoryProvider = Provider<MapRepository>((ref) {
   return MapRepository();
@@ -34,6 +35,71 @@ final mapEdgesProvider = FutureProvider.family<List<MapEdge>, int>((
 // Search keyword
 final searchKeywordProvider = StateProvider<String>((ref) => '');
 
+// Normalized POI names cache keyed by poiId — computed once when nodes settle.
+final normalizedPoiNamesProvider = Provider.family<Map<int, String>, int>((
+  ref,
+  mapId,
+) {
+  final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];
+  return {
+    for (final poi in nodes) poi.poiId: normalizeForSearch(poi.poiName),
+  };
+});
+
+// O(1) lookup by poiId.
+final poiByIdProvider = Provider.family<Map<int, MapPoi>, int>((ref, mapId) {
+  final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];
+  return {for (final poi in nodes) poi.poiId: poi};
+});
+
+// O(1) lookup keyed by row*cols+col. Skips out-of-bounds POIs.
+final poiByCellProvider = Provider.family<Map<int, MapPoi>, int>((ref, mapId) {
+  final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];
+  final meta = ref.watch(mapMetaProvider(mapId)).value;
+  if (meta == null) {
+    return const <int, MapPoi>{};
+  }
+  final cols = meta.cols;
+  final rows = meta.rows;
+  final result = <int, MapPoi>{};
+  for (final poi in nodes) {
+    if (poi.gridRow < 0 ||
+        poi.gridRow >= rows ||
+        poi.gridCol < 0 ||
+        poi.gridCol >= cols) {
+      continue;
+    }
+    result[poi.gridRow * cols + poi.gridCol] = poi;
+  }
+  return result;
+});
+
+// Walkable cell set derived from edges. Stable identity until edges change.
+final walkableCellsProvider = Provider.family<Set<int>, int>((ref, mapId) {
+  final edges = ref.watch(mapEdgesProvider(mapId)).value ?? const <MapEdge>[];
+  final result = <int>{};
+  for (final edge in edges) {
+    result
+      ..add(edge.fromLocation)
+      ..add(edge.toLocation);
+  }
+  return result;
+});
+
+// Adjacency for potential client-side routing / consumers. Cheap to keep here.
+final adjacencyProvider = Provider.family<Map<int, List<int>>, int>((
+  ref,
+  mapId,
+) {
+  final edges = ref.watch(mapEdgesProvider(mapId)).value ?? const <MapEdge>[];
+  final result = <int, List<int>>{};
+  for (final edge in edges) {
+    result.putIfAbsent(edge.fromLocation, () => <int>[]).add(edge.toLocation);
+    result.putIfAbsent(edge.toLocation, () => <int>[]).add(edge.fromLocation);
+  }
+  return result;
+});
+
 // Search results by keyword + mapId
 final searchResultsProvider = FutureProvider.family<List<MapPoi>, int>((
   ref,
@@ -46,21 +112,28 @@ final searchResultsProvider = FutureProvider.family<List<MapPoi>, int>((
   }
 
   final nodes = await ref.watch(mapNodesProvider(mapId).future);
-  return _filterPois(nodes, keyword);
+  final normalized = ref.watch(normalizedPoiNamesProvider(mapId));
+  return _filterPois(nodes, normalized, keyword);
 });
 
-List<MapPoi> _filterPois(List<MapPoi> pois, String keyword) {
-  final normalizedKeyword = _normalizeForSearch(keyword);
+List<MapPoi> _filterPois(
+  List<MapPoi> pois,
+  Map<int, String> normalized,
+  String keyword,
+) {
+  final normalizedKeyword = normalizeForSearch(keyword);
   if (normalizedKeyword.isEmpty) {
     return [];
   }
 
+  String nameOf(MapPoi poi) =>
+      normalized[poi.poiId] ?? normalizeForSearch(poi.poiName);
+
   return pois.where((poi) {
-    final normalizedName = _normalizeForSearch(poi.poiName);
-    return normalizedName.contains(normalizedKeyword);
+    return nameOf(poi).contains(normalizedKeyword);
   }).toList()..sort((a, b) {
-    final aName = _normalizeForSearch(a.poiName);
-    final bName = _normalizeForSearch(b.poiName);
+    final aName = nameOf(a);
+    final bName = nameOf(b);
     final aStarts = aName.startsWith(normalizedKeyword);
     final bStarts = bName.startsWith(normalizedKeyword);
     if (aStarts != bStarts) {
@@ -68,20 +141,6 @@ List<MapPoi> _filterPois(List<MapPoi> pois, String keyword) {
     }
     return aName.compareTo(bName);
   });
-}
-
-String _normalizeForSearch(String value) {
-  return value
-      .toLowerCase()
-      .replaceAll(RegExp(r'[àáạảãâầấậẩẫăằắặẳẵ]'), 'a')
-      .replaceAll(RegExp(r'[èéẹẻẽêềếệểễ]'), 'e')
-      .replaceAll(RegExp(r'[ìíịỉĩ]'), 'i')
-      .replaceAll(RegExp(r'[òóọỏõôồốộổỗơờớợởỡ]'), 'o')
-      .replaceAll(RegExp(r'[ùúụủũưừứựửữ]'), 'u')
-      .replaceAll(RegExp(r'[ỳýỵỷỹ]'), 'y')
-      .replaceAll('đ', 'd')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
 }
 
 // Route state
@@ -106,3 +165,69 @@ final routeResultProvider = FutureProvider.autoDispose<dynamic>((ref) async {
     modeId: mode,
   );
 });
+
+// Extracted route locations memoized off routeResultProvider.
+final routeLocationsProvider = Provider.autoDispose<List<int>>((ref) {
+  final result = ref.watch(routeResultProvider);
+  return result.maybeWhen(
+    data: extractRouteLocations,
+    orElse: () => const <int>[],
+  );
+});
+
+List<int> extractRouteLocations(dynamic data) {
+  if (data == null) {
+    return const [];
+  }
+
+  if (data is List) {
+    return _coerceLocationsList(data);
+  }
+
+  if (data is Map) {
+    const keys = ['steps', 'path', 'path_locations', 'locations', 'nodes'];
+    for (final key in keys) {
+      final value = data[key];
+      if (value is List) {
+        if (key == 'steps') {
+          return _coerceRouteSteps(value);
+        }
+        return _coerceLocationsList(value);
+      }
+    }
+  }
+
+  return const [];
+}
+
+List<int> _coerceRouteSteps(List<dynamic> raw) {
+  final steps = raw.whereType<Map>().toList()
+    ..sort((a, b) {
+      final aOrder = a['step_order'];
+      final bOrder = b['step_order'];
+      if (aOrder is num && bOrder is num) {
+        return aOrder.compareTo(bOrder);
+      }
+      return 0;
+    });
+  return _coerceLocationsList(steps);
+}
+
+List<int> _coerceLocationsList(List<dynamic> raw) {
+  final locations = <int>[];
+  for (final item in raw) {
+    if (item is int) {
+      locations.add(item);
+    } else if (item is num) {
+      locations.add(item.toInt());
+    } else if (item is Map) {
+      final location = item['location'] ?? item['grid_location'];
+      if (location is int) {
+        locations.add(location);
+      } else if (location is num) {
+        locations.add(location.toInt());
+      }
+    }
+  }
+  return locations;
+}

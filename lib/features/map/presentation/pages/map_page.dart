@@ -4,10 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
-import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
+import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
+import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_grid_painter.dart';
+import 'package:hospital_app/features/map/presentation/widgets/map_legend_sheet.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_poi_metadata_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_route_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_search_results_panel.dart';
@@ -22,23 +24,22 @@ class MapPage extends ConsumerStatefulWidget {
 
 enum _RoutePickTarget { start, destination }
 
-class _MapPageState extends ConsumerState<MapPage> {
+class _MapPageState extends ConsumerState<MapPage>
+    with SingleTickerProviderStateMixin {
   static const int _defaultMapId = 1;
   static const int _defaultRows = 33;
   static const int _defaultCols = 57;
-  static const double _searchPanelHeight = 240;
   static const double _minMapScale = 1;
   static const double _maxMapScale = 4;
-  static const double _overlayGap = 8;
 
   late final TextEditingController _searchController;
+  late final AnimationController _routeAnim;
   TransformationController? _transformController;
   Size _lastViewportSize = Size.zero;
   Size _lastGridSize = Size.zero;
   double _lastMinScale = 0;
-  MapPoi? _selectedPoi;
-  bool _showTopBar = true;
-  bool _showRoutePanel = true;
+  int _lastRouteSignature = 0;
+  bool _searchExpanded = true;
   final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
   Offset? _debugPoiCenter;
@@ -47,6 +48,11 @@ class _MapPageState extends ConsumerState<MapPage> {
   void initState() {
     super.initState();
     _searchController = TextEditingController()..addListener(_onSearchChanged);
+    _routeAnim = AnimationController(
+      vsync: this,
+      duration: MapMotion.long,
+      value: 1,
+    );
     _ensureTransformController();
   }
 
@@ -55,6 +61,7 @@ class _MapPageState extends ConsumerState<MapPage> {
     _searchController
       ..removeListener(_onSearchChanged)
       ..dispose();
+    _routeAnim.dispose();
     _transformController?.dispose();
     _transformController = null;
     super.dispose();
@@ -66,10 +73,7 @@ class _MapPageState extends ConsumerState<MapPage> {
 
   TransformationController _ensureTransformController() {
     final existing = _transformController;
-    if (existing != null) {
-      return existing;
-    }
-
+    if (existing != null) return existing;
     final controller = TransformationController();
     _transformController = controller;
     return controller;
@@ -85,92 +89,100 @@ class _MapPageState extends ConsumerState<MapPage> {
         _lastMinScale == minScale) {
       return;
     }
-
     _lastViewportSize = viewportSize;
     _lastGridSize = gridSize;
     _lastMinScale = minScale;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       final controller = _transformController;
-      if (controller == null) {
-        return;
-      }
-
+      if (controller == null) return;
       final current = controller.value;
       final scale = current.getMaxScaleOnAxis().clamp(minScale, _maxMapScale);
-      final translateX = _clampTranslate(
+      final tx = _clampTranslate(
         current.storage[12],
         viewportSize.width,
         gridSize.width * scale,
       );
-      final translateY = _clampTranslate(
+      final ty = _clampTranslate(
         current.storage[13],
         viewportSize.height,
         gridSize.height * scale,
       );
-
       controller.value = Matrix4.identity()
-        ..translateByDouble(translateX, translateY, 0, 1)
+        ..translateByDouble(tx, ty, 0, 1)
         ..scaleByDouble(scale, scale, 1, 1);
     });
+  }
+
+  void _maybeAnimateRoute(List<int> routeLocations) {
+    final sig =
+        routeLocations.isEmpty ? 0 : Object.hashAll(routeLocations);
+    if (sig == _lastRouteSignature) return;
+    _lastRouteSignature = sig;
+    if (routeLocations.isEmpty) {
+      _routeAnim.value = 0;
+    } else {
+      _routeAnim
+        ..value = 0
+        ..forward();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final metaAsync = ref.watch(mapMetaProvider(_defaultMapId));
-    final nodesAsync = ref.watch(mapNodesProvider(_defaultMapId));
-    final edgesAsync = ref.watch(mapEdgesProvider(_defaultMapId));
+    final nodesLoading = ref.watch(
+      mapNodesProvider(_defaultMapId).select((a) => a.isLoading),
+    );
+    final edgesLoading = ref.watch(
+      mapEdgesProvider(_defaultMapId).select((a) => a.isLoading),
+    );
     final keyword = ref.watch(searchKeywordProvider);
     final searchResultsAsync = ref.watch(searchResultsProvider(_defaultMapId));
     final start = ref.watch(routeStartProvider);
     final dest = ref.watch(routeDestProvider);
-    final mode = ref.watch(routeModeProvider);
     final routeResultAsync = ref.watch(routeResultProvider);
-
-    final nodes = nodesAsync.value ?? <MapPoi>[];
-    final edges = edgesAsync.value ?? <MapEdge>[];
+    final nodes =
+        ref.watch(mapNodesProvider(_defaultMapId)).value ?? const <MapPoi>[];
+    final walkable = ref.watch(walkableCellsProvider(_defaultMapId));
     final rows = metaAsync.value?.rows ?? _defaultRows;
     final cols = metaAsync.value?.cols ?? _defaultCols;
-    final routeLocations = _extractRouteLocations(routeResultAsync.value);
+    final routeLocations = ref.watch(routeLocationsProvider);
 
-    final showSearchPanel = _showTopBar && keyword.trim().isNotEmpty;
-    final hasCompleteRoute = start != null && dest != null;
-    final routeStatusTop =
-        MediaQuery.of(context).padding.top +
-        (_showTopBar ? 68 : 12) +
-        (showSearchPanel ? _searchPanelHeight + _overlayGap : 0);
-    final showRouteStatusOverlay = start != null || dest != null;
-    final poiPanelTop =
-        routeStatusTop + (showRouteStatusOverlay ? 64 + _overlayGap : 0);
+    _maybeAnimateRoute(routeLocations);
+
+    final loading = metaAsync.isLoading || nodesLoading || edgesLoading;
+    final searching = keyword.trim().isNotEmpty;
+    final mediaTop = MediaQuery.of(context).padding.top;
+    final mediaBottom = MediaQuery.of(context).padding.bottom;
+
+    final hasRoute = start != null || dest != null;
 
     return Scaffold(
+      backgroundColor: MapSurface.background,
       body: Stack(
         children: [
-          Positioned.fill(
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            // Keep the map viewport above the system navigation bar so POIs
+            // along the bottom edge stay tappable.
+            bottom: mediaBottom,
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // Cover the viewport with square cells. Wide maps can overflow
-                // horizontally, but the map never starts with empty bands.
-                // Painter and tap hitbox calculations use this same cell size
-                // so POI coordinates stay aligned.
                 final cellWidth = constraints.maxWidth / cols;
                 final cellHeight = constraints.maxHeight / rows;
                 final cellSize = math.max(cellWidth, cellHeight);
-
                 final gridWidth = cols * cellSize;
                 final gridHeight = rows * cellSize;
                 const minScale = _minMapScale;
 
                 final controller = _ensureTransformController();
                 _syncTransformToLayout(
-                  viewportSize: Size(
-                    constraints.maxWidth,
-                    constraints.maxHeight,
-                  ),
+                  viewportSize:
+                      Size(constraints.maxWidth, constraints.maxHeight),
                   gridSize: Size(gridWidth, gridHeight),
                   minScale: minScale,
                 );
@@ -179,8 +191,6 @@ class _MapPageState extends ConsumerState<MapPage> {
                   transformationController: controller,
                   alignment: Alignment.topLeft,
                   clipBehavior: Clip.hardEdge,
-                  // The child must keep the exact painted grid size; otherwise
-                  // InteractiveViewer can stretch the tap coordinate space.
                   constrained: false,
                   minScale: minScale,
                   maxScale: _maxMapScale,
@@ -192,23 +202,41 @@ class _MapPageState extends ConsumerState<MapPage> {
                       rows,
                       cols,
                       cellSize,
-                      cellSize,
-                      nodes,
                     ),
                     child: SizedBox(
                       width: gridWidth,
                       height: gridHeight,
-                      child: CustomPaint(
-                        size: Size(gridWidth, gridHeight),
-                        painter: MapGridPainter(
-                          rows: rows,
-                          cols: cols,
-                          edges: edges,
-                          pois: nodes,
-                          routeLocations: routeLocations,
-                          debugTap: _debugTapScene,
-                          debugPoiCenter: _debugPoiCenter,
-                          showDebug: _showDebugHitTest,
+                      child: RepaintBoundary(
+                        child: AnimatedBuilder(
+                          animation: Listenable.merge([
+                            controller,
+                            _routeAnim,
+                          ]),
+                          builder: (context, _) {
+                            final visibleRect = _visibleRectFor(
+                              controller.value,
+                              Size(
+                                constraints.maxWidth,
+                                constraints.maxHeight,
+                              ),
+                              Size(gridWidth, gridHeight),
+                            );
+                            return CustomPaint(
+                              size: Size(gridWidth, gridHeight),
+                              painter: MapGridPainter(
+                                rows: rows,
+                                cols: cols,
+                                walkableLocations: walkable,
+                                pois: nodes,
+                                routeLocations: routeLocations,
+                                routeProgress: _routeAnim.value,
+                                visibleRect: visibleRect,
+                                debugTap: _debugTapScene,
+                                debugPoiCenter: _debugPoiCenter,
+                                showDebug: _showDebugHitTest,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -217,123 +245,124 @@ class _MapPageState extends ConsumerState<MapPage> {
               },
             ),
           ),
-          if (metaAsync.isLoading ||
-              nodesAsync.isLoading ||
-              edgesAsync.isLoading)
-            const Positioned.fill(
-              child: IgnorePointer(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ),
-          if (_showTopBar)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 12,
-              left: 12,
-              right: 12,
-              child: MapTopBar(
-                controller: _searchController,
-                onHide: () => setState(() => _showTopBar = false),
-              ),
-            )
-          else
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 12,
-              left: 12,
-              child: MapTopBarCollapsedButton(
-                onShow: () => setState(() => _showTopBar = true),
-              ),
-            ),
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            top: MediaQuery.of(context).padding.top + 68,
-            left: 12,
-            right: 12,
-            height: showSearchPanel ? _searchPanelHeight : 0,
-            child: IgnorePointer(
-              ignoring: !showSearchPanel,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 150),
-                opacity: showSearchPanel ? 1 : 0,
-                child: MapSearchResultsPanel(
-                  results: searchResultsAsync,
-                  query: keyword.trim(),
-                  onSelect: (poi) => _selectPoiFromSearch(poi, start),
-                ),
-              ),
+
+          // Top: collapsible search
+          Positioned(
+            top: mediaTop + AppSpacing.md,
+            left: AppSpacing.md,
+            right: AppSpacing.md,
+            child: AnimatedSize(
+              duration: MapMotion.medium,
+              curve: MapMotion.resize,
+              alignment: Alignment.topRight,
+              child: _searchExpanded
+                  ? Column(
+                      key: const ValueKey('search-expanded'),
+                      children: [
+                        MapTopBar(
+                          controller: _searchController,
+                          isLoading: loading,
+                          onCollapse: () => setState(() {
+                            _searchController.clear();
+                            _searchExpanded = false;
+                          }),
+                        ),
+                        AnimatedSwitcher(
+                          duration: MapMotion.medium,
+                          switchInCurve: MapMotion.enter,
+                          switchOutCurve: MapMotion.enter,
+                          child: searching
+                              ? Padding(
+                                  key: const ValueKey('results'),
+                                  padding: const EdgeInsets.only(
+                                    top: AppSpacing.sm,
+                                  ),
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxHeight: 320,
+                                    ),
+                                    child: MapSearchResultsPanel(
+                                      results: searchResultsAsync,
+                                      query: keyword.trim(),
+                                      suggestions: nodes.take(3).toList(),
+                                      onSelect: (poi) =>
+                                          _selectPoiFromSearch(poi, start),
+                                      onRetry: () => ref.invalidate(
+                                        searchResultsProvider(_defaultMapId),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(key: ValueKey('idle')),
+                        ),
+                      ],
+                    )
+                  : Align(
+                      key: const ValueKey('search-collapsed'),
+                      alignment: Alignment.topRight,
+                      child: _MapFab(
+                        icon: Icons.search_rounded,
+                        tooltip: 'Search',
+                        onPressed: () =>
+                            setState(() => _searchExpanded = true),
+                      ),
+                    ),
             ),
           ),
-          if (showRouteStatusOverlay)
+
+          // Top-left: route progress pill (only when route in progress)
+          if (hasRoute)
             Positioned(
-              top: routeStatusTop,
-              left: 12,
-              right: 12,
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: _RouteSelectionOverlay(
-                    start: start,
-                    dest: dest,
-                    routeResult: routeResultAsync,
-                    routeLocations: routeLocations,
-                    onDoneRoute: hasCompleteRoute ? _completeRoute : null,
-                  ),
-                ),
-              ),
-            ),
-          if (_selectedPoi != null)
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              top: poiPanelTop,
-              left: 12,
-              right: 12,
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 360),
-                  child: MapPoiMetadataPanel(
-                    poi: _selectedPoi!,
-                    onClose: () => setState(() => _selectedPoi = null),
-                    onSetStart: () => _setRouteStart(_selectedPoi!),
-                    onSetDestination: () => _setRouteDestination(_selectedPoi!),
-                  ),
-                ),
-              ),
-            ),
-          if (_showRoutePanel && !hasCompleteRoute)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: MapRoutePanel(
+              top: mediaTop + AppSpacing.md + 52,
+              left: AppSpacing.md,
+              child: _RoutePill(
                 start: start,
                 dest: dest,
-                mode: mode,
-                routeResult: routeResultAsync,
-                routeLocations: routeLocations,
+                onTap: _showRoutePanel,
                 onClear: _clearRoute,
-                onModeChanged: (value) =>
-                    ref.read(routeModeProvider.notifier).state = value,
-                onPickStart: () =>
-                    _showRoutePoiPicker(_RoutePickTarget.start, nodes),
-                onPickDestination: () =>
-                    _showRoutePoiPicker(_RoutePickTarget.destination, nodes),
-                onHide: () => setState(() => _showRoutePanel = false),
-              ),
-            )
-          else if (!hasCompleteRoute)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 12,
-              child: Center(
-                child: MapRoutePanelCollapsed(
-                  onShow: () => setState(() => _showRoutePanel = true),
-                ),
+                onDone: (start != null &&
+                        dest != null &&
+                        routeResultAsync.hasValue)
+                    ? _completeRoute
+                    : null,
               ),
             ),
+
+          // Bottom-left FAB cluster: legend + recenter
+          Positioned(
+            left: AppSpacing.md,
+            bottom: mediaBottom + AppSpacing.md,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _MapFab(
+                  icon: Icons.map_outlined,
+                  tooltip: 'Map legend',
+                  onPressed: _showLegend,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _MapFab(
+                  icon: Icons.center_focus_strong_rounded,
+                  tooltip: 'Recenter',
+                  onPressed: _recenter,
+                ),
+              ],
+            ),
+          ),
+
+          // Bottom-right: route plan FAB
+          Positioned(
+            right: AppSpacing.md,
+            bottom: mediaBottom + AppSpacing.md,
+            child: FloatingActionButton.extended(
+              heroTag: 'map-route-fab',
+              onPressed: _showRoutePanel,
+              icon: Icon(hasRoute
+                  ? Icons.edit_location_alt_rounded
+                  : Icons.alt_route_rounded),
+              label: Text(hasRoute ? 'Route' : 'Plan route'),
+            ),
+          ),
         ],
       ),
     );
@@ -343,52 +372,80 @@ class _MapPageState extends ConsumerState<MapPage> {
     Offset scenePosition,
     int rows,
     int cols,
-    double cellWidth,
-    double cellHeight,
-    List<MapPoi> pois,
+    double cellSize,
   ) {
-    if (pois.isEmpty) {
-      setState(() => _selectedPoi = null);
-      return;
-    }
-
+    final byCell = ref.read(poiByCellProvider(_defaultMapId));
+    if (byCell.isEmpty) return;
+    final tapCol = (scenePosition.dx / cellSize).floor();
+    final tapRow = (scenePosition.dy / cellSize).floor();
     MapPoi? nearest;
     Offset? nearestCenter;
     double bestDistanceSq = double.infinity;
-
-    for (final poi in pois) {
-      if (!_isPoiInBounds(poi, rows, cols)) {
-        continue;
-      }
-
-      final center = _poiCenter(poi, cellWidth, cellHeight);
-
-      final dx = center.dx - scenePosition.dx;
-      final dy = center.dy - scenePosition.dy;
-      final distSq = dx * dx + dy * dy;
-
-      if (distSq < bestDistanceSq) {
-        bestDistanceSq = distSq;
-        nearest = poi;
-        nearestCenter = center;
+    for (var dr = -1; dr <= 1; dr++) {
+      final row = tapRow + dr;
+      if (row < 0 || row >= rows) continue;
+      for (var dc = -1; dc <= 1; dc++) {
+        final col = tapCol + dc;
+        if (col < 0 || col >= cols) continue;
+        final poi = byCell[row * cols + col];
+        if (poi == null) continue;
+        final center = _poiCenter(poi, cellSize, cellSize);
+        final dx = center.dx - scenePosition.dx;
+        final dy = center.dy - scenePosition.dy;
+        final distSq = dx * dx + dy * dy;
+        if (distSq < bestDistanceSq) {
+          bestDistanceSq = distSq;
+          nearest = poi;
+          nearestCenter = center;
+        }
       }
     }
-
     if (_showDebugHitTest) {
       setState(() {
         _debugTapScene = scenePosition;
         _debugPoiCenter = nearestCenter;
       });
     }
+    final maxR = cellSize * 1.2;
+    if (nearest == null || bestDistanceSq > maxR * maxR) return;
+    _showPoiSheet(nearest);
+  }
 
-    final maxHitboxRadius = math.max(cellWidth, cellHeight) * 1.2;
+  Future<void> _showPoiSheet(MapPoi poi) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: false,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: MapPoiMetadataPanel(
+            poi: poi,
+            onClose: () => Navigator.of(sheetContext).maybePop(),
+            onSetStart: () {
+              Navigator.of(sheetContext).maybePop();
+              _setRouteStart(poi);
+            },
+            onSetDestination: () {
+              Navigator.of(sheetContext).maybePop();
+              _setRouteDestination(poi);
+            },
+          ),
+        );
+      },
+    );
+  }
 
-    if (nearest == null || bestDistanceSq > maxHitboxRadius * maxHitboxRadius) {
-      setState(() => _selectedPoi = null);
-      return;
-    }
-
-    setState(() => _selectedPoi = nearest);
+  Rect _visibleRectFor(Matrix4 transform, Size viewport, Size grid) {
+    final scale = transform.getMaxScaleOnAxis();
+    if (scale <= 0) return Rect.fromLTWH(0, 0, grid.width, grid.height);
+    final tx = transform.storage[12];
+    final ty = transform.storage[13];
+    final left = (-tx / scale).clamp(0.0, grid.width);
+    final top = (-ty / scale).clamp(0.0, grid.height);
+    final right = ((viewport.width - tx) / scale).clamp(0.0, grid.width);
+    final bottom = ((viewport.height - ty) / scale).clamp(0.0, grid.height);
+    return Rect.fromLTRB(left, top, right, bottom);
   }
 
   void _selectPoiFromSearch(MapPoi poi, MapPoi? start) {
@@ -397,7 +454,6 @@ class _MapPageState extends ConsumerState<MapPage> {
     } else {
       _setRouteDestination(poi);
     }
-
     _searchController.clear();
     ref.read(searchKeywordProvider.notifier).state = '';
   }
@@ -405,42 +461,92 @@ class _MapPageState extends ConsumerState<MapPage> {
   void _clearRoute() {
     ref.read(routeStartProvider.notifier).state = null;
     ref.read(routeDestProvider.notifier).state = null;
-    setState(() {
-      _showRoutePanel = true;
-      _showTopBar = true;
-    });
+    setState(() {});
   }
 
   void _completeRoute() {
     ref.read(routeStartProvider.notifier).state = null;
     ref.read(routeDestProvider.notifier).state = null;
     ref.invalidate(routeResultProvider);
-    setState(() {
-      _selectedPoi = null;
-      _showRoutePanel = true;
-      _showTopBar = true;
-    });
+    setState(() {});
+  }
+
+  void _recenter() {
+    final controller = _transformController;
+    if (controller == null) return;
+    controller.value = Matrix4.identity()
+      ..scaleByDouble(_minMapScale, _minMapScale, 1, 1);
+  }
+
+  Future<void> _showLegend() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: false,
+      builder: (_) => const MapLegendSheet(),
+    );
+  }
+
+  Future<void> _showRoutePanel() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: false,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final start = ref.watch(routeStartProvider);
+            final dest = ref.watch(routeDestProvider);
+            final mode = ref.watch(routeModeProvider);
+            final routeResult = ref.watch(routeResultProvider);
+            final routeLocations = ref.watch(routeLocationsProvider);
+            final nodes =
+                ref.watch(mapNodesProvider(_defaultMapId)).value ??
+                    const <MapPoi>[];
+            return SafeArea(
+              top: false,
+              child: MapRoutePanel(
+                start: start,
+                dest: dest,
+                mode: mode,
+                routeResult: routeResult,
+                routeLocations: routeLocations,
+                onClear: () {
+                  _clearRoute();
+                  Navigator.of(sheetContext).maybePop();
+                },
+                onModeChanged: (v) =>
+                    ref.read(routeModeProvider.notifier).state = v,
+                onPickStart: () =>
+                    _showRoutePoiPicker(_RoutePickTarget.start, nodes),
+                onPickDestination: () => _showRoutePoiPicker(
+                  _RoutePickTarget.destination,
+                  nodes,
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _showRoutePoiPicker(
     _RoutePickTarget target,
     List<MapPoi> pois,
   ) async {
+    final normalized = ref.read(normalizedPoiNamesProvider(_defaultMapId));
     final selected = await showModalBottomSheet<MapPoi>(
       context: context,
       isScrollControlled: true,
       builder: (context) => _RoutePoiPickerSheet(
         title: target == _RoutePickTarget.start
-            ? 'Select start point'
-            : 'Select destination',
+            ? 'Pick a start point'
+            : 'Pick a destination',
         pois: pois,
+        normalizedNames: normalized,
       ),
     );
-
-    if (!mounted || selected == null) {
-      return;
-    }
-
+    if (!mounted || selected == null) return;
     if (target == _RoutePickTarget.start) {
       _setRouteStart(selected);
     } else {
@@ -451,104 +557,26 @@ class _MapPageState extends ConsumerState<MapPage> {
   void _setRouteStart(MapPoi poi) {
     final dest = ref.read(routeDestProvider);
     ref.read(routeStartProvider.notifier).state = poi;
-    final routeIsComplete =
-        dest != null && dest.gridLocation != poi.gridLocation;
     if (dest?.gridLocation == poi.gridLocation) {
       ref.read(routeDestProvider.notifier).state = null;
     }
-    setState(() {
-      _showRoutePanel = !routeIsComplete;
-      _showTopBar = !routeIsComplete;
-      _selectedPoi = null;
-    });
+    setState(() {});
   }
 
   void _setRouteDestination(MapPoi poi) {
     final start = ref.read(routeStartProvider);
     ref.read(routeDestProvider.notifier).state = poi;
-    final routeIsComplete =
-        start != null && start.gridLocation != poi.gridLocation;
     if (start?.gridLocation == poi.gridLocation) {
       ref.read(routeStartProvider.notifier).state = null;
     }
-    setState(() {
-      _showRoutePanel = !routeIsComplete;
-      _showTopBar = !routeIsComplete;
-      _selectedPoi = null;
-    });
-  }
-
-  List<int> _extractRouteLocations(dynamic data) {
-    if (data == null) {
-      return [];
-    }
-
-    if (data is List) {
-      return _coerceLocationsList(data);
-    }
-
-    if (data is Map<String, dynamic>) {
-      const keys = ['steps', 'path', 'path_locations', 'locations', 'nodes'];
-      for (final key in keys) {
-        final value = data[key];
-        if (value is List) {
-          if (key == 'steps') {
-            return _coerceRouteSteps(value);
-          }
-          return _coerceLocationsList(value);
-        }
-      }
-    }
-
-    return [];
-  }
-
-  List<int> _coerceRouteSteps(List<dynamic> raw) {
-    final steps = raw.whereType<Map>().toList()
-      ..sort((a, b) {
-        final aOrder = a['step_order'];
-        final bOrder = b['step_order'];
-        if (aOrder is num && bOrder is num) {
-          return aOrder.compareTo(bOrder);
-        }
-        return 0;
-      });
-    return _coerceLocationsList(steps);
-  }
-
-  List<int> _coerceLocationsList(List<dynamic> raw) {
-    final locations = <int>[];
-    for (final item in raw) {
-      if (item is int) {
-        locations.add(item);
-      } else if (item is num) {
-        locations.add(item.toInt());
-      } else if (item is Map) {
-        final location = item['location'] ?? item['grid_location'];
-        if (location is int) {
-          locations.add(location);
-        } else if (location is num) {
-          locations.add(location.toInt());
-        }
-      }
-    }
-    return locations;
+    setState(() {});
   }
 
   Offset _poiCenter(MapPoi poi, double cellWidth, double cellHeight) {
-    // Backend POI coordinates point to grid cells, not raw pixels.
-    // Render and hit-test at the cell center to avoid half-cell offset bugs.
     return Offset(
       poi.gridCol * cellWidth + cellWidth / 2,
       poi.gridRow * cellHeight + cellHeight / 2,
     );
-  }
-
-  bool _isPoiInBounds(MapPoi poi, int rows, int cols) {
-    return poi.gridRow >= 0 &&
-        poi.gridRow < rows &&
-        poi.gridCol >= 0 &&
-        poi.gridCol < cols;
   }
 
   double _clampTranslate(
@@ -556,93 +584,144 @@ class _MapPageState extends ConsumerState<MapPage> {
     double viewportExtent,
     double gridExtent,
   ) {
-    if (gridExtent <= viewportExtent) {
-      return 0;
-    }
-
+    if (gridExtent <= viewportExtent) return 0;
     return translate.clamp(viewportExtent - gridExtent, 0).toDouble();
   }
 }
 
-class _RouteSelectionOverlay extends StatelessWidget {
+class _RoutePill extends StatelessWidget {
   final MapPoi? start;
   final MapPoi? dest;
-  final AsyncValue<dynamic> routeResult;
-  final List<int> routeLocations;
-  final VoidCallback? onDoneRoute;
+  final VoidCallback? onTap;
+  final VoidCallback? onClear;
+  final VoidCallback? onDone;
 
-  const _RouteSelectionOverlay({
+  const _RoutePill({
     required this.start,
     required this.dest,
-    required this.routeResult,
-    required this.routeLocations,
-    required this.onDoneRoute,
+    required this.onTap,
+    required this.onClear,
+    required this.onDone,
   });
 
   @override
   Widget build(BuildContext context) {
-    final canFinishRoute =
-        onDoneRoute != null &&
-        routeResult.hasValue &&
-        routeResult.value != null;
+    if (start == null && dest == null) return const SizedBox.shrink();
+    final scheme = context.colorScheme;
+    final startName = start?.poiName ?? 'Pick start';
+    final destName = dest?.poiName ?? 'Pick destination';
 
-    return Material(
-      color: context.colorScheme.surface,
-      elevation: 6,
-      shadowColor: context.colorScheme.shadow,
-      shape: RoundedRectangleBorder(
-        borderRadius: AppRadius.borderLg,
-        side: BorderSide(color: context.colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.sm),
-        child: Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            _RouteSelectionChip(
-              icon: Icons.my_location_rounded,
-              label: 'Start',
-              poiName: start?.poiName,
-              color: context.colorScheme.primary,
+    return Semantics(
+      container: true,
+      button: onTap != null,
+      label: 'Route from $startName to $destName. Tap to edit.',
+      child: Material(
+        color: scheme.surface,
+        elevation: 2,
+        shadowColor: scheme.shadow,
+        borderRadius: AppRadius.borderFull,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.borderFull,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.xs,
+              AppSpacing.xs,
+              AppSpacing.xs,
             ),
-            _RouteSelectionChip(
-              icon: Icons.flag_rounded,
-              label: 'Destination',
-              poiName: dest?.poiName,
-              color: context.colorScheme.secondary,
-            ),
-            if (onDoneRoute != null)
-              _RouteDoneButton(
-                isEnabled: canFinishRoute,
-                routeLocations: routeLocations,
-                onPressed: onDoneRoute!,
+            child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.my_location_rounded,
+                  size: 14, color: scheme.primary),
+              const SizedBox(width: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 96),
+                child: Text(
+                  startName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-          ],
+              const SizedBox(width: 6),
+              Icon(Icons.arrow_forward_rounded,
+                  size: 14, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Icon(Icons.flag_rounded, size: 14, color: scheme.secondary),
+              const SizedBox(width: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 96),
+                child: Text(
+                  destName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              if (onDone != null)
+                IconButton(
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onDone,
+                  icon: Icon(Icons.check_circle_rounded,
+                      color: scheme.primary),
+                  tooltip: 'Finish route',
+                )
+              else if (onClear != null)
+                IconButton(
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close_rounded),
+                  tooltip: 'Clear route',
+                ),
+            ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _RouteDoneButton extends StatelessWidget {
-  final bool isEnabled;
-  final List<int> routeLocations;
+class _MapFab extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
   final VoidCallback onPressed;
 
-  const _RouteDoneButton({
-    required this.isEnabled,
-    required this.routeLocations,
+  const _MapFab({
+    required this.icon,
+    required this.tooltip,
     required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.icon(
-      onPressed: isEnabled ? onPressed : null,
-      icon: const Icon(Icons.check_circle_rounded),
-      label: Text(
-        isEnabled ? 'Done route (${routeLocations.length})' : 'Calculating...',
+    final scheme = context.colorScheme;
+    return Semantics(
+      button: true,
+      label: tooltip,
+      child: Material(
+        color: scheme.surface,
+        elevation: 2,
+        shadowColor: scheme.shadow,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onPressed,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(icon, size: 22, color: scheme.onSurface),
+          ),
+        ),
       ),
     );
   }
@@ -651,8 +730,13 @@ class _RouteDoneButton extends StatelessWidget {
 class _RoutePoiPickerSheet extends StatefulWidget {
   final String title;
   final List<MapPoi> pois;
+  final Map<int, String> normalizedNames;
 
-  const _RoutePoiPickerSheet({required this.title, required this.pois});
+  const _RoutePoiPickerSheet({
+    required this.title,
+    required this.pois,
+    required this.normalizedNames,
+  });
 
   @override
   State<_RoutePoiPickerSheet> createState() => _RoutePoiPickerSheetState();
@@ -661,6 +745,8 @@ class _RoutePoiPickerSheet extends StatefulWidget {
 class _RoutePoiPickerSheetState extends State<_RoutePoiPickerSheet> {
   late final TextEditingController _controller;
   String _query = '';
+  String? _cachedFilterKey;
+  List<MapPoi> _cachedFiltered = const <MapPoi>[];
 
   @override
   void initState() {
@@ -677,65 +763,101 @@ class _RoutePoiPickerSheetState extends State<_RoutePoiPickerSheet> {
   }
 
   void _onQueryChanged() {
-    setState(() => _query = _controller.text.trim().toLowerCase());
+    final next = _controller.text.trim();
+    if (next == _query) return;
+    setState(() => _query = next);
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final scheme = context.colorScheme;
     final filteredPois = _filteredPois();
 
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottomInset),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.lg,
+          AppSpacing.lg + bottomInset,
+        ),
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.72,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: context.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                    tooltip: 'Close',
-                  ),
-                ],
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: scheme.outlineVariant,
+                  borderRadius: AppRadius.borderFull,
+                ),
+              ),
+              Text(
+                widget.title,
+                style: context.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               TextField(
                 controller: _controller,
                 autofocus: true,
                 decoration: const InputDecoration(
-                  hintText: 'Search POI',
+                  hintText: 'Search a place',
                   prefixIcon: Icon(Icons.search_rounded),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
               Expanded(
                 child: filteredPois.isEmpty
-                    ? const Center(child: Text('No POIs found'))
+                    ? Center(
+                        child: Text(
+                          _query.isEmpty
+                              ? 'Start typing to find a place.'
+                              : 'No matches for "$_query".',
+                          style: context.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      )
                     : ListView.separated(
                         itemCount: filteredPois.length,
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final poi = filteredPois[index];
+                          final color =
+                              MapPoiPalette.colorFor(poi.poiType);
                           return ListTile(
-                            leading: const Icon(Icons.place_rounded),
+                            leading: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.18),
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
                             title: Text(
                               poi.poiName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            subtitle: Text('${poi.poiType} • ${poi.poiCode}'),
+                            subtitle: Text(
+                              '${MapPoiPalette.labelFor(poi.poiType)} · '
+                              '${poi.poiCode}',
+                            ),
                             onTap: () => Navigator.pop(context, poi),
                           );
                         },
@@ -749,83 +871,16 @@ class _RoutePoiPickerSheetState extends State<_RoutePoiPickerSheet> {
   }
 
   List<MapPoi> _filteredPois() {
-    if (_query.isEmpty) {
-      return widget.pois;
-    }
-
-    final normalizedQuery = _normalizeSearchText(_query);
-    return widget.pois.where((poi) {
-      final text = _normalizeSearchText(poi.poiName);
+    if (_query.isEmpty) return widget.pois;
+    if (_cachedFilterKey == _query) return _cachedFiltered;
+    final normalizedQuery = normalizeForSearch(_query);
+    final result = widget.pois.where((poi) {
+      final text = widget.normalizedNames[poi.poiId] ??
+          normalizeForSearch(poi.poiName);
       return text.contains(normalizedQuery);
     }).toList();
-  }
-
-  String _normalizeSearchText(String value) {
-    return value
-        .toLowerCase()
-        .replaceAll(RegExp(r'[àáạảãâầấậẩẫăằắặẳẵ]'), 'a')
-        .replaceAll(RegExp(r'[èéẹẻẽêềếệểễ]'), 'e')
-        .replaceAll(RegExp(r'[ìíịỉĩ]'), 'i')
-        .replaceAll(RegExp(r'[òóọỏõôồốộổỗơờớợởỡ]'), 'o')
-        .replaceAll(RegExp(r'[ùúụủũưừứựửữ]'), 'u')
-        .replaceAll(RegExp(r'[ỳýỵỷỹ]'), 'y')
-        .replaceAll('đ', 'd')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-  }
-}
-
-class _RouteSelectionChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String? poiName;
-  final Color color;
-
-  const _RouteSelectionChip({
-    required this.icon,
-    required this.label,
-    required this.poiName,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isSet = poiName != null;
-
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 240),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: isSet
-            ? color.withValues(alpha: 0.12)
-            : context.colorScheme.surfaceContainerHighest,
-        borderRadius: AppRadius.borderSm,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: isSet ? color : context.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Flexible(
-            child: Text(
-              isSet ? '$label: $poiName' : '$label not set',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.textTheme.labelMedium?.copyWith(
-                color: isSet ? color : context.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    _cachedFilterKey = _query;
+    _cachedFiltered = result;
+    return result;
   }
 }
