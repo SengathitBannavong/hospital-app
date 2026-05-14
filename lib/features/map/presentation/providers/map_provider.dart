@@ -1,10 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
+import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 
 final mapRepositoryProvider = Provider<MapRepository>((ref) {
   return MapRepository();
+});
+
+// Fetch map metadata by mapId. Rows and cols must come from the backend,
+// otherwise POI coordinates can be outside the painted grid.
+final mapMetaProvider = FutureProvider.family<MapFloor, int>((ref, mapId) {
+  final repository = ref.watch(mapRepositoryProvider);
+  return repository.getMeta(mapId: mapId);
 });
 
 // Fetch nodes by mapId

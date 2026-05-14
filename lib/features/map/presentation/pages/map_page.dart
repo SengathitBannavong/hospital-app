@@ -34,7 +34,7 @@ class _MapPageState extends ConsumerState<MapPage>
   Size _childSize = Size.zero;
   bool _showTopBar = true;
   bool _showRoutePanel = true;
-  bool _showDebugHitTest = kDebugMode;
+  final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
   Offset? _debugPoiCenter;
 
@@ -81,16 +81,13 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   void _updateSizes(Size viewportSize, Size childSize) {
-    if (_viewportSize == viewportSize && _childSize == childSize) {
-      return;
-    }
-
     _viewportSize = viewportSize;
     _childSize = childSize;
   }
 
   @override
   Widget build(BuildContext context) {
+    final metaAsync = ref.watch(mapMetaProvider(_defaultMapId));
     final nodesAsync = ref.watch(mapNodesProvider(_defaultMapId));
     final edgesAsync = ref.watch(mapEdgesProvider(_defaultMapId));
     final keyword = ref.watch(searchKeywordProvider);
@@ -102,6 +99,8 @@ class _MapPageState extends ConsumerState<MapPage>
 
     final nodes = nodesAsync.value ?? <MapPoi>[];
     final edges = edgesAsync.value ?? <MapEdge>[];
+    final rows = metaAsync.value?.rows ?? _defaultRows;
+    final cols = metaAsync.value?.cols ?? _defaultCols;
     final routeLocations = _extractRouteLocations(routeResultAsync.value);
 
     final showSearchPanel = _showTopBar && keyword.trim().isNotEmpty;
@@ -112,12 +111,15 @@ class _MapPageState extends ConsumerState<MapPage>
           Positioned.fill(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final cellWidth = constraints.maxWidth / _defaultCols;
-                final cellHeight = constraints.maxHeight / _defaultRows;
+                // Fit the full backend grid into the viewport using square cells.
+                // Every painter, tap hitbox, and camera calculation below uses
+                // this same cell size so POI coordinates stay aligned.
+                final cellWidth = constraints.maxWidth / cols;
+                final cellHeight = constraints.maxHeight / rows;
                 final cellSize = math.min(cellWidth, cellHeight);
 
-                final gridWidth = _defaultCols * cellSize;
-                final gridHeight = _defaultRows * cellSize;
+                final gridWidth = cols * cellSize;
+                final gridHeight = rows * cellSize;
 
                 _updateSizes(
                   Size(constraints.maxWidth, constraints.maxHeight),
@@ -126,29 +128,34 @@ class _MapPageState extends ConsumerState<MapPage>
 
                 final controller = _ensureTransformController();
 
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTapDown: (details) => _handleTap(
-                    controller.toScene(details.localPosition),
-                    cellSize,
-                    cellSize,
-                    nodes,
-                  ),
-                  child: InteractiveViewer(
-                    transformationController: controller,
-                    alignment: Alignment.topLeft,
-                    clipBehavior: Clip.hardEdge,
-                    minScale: 0.5,
-                    maxScale: 4,
-                    boundaryMargin: EdgeInsets.zero,
+                return InteractiveViewer(
+                  transformationController: controller,
+                  alignment: Alignment.topLeft,
+                  clipBehavior: Clip.hardEdge,
+                  // The child must keep the exact painted grid size; otherwise
+                  // InteractiveViewer can stretch the tap coordinate space.
+                  constrained: false,
+                  minScale: 0.5,
+                  maxScale: 4,
+                  boundaryMargin: EdgeInsets.zero,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: (details) => _handleTap(
+                      details.localPosition,
+                      rows,
+                      cols,
+                      cellSize,
+                      cellSize,
+                      nodes,
+                    ),
                     child: SizedBox(
                       width: gridWidth,
                       height: gridHeight,
                       child: CustomPaint(
                         size: Size(gridWidth, gridHeight),
                         painter: MapGridPainter(
-                          rows: _defaultRows,
-                          cols: _defaultCols,
+                          rows: rows,
+                          cols: cols,
                           edges: edges,
                           pois: nodes,
                           routeLocations: routeLocations,
@@ -163,7 +170,9 @@ class _MapPageState extends ConsumerState<MapPage>
               },
             ),
           ),
-          if (nodesAsync.isLoading || edgesAsync.isLoading)
+          if (metaAsync.isLoading ||
+              nodesAsync.isLoading ||
+              edgesAsync.isLoading)
             const Positioned.fill(
               child: IgnorePointer(
                 child: Center(child: CircularProgressIndicator()),
@@ -241,6 +250,8 @@ class _MapPageState extends ConsumerState<MapPage>
 
   Future<void> _handleTap(
     Offset scenePosition,
+    int rows,
+    int cols,
     double cellWidth,
     double cellHeight,
     List<MapPoi> pois,
@@ -254,10 +265,11 @@ class _MapPageState extends ConsumerState<MapPage>
     double bestDistanceSq = double.infinity;
 
     for (final poi in pois) {
-      final center = Offset(
-        poi.gridCol * cellWidth + cellWidth / 2,
-        poi.gridRow * cellHeight + cellHeight / 2,
-      );
+      if (!_isPoiInBounds(poi, rows, cols)) {
+        continue;
+      }
+
+      final center = _poiCenter(poi, cellWidth, cellHeight);
 
       final dx = center.dx - scenePosition.dx;
       final dy = center.dy - scenePosition.dy;
@@ -277,7 +289,7 @@ class _MapPageState extends ConsumerState<MapPage>
       });
     }
 
-    final maxHitboxRadius = math.max(cellWidth, cellHeight) * 2.0;
+    final maxHitboxRadius = math.max(cellWidth, cellHeight) * 1.2;
 
     if (nearest == null || bestDistanceSq > maxHitboxRadius * maxHitboxRadius) {
       return;
@@ -298,15 +310,24 @@ class _MapPageState extends ConsumerState<MapPage>
     }
 
     final scale = controller.value.getMaxScaleOnAxis();
-    final centerX = poi.gridCol * cellWidth; // + cellWidth / 2;
-    final centerY = poi.gridRow * cellHeight; // + cellHeight / 2;
+    final center = _poiCenter(poi, cellWidth, cellHeight);
 
-    final targetTranslateX = _viewportSize.width / 2 - centerX; // * scale;
-    final targetTranslateY = _viewportSize.height / 2 - centerY; // * scale;
+    // Matrix translation is in viewport pixels, so scale the scene-space POI
+    // center before moving it to the viewport center.
+    final targetTranslateX = _clampTranslate(
+      _viewportSize.width / 2 - center.dx * scale,
+      _viewportSize.width,
+      _childSize.width * scale,
+    );
+    final targetTranslateY = _clampTranslate(
+      _viewportSize.height / 2 - center.dy * scale,
+      _viewportSize.height,
+      _childSize.height * scale,
+    );
 
     final targetMatrix = Matrix4.identity()
-      ..translate(targetTranslateX, targetTranslateY)
-      ..scale(scale);
+      ..translateByDouble(targetTranslateX, targetTranslateY, 0, 1)
+      ..scaleByDouble(scale, scale, 1, 1);
 
     if (_cameraAnimationController.isAnimating) {
       _cameraAnimationController.stop();
@@ -407,5 +428,34 @@ class _MapPageState extends ConsumerState<MapPage>
       }
     }
     return locations;
+  }
+
+  Offset _poiCenter(MapPoi poi, double cellWidth, double cellHeight) {
+    // Backend POI coordinates point to grid cells, not raw pixels.
+    // Render and hit-test at the cell center to avoid half-cell offset bugs.
+    return Offset(
+      poi.gridCol * cellWidth + cellWidth / 2,
+      poi.gridRow * cellHeight + cellHeight / 2,
+    );
+  }
+
+  bool _isPoiInBounds(MapPoi poi, int rows, int cols) {
+    return poi.gridRow >= 0 &&
+        poi.gridRow < rows &&
+        poi.gridCol >= 0 &&
+        poi.gridCol < cols;
+  }
+
+  double _clampTranslate(
+    double translate,
+    double viewportExtent,
+    double childExtent,
+  ) {
+    // Keep camera movement inside the map bounds after zoom is applied.
+    if (childExtent <= viewportExtent) {
+      return (viewportExtent - childExtent) / 2;
+    }
+
+    return translate.clamp(viewportExtent - childExtent, 0).toDouble();
   }
 }
