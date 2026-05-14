@@ -41,9 +41,7 @@ final normalizedPoiNamesProvider = Provider.family<Map<int, String>, int>((
   mapId,
 ) {
   final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];
-  return {
-    for (final poi in nodes) poi.poiId: normalizeForSearch(poi.poiName),
-  };
+  return {for (final poi in nodes) poi.poiId: normalizeForSearch(poi.poiName)};
 });
 
 // O(1) lookup by poiId.

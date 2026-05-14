@@ -76,12 +76,7 @@ class MapGridPainter extends CustomPainter {
         continue;
       }
       canvas.drawRect(
-        Rect.fromLTWH(
-          col * cellWidth,
-          row * cellHeight,
-          cellWidth,
-          cellHeight,
-        ),
+        Rect.fromLTWH(col * cellWidth, row * cellHeight, cellWidth, cellHeight),
         _walkablePaint,
       );
     }
@@ -167,8 +162,16 @@ class MapGridPainter extends CustomPainter {
     }
 
     if (partial > 0 && lastSegmentIndex < n - 1) {
-      final a = _cellCenter(routeLocations[lastSegmentIndex], cellWidth, cellHeight);
-      final b = _cellCenter(routeLocations[lastSegmentIndex + 1], cellWidth, cellHeight);
+      final a = _cellCenter(
+        routeLocations[lastSegmentIndex],
+        cellWidth,
+        cellHeight,
+      );
+      final b = _cellCenter(
+        routeLocations[lastSegmentIndex + 1],
+        cellWidth,
+        cellHeight,
+      );
       final mid = Offset.lerp(a, b, partial)!;
       canvas.drawLine(a, mid, _routeHaloPaint);
       canvas.drawLine(a, mid, _routeLinePaint);

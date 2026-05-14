@@ -123,10 +123,12 @@ void _addNormalizedHarness() {
     test('maps poiId -> normalized name', () async {
       final container = ProviderContainer(
         overrides: [
-          mapNodesProvider.overrideWith((ref, mapId) async => [
-                _poi(id: 1, code: 'A', name: 'Cổng chính', type: 'entrance'),
-                _poi(id: 2, code: 'B', name: 'Phòng Khám', type: 'room'),
-              ]),
+          mapNodesProvider.overrideWith(
+            (ref, mapId) async => [
+              _poi(id: 1, code: 'A', name: 'Cổng chính', type: 'entrance'),
+              _poi(id: 2, code: 'B', name: 'Phòng Khám', type: 'room'),
+            ],
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -142,28 +144,16 @@ void _addNormalizedHarness() {
     test('keys by row*cols+col and skips out-of-bounds', () async {
       final container = ProviderContainer(
         overrides: [
-          mapMetaProvider.overrideWith((ref, mapId) async => const MapFloor(
-                mapId: 1,
-                mapName: 'm',
-                rows: 10,
-                cols: 5,
-              )),
-          mapNodesProvider.overrideWith((ref, mapId) async => [
-                _poi(
-                    id: 1,
-                    code: 'A',
-                    name: 'a',
-                    type: 'room',
-                    row: 2,
-                    col: 3),
-                _poi(
-                    id: 2,
-                    code: 'B',
-                    name: 'b',
-                    type: 'room',
-                    row: 99,
-                    col: 0),
-              ]),
+          mapMetaProvider.overrideWith(
+            (ref, mapId) async =>
+                const MapFloor(mapId: 1, mapName: 'm', rows: 10, cols: 5),
+          ),
+          mapNodesProvider.overrideWith(
+            (ref, mapId) async => [
+              _poi(id: 1, code: 'A', name: 'a', type: 'room', row: 2, col: 3),
+              _poi(id: 2, code: 'B', name: 'b', type: 'room', row: 99, col: 0),
+            ],
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -180,24 +170,26 @@ void _addNormalizedHarness() {
     test('derives set from edge endpoints', () async {
       final container = ProviderContainer(
         overrides: [
-          mapEdgesProvider.overrideWith((ref, mapId) async => const [
-                MapEdge(
-                  fromRow: 0,
-                  fromCol: 0,
-                  fromLocation: 0,
-                  toRow: 0,
-                  toCol: 1,
-                  toLocation: 1,
-                ),
-                MapEdge(
-                  fromRow: 0,
-                  fromCol: 1,
-                  fromLocation: 1,
-                  toRow: 0,
-                  toCol: 2,
-                  toLocation: 2,
-                ),
-              ]),
+          mapEdgesProvider.overrideWith(
+            (ref, mapId) async => const [
+              MapEdge(
+                fromRow: 0,
+                fromCol: 0,
+                fromLocation: 0,
+                toRow: 0,
+                toCol: 1,
+                toLocation: 1,
+              ),
+              MapEdge(
+                fromRow: 0,
+                fromCol: 1,
+                fromLocation: 1,
+                toRow: 0,
+                toCol: 2,
+                toLocation: 2,
+              ),
+            ],
+          ),
         ],
       );
       addTearDown(container.dispose);

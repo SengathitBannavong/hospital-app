@@ -192,17 +192,13 @@ class _RouteEndpointRow extends StatelessWidget {
                         color: isSet
                             ? scheme.onSurface
                             : scheme.onSurfaceVariant,
-                        fontWeight:
-                            isSet ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight: isSet ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: scheme.onSurfaceVariant,
-              ),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
             ],
           ),
         ),

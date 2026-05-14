@@ -116,8 +116,7 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   void _maybeAnimateRoute(List<int> routeLocations) {
-    final sig =
-        routeLocations.isEmpty ? 0 : Object.hashAll(routeLocations);
+    final sig = routeLocations.isEmpty ? 0 : Object.hashAll(routeLocations);
     if (sig == _lastRouteSignature) return;
     _lastRouteSignature = sig;
     if (routeLocations.isEmpty) {
@@ -181,8 +180,10 @@ class _MapPageState extends ConsumerState<MapPage>
 
                 final controller = _ensureTransformController();
                 _syncTransformToLayout(
-                  viewportSize:
-                      Size(constraints.maxWidth, constraints.maxHeight),
+                  viewportSize: Size(
+                    constraints.maxWidth,
+                    constraints.maxHeight,
+                  ),
                   gridSize: Size(gridWidth, gridHeight),
                   minScale: minScale,
                 );
@@ -197,28 +198,18 @@ class _MapPageState extends ConsumerState<MapPage>
                   boundaryMargin: EdgeInsets.zero,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTapDown: (details) => _handleTap(
-                      details.localPosition,
-                      rows,
-                      cols,
-                      cellSize,
-                    ),
+                    onTapDown: (details) =>
+                        _handleTap(details.localPosition, rows, cols, cellSize),
                     child: SizedBox(
                       width: gridWidth,
                       height: gridHeight,
                       child: RepaintBoundary(
                         child: AnimatedBuilder(
-                          animation: Listenable.merge([
-                            controller,
-                            _routeAnim,
-                          ]),
+                          animation: Listenable.merge([controller, _routeAnim]),
                           builder: (context, _) {
                             final visibleRect = _visibleRectFor(
                               controller.value,
-                              Size(
-                                constraints.maxWidth,
-                                constraints.maxHeight,
-                              ),
+                              Size(constraints.maxWidth, constraints.maxHeight),
                               Size(gridWidth, gridHeight),
                             );
                             return CustomPaint(
@@ -303,8 +294,7 @@ class _MapPageState extends ConsumerState<MapPage>
                       child: _MapFab(
                         icon: Icons.search_rounded,
                         tooltip: 'Search',
-                        onPressed: () =>
-                            setState(() => _searchExpanded = true),
+                        onPressed: () => setState(() => _searchExpanded = true),
                       ),
                     ),
             ),
@@ -320,9 +310,8 @@ class _MapPageState extends ConsumerState<MapPage>
                 dest: dest,
                 onTap: _showRoutePanel,
                 onClear: _clearRoute,
-                onDone: (start != null &&
-                        dest != null &&
-                        routeResultAsync.hasValue)
+                onDone:
+                    (start != null && dest != null && routeResultAsync.hasValue)
                     ? _completeRoute
                     : null,
               ),
@@ -357,9 +346,11 @@ class _MapPageState extends ConsumerState<MapPage>
             child: FloatingActionButton.extended(
               heroTag: 'map-route-fab',
               onPressed: _showRoutePanel,
-              icon: Icon(hasRoute
-                  ? Icons.edit_location_alt_rounded
-                  : Icons.alt_route_rounded),
+              icon: Icon(
+                hasRoute
+                    ? Icons.edit_location_alt_rounded
+                    : Icons.alt_route_rounded,
+              ),
               label: Text(hasRoute ? 'Route' : 'Plan route'),
             ),
           ),
@@ -368,12 +359,7 @@ class _MapPageState extends ConsumerState<MapPage>
     );
   }
 
-  void _handleTap(
-    Offset scenePosition,
-    int rows,
-    int cols,
-    double cellSize,
-  ) {
+  void _handleTap(Offset scenePosition, int rows, int cols, double cellSize) {
     final byCell = ref.read(poiByCellProvider(_defaultMapId));
     if (byCell.isEmpty) return;
     final tapCol = (scenePosition.dx / cellSize).floor();
@@ -501,7 +487,7 @@ class _MapPageState extends ConsumerState<MapPage>
             final routeLocations = ref.watch(routeLocationsProvider);
             final nodes =
                 ref.watch(mapNodesProvider(_defaultMapId)).value ??
-                    const <MapPoi>[];
+                const <MapPoi>[];
             return SafeArea(
               top: false,
               child: MapRoutePanel(
@@ -518,10 +504,8 @@ class _MapPageState extends ConsumerState<MapPage>
                     ref.read(routeModeProvider.notifier).state = v,
                 onPickStart: () =>
                     _showRoutePoiPicker(_RoutePickTarget.start, nodes),
-                onPickDestination: () => _showRoutePoiPicker(
-                  _RoutePickTarget.destination,
-                  nodes,
-                ),
+                onPickDestination: () =>
+                    _showRoutePoiPicker(_RoutePickTarget.destination, nodes),
               ),
             );
           },
@@ -631,58 +615,66 @@ class _RoutePill extends StatelessWidget {
               AppSpacing.xs,
             ),
             child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.my_location_rounded,
-                  size: 14, color: scheme.primary),
-              const SizedBox(width: 6),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 96),
-                child: Text(
-                  startName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.my_location_rounded,
+                  size: 14,
+                  color: scheme.primary,
+                ),
+                const SizedBox(width: 6),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 96),
+                  child: Text(
+                    startName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Icon(Icons.arrow_forward_rounded,
-                  size: 14, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 6),
-              Icon(Icons.flag_rounded, size: 14, color: scheme.secondary),
-              const SizedBox(width: 6),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 96),
-                child: Text(
-                  destName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 14,
+                  color: scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Icon(Icons.flag_rounded, size: 14, color: scheme.secondary),
+                const SizedBox(width: 6),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 96),
+                  child: Text(
+                    destName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              if (onDone != null)
-                IconButton(
-                  iconSize: 18,
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onDone,
-                  icon: Icon(Icons.check_circle_rounded,
-                      color: scheme.primary),
-                  tooltip: 'Finish route',
-                )
-              else if (onClear != null)
-                IconButton(
-                  iconSize: 18,
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onClear,
-                  icon: const Icon(Icons.close_rounded),
-                  tooltip: 'Clear route',
-                ),
-            ],
+                const SizedBox(width: AppSpacing.xs),
+                if (onDone != null)
+                  IconButton(
+                    iconSize: 18,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onDone,
+                    icon: Icon(
+                      Icons.check_circle_rounded,
+                      color: scheme.primary,
+                    ),
+                    tooltip: 'Finish route',
+                  )
+                else if (onClear != null)
+                  IconButton(
+                    iconSize: 18,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onClear,
+                    icon: const Icon(Icons.close_rounded),
+                    tooltip: 'Clear route',
+                  ),
+              ],
             ),
           ),
         ),
@@ -829,8 +821,7 @@ class _RoutePoiPickerSheetState extends State<_RoutePoiPickerSheet> {
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final poi = filteredPois[index];
-                          final color =
-                              MapPoiPalette.colorFor(poi.poiType);
+                          final color = MapPoiPalette.colorFor(poi.poiType);
                           return ListTile(
                             leading: Container(
                               width: 28,
@@ -875,8 +866,8 @@ class _RoutePoiPickerSheetState extends State<_RoutePoiPickerSheet> {
     if (_cachedFilterKey == _query) return _cachedFiltered;
     final normalizedQuery = normalizeForSearch(_query);
     final result = widget.pois.where((poi) {
-      final text = widget.normalizedNames[poi.poiId] ??
-          normalizeForSearch(poi.poiName);
+      final text =
+          widget.normalizedNames[poi.poiId] ?? normalizeForSearch(poi.poiName);
       return text.contains(normalizedQuery);
     }).toList();
     _cachedFilterKey = _query;
