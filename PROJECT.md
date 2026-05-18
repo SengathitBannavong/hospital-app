@@ -1,8 +1,9 @@
 # Hospital App Project Checklist
 
-Last checked: 2026-05-14
+Last checked: 2026-05-18
 
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
+Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
 
 ## Overall Status
 
@@ -10,8 +11,10 @@ This checklist is based on the current Flutter project structure under `lib/`, e
 - [x] Riverpod is used for auth, map, medical, and profile state.
 - [x] GoRouter app shell is configured with bottom navigation for Home, Medical, Map, and Profile.
 - [x] API client/endpoints exist for auth, map, route, medical, and profile.
+- [ ] Home page is still mostly a dashboard/demo surface; it fetches task count but does not yet aggregate notifications, appointments, utilities, route status, or asset shortcuts.
 - [ ] Notification and SOS endpoints/repositories/pages are not wired into the app shell yet.
 - [ ] Static info pages are not visible in the current route tree.
+- [ ] Several patient/public Swagger-backed features are not wired into the mobile app yet: voice support, active route guidance, asset booking, staff request, chat/FAQ, utilities, and feedback.
 - [ ] Demo flow and final QA checklist still need execution.
 
 ## Chat 1: Auth Module
@@ -29,11 +32,32 @@ Scope: login, signup, OTP, forgot password, 6 pages, auth state management.
 - [x] Token persistence is wired through `TokenRepository`.
 - [x] Auth repository supports login, signup, verify OTP, resend OTP, forgot password, reset password, and change password.
 - [x] Router redirects unauthenticated users to `/login`.
+- [ ] App version check is not wired; Swagger exposes `sys/check_version`.
+- [ ] Account deletion is not wired; Swagger exposes `user/delete_account`.
 - [ ] Confirm full OTP flows against real backend responses.
 - [ ] Add/expand tests for auth provider and form validation.
 - [ ] Review route naming typo: `goRouterPrivider` should likely be `goRouterProvider`.
 
-## Chat 2: Map + Route Module
+## Chat 2: Home Module
+
+Scope: mobile dashboard, patient summary cards, quick actions, and public/patient entry points.
+
+- [x] Home page exists: `lib/features/home/presentation/pages/home_page.dart`.
+- [x] Home repository exists: `lib/features/home/data/home_repository.dart`.
+- [x] Home branch is routed in the bottom navigation shell.
+- [x] Home fetches `medical/get_tasks` and displays the current task count.
+- [x] Home includes pull-to-refresh, manual refresh, theme toggle, logout, toast examples, and animated summary cards.
+- [ ] Home still uses a local counter for appointments; no real appointment API/data flow is wired.
+- [ ] Home "doctors available" card is static demo content.
+- [ ] Home notification area is static/demo-only; it is not wired to `notification/get_list`.
+- [ ] Home quick actions are missing for Map, Medical tasks, Notifications, SOS, FAQ/help, utilities, wheelchair booking, staff request, and chat/support.
+- [ ] Home does not show live utility data even though Swagger exposes `util/weather`, `util/parking`, `util/pharmacy`, `util/canteen`, and `util/wifi`.
+- [ ] Home does not show active route status even though Swagger exposes `route/get_active` and route lifecycle APIs.
+- [ ] Home does not surface device/asset state even though Swagger exposes wheelchair/device APIs.
+- [ ] Replace toast demo buttons and FAB appointment counter with real patient actions before demo/final delivery.
+- [ ] Add tests for Home task-count loading, error state, refresh behavior, and navigation shortcuts.
+
+## Chat 3: Map + Route Module
 
 Scope: grid-based map rendering, route preview/navigation, floor switching.
 
@@ -48,10 +72,18 @@ Scope: grid-based map rendering, route preview/navigation, floor switching.
 - [x] Map provider tests exist under `test/features/map/`.
 - [ ] Floor switching UI is not complete; current map page uses `_defaultMapId = 1`.
 - [ ] Route "navigation" is currently preview/animation-focused; confirm whether turn-by-turn active navigation is required.
+- [ ] Voice route support is not wired; Swagger exposes `sys/get_voice_key` and `sys/get_voice_files`.
+- [ ] Turn-by-turn route APIs are not wired in UI/repository: `route/get_steps`, `route/get_next`, `route/get_eta`, `route/pass_node`, and `route/recalculate`.
+- [ ] Active route lifecycle is not wired: `route/order`, `route/get_active`, `route/cancel`, `route/share`, and `route/rate`.
+- [ ] Multi-stop route ordering is not exposed in UI even though Swagger supports `route/order_multi` and `route/order_unordered`.
+- [ ] Wheelchair/stretcher/hospital-cart modes are supported by Swagger route modes, but need verification in UI and backend responses.
+- [ ] Patient-side traffic/flow data is not surfaced: `flow/get_density`, `flow/get_heatmap`, `flow/get_bottlenecks`, `flow/get_forecast`, `flow/get_alerts`, and `flow/edge_status`.
+- [ ] Patient-side location/obstacle reporting is not wired: `flow/ping_location`, `flow/report_obstacle`, and `flow/get_obstacles`.
+- [ ] Offline map fallback is not implemented; `map/sync_full` can support local cache, but client-side static routing/Dijkstra is still missing.
 - [ ] Wire route order/history/clear history into UI if needed for demo.
 - [ ] Add loading/error UI polish for route preview failures.
 
-## Chat 3: Medical Module
+## Chat 4: Medical Module
 
 Scope: tasks, queue, prescription, appointment display.
 
@@ -63,10 +95,12 @@ Scope: tasks, queue, prescription, appointment display.
 - [x] Medical widgets exist for task cards, queue items, and prescription tiles.
 - [x] Medical branch is routed in the bottom navigation shell.
 - [ ] Appointment display is only represented on Home as a placeholder counter/card; no dedicated appointment data flow is visible.
+- [ ] QR scanning UI is not implemented; check-in/check-out APIs exist, but the client still needs camera scan flow and treatment/room validation.
+- [ ] Medical records/history screen is missing; Swagger exposes `medical/get_history`, `medical/result_status`, and `medical/get_prescription`.
 - [ ] Add tests for medical providers/repository parsing.
 - [ ] Confirm task actions against backend: check-in, check-out, cancel, sync.
 
-## Chat 4: Notification + Profile
+## Chat 5: Notification + Profile
 
 Scope: notification list, mark read, delete, profile edit.
 
@@ -82,9 +116,10 @@ Scope: notification list, mark read, delete, profile edit.
 - [ ] Mark-read action is not wired to UI/API.
 - [ ] Delete notification action is not wired to UI/API.
 - [ ] Notification route or bottom-nav entry is not configured.
+- [ ] Push notification/device-token flow is not complete; Swagger exposes `user/set_devtoken`, user settings, and notification APIs, but app-side push registration still needs implementation.
 - [ ] Add profile update success/error toast handling if demo requires visible feedback.
 
-## Chat 5: Util + SOS
+## Chat 6: Util + SOS
 
 Scope: static info pages and SOS feature.
 
@@ -94,9 +129,27 @@ Scope: static info pages and SOS feature.
 - [ ] SOS confirmation/error states are missing.
 - [ ] Static info pages are missing from routes and feature folders.
 - [ ] Define the static pages needed for demo, for example hospital guide, departments, visiting hours, help/contact.
+- [ ] Public utility APIs are available but not wired: `util/faq`, `util/about`, `util/contact`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather`.
+- [ ] Feedback submission is not wired; Swagger exposes `util/feedback`.
+- [ ] Language list/settings are not wired; Swagger exposes `util/languages`, `user/get_settings`, and `user/set_settings`.
+- [ ] File upload is not wired; Swagger exposes `util/upload`, useful for feedback/report images if backend accepts attachments.
 - [ ] Add navigation entry points for static info and SOS.
 
-## Chat 6: Polish + Demo Prep
+## Chat 7: Patient/Public API-backed Features Missing From Mobile
+
+Scope: features available in `swagger.yaml` for patient/public/mobile use, excluding admin-only web, flow-control, and engine-management screens.
+
+- [ ] Device/asset feature is missing from the app: `asset/asset_stations`, `asset/find_wheelchairs`, `asset/book_asset`, `asset/release_asset`, `asset/asset_health`, `asset/track_asset`, and `asset/report_broken_asset`.
+- [ ] Staff assistance request is missing: `staff/request_staff`.
+- [ ] Chat/support UI is missing: `chat/create_room`, `chat/get_rooms`, `chat/get_messages`, `chat/send_message`, `chat/get_unread_count`, `chat/mark_read`, and `ws/chat`.
+- [ ] FAQ/help center is missing even though `util/faq`, `util/about`, and `util/contact` are available.
+- [ ] Hospital utility pages are missing even though `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather` are available.
+- [ ] Feedback UI is missing even though `util/feedback` is available.
+- [ ] Route sharing/rating/history UI is missing even though route APIs exist.
+- [ ] Patient traffic awareness and reporting are missing even though public Flow APIs exist for density, heatmap, alerts, ping location, and obstacle reports.
+- [ ] User settings page is not wired for language/theme/notification preferences even though `user/get_settings` and `user/set_settings` exist in Swagger.
+
+## Chat 8: Polish + Demo Prep
 
 Scope: loading states, animations, error handling, demo script execution.
 
@@ -117,9 +170,13 @@ Scope: loading states, animations, error handling, demo script execution.
 
 ## Suggested Next Build Order
 
-1. Finish Chat 4 notification UI/API wiring.
-2. Finish Chat 5 SOS and static info pages.
-3. Add floor switching to the map module.
-4. Replace Home appointment placeholder with real appointment data or remove it from demo scope.
-5. Add focused tests for new notification, SOS, auth, and medical state.
-6. Run full format/analyze/test and execute the demo script.
+1. Finish Chat 5 notification UI/API wiring.
+2. Finish Chat 6 SOS and static info pages.
+3. Turn Home into the patient dashboard: replace demo cards/actions with real task, notification, utility, route, SOS, and asset entry points.
+4. Add patient utility pages backed by Swagger: FAQ, contact/about, pharmacy, canteen, parking, Wi-Fi, weather, and feedback.
+5. Add device/asset flow: stations, available wheelchairs, booking, release, health, track, report broken, and staff request.
+6. Add active route guidance: order active route, steps, next step, ETA, pass-node, recalculate, cancel, share, and rate.
+7. Add floor switching to the map module.
+8. Replace Home appointment placeholder with real appointment data or remove it from demo scope.
+9. Add focused tests for new Home, notification, SOS, utilities, assets, route guidance, auth, and medical state.
+10. Run full format/analyze/test and execute the demo script.
