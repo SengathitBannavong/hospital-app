@@ -266,6 +266,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                       icon: Icons.person_rounded,
                       onTap: () => context.go('/profile'),
                     ),
+                    _QuickActionCard(
+                      title: 'FAQ',
+                      icon: Icons.help_outline_rounded,
+                      onTap: () => context.go('/faq'),
+                    ),
                   ],
                 ),
               ),
