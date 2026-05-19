@@ -140,7 +140,6 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      
 
       // Auth Routes
       GoRoute(

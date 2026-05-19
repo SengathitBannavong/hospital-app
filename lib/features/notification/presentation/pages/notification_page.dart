@@ -26,13 +26,12 @@ class NotificationPage extends ConsumerWidget {
         ],
       ),
       body: notifications.isEmpty
-          ? const Center(
-              child: Text('Không có thông báo nào'),
-            )
+          ? const Center(child: Text('Không có thông báo nào'))
           : ListView.separated(
               padding: AppSpacing.pageWithTop,
               itemCount: notifications.length,
-              separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppSpacing.md),
               itemBuilder: (context, index) {
                 final item = notifications[index];
 
