@@ -110,12 +110,21 @@ Scope: notification list, mark read, delete, profile edit.
 - [x] Profile provider supports fetch and update.
 - [x] Profile repository is wired to get/set profile endpoints.
 - [x] Notification model files exist under `lib/features/notification_support/models/`.
-- [X] Notification list page is missing.
-- [X] Notification provider/state management is missing.
-- [ ] Notification repository/API endpoint constants are missing.
-- [ ] Mark-read action is not wired to UI/API.
-- [ ] Delete notification action is not wired to UI/API.
-- [ ] Notification route or bottom-nav entry is not configured.
+- [x] Notification list page exists and is wired in app shell.
+- [x] Notification provider/state management exists.
+- [x] Notification repository/API endpoint constants are wired.
+- [x] Mark-read action is wired to UI/API.
+- [x] Delete notification action is wired to UI/API.
+- [x] Notification route or bottom-nav entry is configured.
+- [ ] Verify notification response fields (`id`, `title`, `message`, `created_at`, `is_read`) and update parsing if backend differs.
+- [ ] Confirm `DELETE /notification/delete` accepts JSON body in production.
+- [ ] Use `total/page/limit` to implement pagination or load-more.
+- [ ] Show notification time in UI (use `created_at`).
+- [ ] Add global unread badge count (tab/app bar).
+- [ ] Register device token with `user/set_devtoken` and update via push.
+- [ ] Add notification settings UI using `user/get_settings` and `user/set_settings`.
+- [ ] Add repository/provider tests for notification flow.
+- [ ] Manual QA: list load, pull-to-refresh, mark read, delete.
 - [ ] Push notification/device-token flow is not complete; Swagger exposes `user/set_devtoken`, user settings, and notification APIs, but app-side push registration still needs implementation.
 - [ ] Add profile update success/error toast handling if demo requires visible feedback.
 
