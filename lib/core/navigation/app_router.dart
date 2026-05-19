@@ -20,6 +20,7 @@ import 'package:hospital_app/features/medical/presentation/pages/task_list_page.
 import 'package:hospital_app/features/medical/presentation/pages/queue_page.dart';
 import 'package:hospital_app/features/medical/presentation/pages/prescription_page.dart';
 import 'package:hospital_app/features/notification/presentation/pages/notification_page.dart';
+import 'package:hospital_app/features/info/presentation/pages/faq_page.dart';
 
 // RouterNotifier to handle reactive redirection
 class RouterNotifier extends ChangeNotifier {
@@ -47,7 +48,9 @@ class RouterNotifier extends ChangeNotifier {
 
     // Not logged in: redirect to login unless on auth pages
     if (!isLoggedIn) {
-      return isLoggingIn ? null : '/login';
+      return isLoggingIn
+          ? null
+          : '/login'; // return isLoggingIn ? null : '/login';
     }
 
     // Logged in: don't allow access to auth pages except protected routes
@@ -73,7 +76,7 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: AppToast.navigatorKey,
-    initialLocation: '/welcome',
+    initialLocation: '/welcome', //welcome
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
@@ -140,7 +143,8 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-
+      //FaqPage
+      GoRoute(path: '/faq', builder: (context, state) => const FaqPage()),
       // Auth Routes
       GoRoute(
         path: '/welcome',

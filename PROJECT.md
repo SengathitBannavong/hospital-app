@@ -49,8 +49,8 @@ Scope: mobile dashboard, patient summary cards, quick actions, and public/patien
 - [x] Home includes pull-to-refresh, manual refresh, theme toggle, logout, toast examples, and animated summary cards.
 - [ ] Home still uses a local counter for appointments; no real appointment API/data flow is wired.
 - [ ] Home "doctors available" card is static demo content.
-- [ ] Home notification area is static/demo-only; it is not wired to `notification/get_list`.
-- [ ] Home quick actions are missing for Map, Medical tasks, Notifications, SOS, FAQ/help, utilities, wheelchair booking, staff request, and chat/support.
+- [x] Home notification area is static/demo-only; it is not wired to `notification/get_list`.
+- [x] Home quick actions are missing for Map, Medical tasks, Notifications, SOS, FAQ/help, utilities, wheelchair booking, staff request, and chat/support.
 - [ ] Home does not show live utility data even though Swagger exposes `util/weather`, `util/parking`, `util/pharmacy`, `util/canteen`, and `util/wifi`.
 - [ ] Home does not show active route status even though Swagger exposes `route/get_active` and route lifecycle APIs.
 - [ ] Home does not surface device/asset state even though Swagger exposes wheelchair/device APIs.
@@ -136,8 +136,8 @@ Scope: static info pages and SOS feature.
 - [ ] SOS page/button is not visible in the route tree or main shell.
 - [ ] SOS provider/repository/API endpoint is missing.
 - [ ] SOS confirmation/error states are missing.
-- [ ] Static info pages are missing from routes and feature folders.
-- [ ] Define the static pages needed for demo, for example hospital guide, departments, visiting hours, help/contact.
+- [x] Static info pages are missing from routes and feature folders.
+- [x] Define the static pages needed for demo, for example hospital guide, departments, visiting hours, help/contact.
 - [ ] Public utility APIs are available but not wired: `util/faq`, `util/about`, `util/contact`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather`.
 - [ ] Feedback submission is not wired; Swagger exposes `util/feedback`.
 - [ ] Language list/settings are not wired; Swagger exposes `util/languages`, `user/get_settings`, and `user/set_settings`.
