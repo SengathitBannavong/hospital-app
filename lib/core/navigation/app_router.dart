@@ -21,6 +21,9 @@ import 'package:hospital_app/features/medical/presentation/pages/queue_page.dart
 import 'package:hospital_app/features/medical/presentation/pages/prescription_page.dart';
 import 'package:hospital_app/features/notification/presentation/pages/notification_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/info_page.dart';
+import 'package:hospital_app/features/info/presentation/pages/about_page.dart';
+import 'package:hospital_app/features/info/presentation/pages/contact_page.dart';
+import 'package:hospital_app/features/info/presentation/pages/faq_page.dart';
 
 // RouterNotifier to handle reactive redirection
 class RouterNotifier extends ChangeNotifier {
@@ -202,6 +205,12 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/change-password',
         builder: (context, state) => const ChangePasswordPage(),
+      ),
+      GoRoute(path: '/faq', builder: (context, state) => const FaqPage()),
+      GoRoute(path: '/about', builder: (context, state) => const AboutPage()),
+      GoRoute(
+        path: '/contact',
+        builder: (context, state) => const ContactPage(),
       ),
     ],
   );

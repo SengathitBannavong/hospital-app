@@ -271,6 +271,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                       icon: Icons.help_outline_rounded,
                       onTap: () => context.go('/faq'),
                     ),
+
+                    _QuickActionCard(
+                      title: 'Giới thiệu',
+                      icon: Icons.info_outline_rounded,
+                      onTap: () => context.go('/about'),
+                    ),
+
+                    _QuickActionCard(
+                      title: 'Liên hệ',
+                      icon: Icons.contact_phone_rounded,
+                      onTap: () => context.go('/contact'),
+                    ),
                   ],
                 ),
               ),

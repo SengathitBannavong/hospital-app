@@ -138,7 +138,7 @@ Scope: static info pages and SOS feature.
 - [ ] SOS provider/repository/API endpoint is missing.
 - [ ] SOS confirmation/error states are missing.
 - [x] Static info page exists under `features/info` and is routed via `/info`.
-- [ ] Define/expand static info pages needed for demo (hospital guide, departments, visiting hours, help/contact).
+- [x] Define/expand static info pages needed for demo (hospital guide, departments, visiting hours, help/contact).
 - [ ] Public utility APIs are available but not wired: `util/faq`, `util/about`, `util/contact`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather`.
 - [ ] Feedback submission is not wired; Swagger exposes `util/feedback`.
 - [ ] Language list/settings are not wired; Swagger exposes `util/languages`, `user/get_settings`, and `user/set_settings`.
