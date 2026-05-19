@@ -110,8 +110,8 @@ Scope: notification list, mark read, delete, profile edit.
 - [x] Profile provider supports fetch and update.
 - [x] Profile repository is wired to get/set profile endpoints.
 - [x] Notification model files exist under `lib/features/notification_support/models/`.
-- [ ] Notification list page is missing.
-- [ ] Notification provider/state management is missing.
+- [X] Notification list page is missing.
+- [X] Notification provider/state management is missing.
 - [ ] Notification repository/API endpoint constants are missing.
 - [ ] Mark-read action is not wired to UI/API.
 - [ ] Delete notification action is not wired to UI/API.
