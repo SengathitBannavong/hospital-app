@@ -1,51 +1,79 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/app_notification.dart';
+import '../../data/repository/notification_repository.dart';
 
-final notificationProvider =
-    StateNotifierProvider<NotificationNotifier, List<AppNotification>>((ref) {
-  return NotificationNotifier();
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+  return NotificationRepository();
 });
 
-class NotificationNotifier extends StateNotifier<List<AppNotification>> {
-  NotificationNotifier()
-      : super([
-          AppNotification(
-            id: 1,
-            title: 'Lịch khám hôm nay',
-            message: 'Bạn có lịch khám lúc 09:30 tại phòng A102.',
-            time: '5 phút trước',
-            isRead: false,
-          ),
-          AppNotification(
-            id: 2,
-            title: 'Kết quả xét nghiệm',
-            message: 'Kết quả xét nghiệm của bạn đã sẵn sàng.',
-            time: '1 giờ trước',
-            isRead: false,
-          ),
-          AppNotification(
-            id: 3,
-            title: 'Thông báo hệ thống',
-            message: 'Hệ thống bệnh viện đang hoạt động bình thường.',
-            time: 'Hôm qua',
-            isRead: true,
-          ),
-        ]);
+final notificationProvider =
+    StateNotifierProvider<
+      NotificationNotifier,
+      AsyncValue<List<AppNotification>>
+    >((ref) {
+      final repository = ref.watch(notificationRepositoryProvider);
+      return NotificationNotifier(repository)..fetchNotifications();
+    });
 
-  void markAsRead(int id) {
-    state = [
-      for (final item in state)
+class NotificationNotifier
+    extends StateNotifier<AsyncValue<List<AppNotification>>> {
+  NotificationNotifier(this._repository) : super(const AsyncValue.loading());
+
+  final NotificationRepository _repository;
+
+  Future<void> fetchNotifications({bool keepPrevious = false}) async {
+    if (keepPrevious) {
+      state = const AsyncValue<List<AppNotification>>.loading()
+          .copyWithPrevious(state);
+    } else {
+      state = const AsyncValue<List<AppNotification>>.loading();
+    }
+
+    state = await AsyncValue.guard(() => _repository.getNotifications());
+  }
+
+  Future<void> markAsRead(int id) async {
+    final items = state.valueOrNull;
+    if (items == null) return;
+
+    final index = items.indexWhere((item) => item.id == id);
+    if (index == -1 || items[index].isRead) return;
+
+    await _repository.markAsRead(notificationId: id);
+
+    state = AsyncValue.data([
+      for (final item in items)
         if (item.id == id) item.copyWith(isRead: true) else item,
-    ];
+    ]);
   }
 
-  void deleteNotification(int id) {
-    state = state.where((item) => item.id != id).toList();
+  Future<void> deleteNotification(int id) async {
+    final items = state.valueOrNull;
+    if (items == null) return;
+
+    final exists = items.any((item) => item.id == id);
+    if (!exists) return;
+
+    await _repository.deleteNotification(notificationId: id);
+
+    state = AsyncValue.data(items.where((item) => item.id != id).toList());
   }
 
-  void markAllAsRead() {
-    state = [
-      for (final item in state) item.copyWith(isRead: true),
-    ];
+  Future<void> markAllAsRead() async {
+    final items = state.valueOrNull;
+    if (items == null || items.isEmpty) return;
+
+    final unreadItems = items.where((item) => !item.isRead).toList();
+    if (unreadItems.isEmpty) return;
+
+    await Future.wait(
+      unreadItems.map(
+        (item) => _repository.markAsRead(notificationId: item.id),
+      ),
+    );
+
+    state = AsyncValue.data([
+      for (final item in items) item.copyWith(isRead: true),
+    ]);
   }
 }

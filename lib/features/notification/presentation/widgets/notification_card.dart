@@ -33,8 +33,7 @@ class NotificationCard extends StatelessWidget {
         title: Text(
           notification.title,
           style: context.textTheme.titleSmall?.copyWith(
-            fontWeight:
-                notification.isRead ? FontWeight.w500 : FontWeight.bold,
+            fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.bold,
           ),
         ),
         subtitle: Text(notification.message),

@@ -111,6 +111,15 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Notification Branch
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/notification',
+                builder: (context, state) => const NotificationPage(),
+              ),
+            ],
+          ),
           // Map Branch
           StatefulShellBranch(
             routes: [
@@ -129,18 +138,8 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Notification Branch
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/notification',
-                builder: (context, state) => const NotificationPage(),
-              ),
-            ],
-          ),
         ],
       ),
-      
 
       // Auth Routes
       GoRoute(
