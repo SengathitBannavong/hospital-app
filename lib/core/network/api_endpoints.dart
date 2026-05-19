@@ -43,4 +43,9 @@ class ApiEndpoints {
   static const String routeOrderUnordered = 'route/order_unordered';
   static const String routeHistory = 'route/get_history';
   static const String routeClearHistory = 'route/clear_history';
+
+  // Notification
+  static const String notificationGetList = 'notification/get_list';
+  static const String notificationSetRead = 'notification/set_read';
+  static const String notificationDelete = 'notification/delete';
 }
