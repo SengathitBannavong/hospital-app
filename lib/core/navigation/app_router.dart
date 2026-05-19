@@ -20,7 +20,7 @@ import 'package:hospital_app/features/medical/presentation/pages/task_list_page.
 import 'package:hospital_app/features/medical/presentation/pages/queue_page.dart';
 import 'package:hospital_app/features/medical/presentation/pages/prescription_page.dart';
 import 'package:hospital_app/features/notification/presentation/pages/notification_page.dart';
-import 'package:hospital_app/features/info/presentation/pages/faq_page.dart';
+import 'package:hospital_app/features/info/presentation/pages/info_page.dart';
 
 // RouterNotifier to handle reactive redirection
 class RouterNotifier extends ChangeNotifier {
@@ -123,6 +123,15 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Info Branch
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/info',
+                builder: (context, state) => const InfoPage(),
+              ),
+            ],
+          ),
           // Map Branch
           StatefulShellBranch(
             routes: [
@@ -143,8 +152,8 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      //FaqPage
-      GoRoute(path: '/faq', builder: (context, state) => const FaqPage()),
+      // FAQ legacy alias
+      GoRoute(path: '/faq', redirect: (context, state) => '/info'),
       // Auth Routes
       GoRoute(
         path: '/welcome',

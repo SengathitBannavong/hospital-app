@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/hospital_theme.dart';
 
-class FaqPage extends StatelessWidget {
-  const FaqPage({super.key});
+class InfoPage extends StatelessWidget {
+  const InfoPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +22,7 @@ class FaqPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('FAQ')),
+      appBar: AppBar(title: const Text('Thông tin')),
       body: ListView.separated(
         padding: AppSpacing.pageWithTop,
         itemCount: faqs.length,

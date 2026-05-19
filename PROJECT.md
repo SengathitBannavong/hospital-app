@@ -9,11 +9,12 @@ Admin-only web, traffic-control, and algorithm-engine features are intentionally
 
 - [x] Flutter feature-first structure is in place: `auth`, `map`, `medical`, `profile`, `home`, `main`.
 - [x] Riverpod is used for auth, map, medical, and profile state.
-- [x] GoRouter app shell is configured with bottom navigation for Home, Medical, Map, and Profile.
+- [x] GoRouter app shell is configured with bottom navigation for Home, Medical, Notification, Info, Map, and Profile.
 - [x] API client/endpoints exist for auth, map, route, medical, and profile.
 - [ ] Home page is still mostly a dashboard/demo surface; it fetches task count but does not yet aggregate notifications, appointments, utilities, route status, or asset shortcuts.
-- [ ] Notification and SOS endpoints/repositories/pages are not wired into the app shell yet.
-- [ ] Static info pages are not visible in the current route tree.
+- [x] Notification endpoints/repositories/pages are wired into the app shell.
+- [ ] SOS endpoints/repositories/pages are not wired into the app shell yet.
+- [x] Static info pages are visible in the current route tree (`/info`).
 - [ ] Several patient/public Swagger-backed features are not wired into the mobile app yet: voice support, active route guidance, asset booking, staff request, chat/FAQ, utilities, and feedback.
 - [ ] Demo flow and final QA checklist still need execution.
 
@@ -136,13 +137,14 @@ Scope: static info pages and SOS feature.
 - [ ] SOS page/button is not visible in the route tree or main shell.
 - [ ] SOS provider/repository/API endpoint is missing.
 - [ ] SOS confirmation/error states are missing.
-- [x] Static info pages are missing from routes and feature folders.
-- [x] Define the static pages needed for demo, for example hospital guide, departments, visiting hours, help/contact.
+- [x] Static info page exists under `features/info` and is routed via `/info`.
+- [ ] Define/expand static info pages needed for demo (hospital guide, departments, visiting hours, help/contact).
 - [ ] Public utility APIs are available but not wired: `util/faq`, `util/about`, `util/contact`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather`.
 - [ ] Feedback submission is not wired; Swagger exposes `util/feedback`.
 - [ ] Language list/settings are not wired; Swagger exposes `util/languages`, `user/get_settings`, and `user/set_settings`.
 - [ ] File upload is not wired; Swagger exposes `util/upload`, useful for feedback/report images if backend accepts attachments.
-- [ ] Add navigation entry points for static info and SOS.
+- [x] Add navigation entry points for static info pages.
+- [ ] Add navigation entry points for SOS.
 
 ## Chat 7: Patient/Public API-backed Features Missing From Mobile
 
@@ -151,7 +153,7 @@ Scope: features available in `swagger.yaml` for patient/public/mobile use, exclu
 - [ ] Device/asset feature is missing from the app: `asset/asset_stations`, `asset/find_wheelchairs`, `asset/book_asset`, `asset/release_asset`, `asset/asset_health`, `asset/track_asset`, and `asset/report_broken_asset`.
 - [ ] Staff assistance request is missing: `staff/request_staff`.
 - [ ] Chat/support UI is missing: `chat/create_room`, `chat/get_rooms`, `chat/get_messages`, `chat/send_message`, `chat/get_unread_count`, `chat/mark_read`, and `ws/chat`.
-- [ ] FAQ/help center is missing even though `util/faq`, `util/about`, and `util/contact` are available.
+- [ ] FAQ/help center is static-only; `util/faq`, `util/about`, and `util/contact` are not wired.
 - [ ] Hospital utility pages are missing even though `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather` are available.
 - [ ] Feedback UI is missing even though `util/feedback` is available.
 - [ ] Route sharing/rating/history UI is missing even though route APIs exist.
