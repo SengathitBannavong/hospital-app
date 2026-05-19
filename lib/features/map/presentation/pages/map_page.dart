@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -31,8 +32,10 @@ class _MapPageState extends ConsumerState<MapPage>
   static const int _defaultCols = 57;
   static const double _minMapScale = 1;
   static const double _maxMapScale = 4;
+  static const Duration _searchDebounceDuration = Duration(milliseconds: 500);
 
   late final TextEditingController _searchController;
+  Timer? _searchDebounceTimer;
   late final AnimationController _routeAnim;
   TransformationController? _transformController;
   Size _lastViewportSize = Size.zero;
@@ -61,6 +64,7 @@ class _MapPageState extends ConsumerState<MapPage>
     _searchController
       ..removeListener(_onSearchChanged)
       ..dispose();
+    _searchDebounceTimer?.cancel();
     _routeAnim.dispose();
     _transformController?.dispose();
     _transformController = null;
@@ -68,7 +72,19 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   void _onSearchChanged() {
-    ref.read(searchKeywordProvider.notifier).state = _searchController.text;
+    _setSearchKeyword(_searchController.text);
+  }
+
+  void _setSearchKeyword(String value, {bool immediate = false}) {
+    _searchDebounceTimer?.cancel();
+    if (immediate || value.trim().isEmpty) {
+      ref.read(searchKeywordProvider.notifier).state = value;
+      return;
+    }
+    _searchDebounceTimer = Timer(_searchDebounceDuration, () {
+      if (!mounted) return;
+      ref.read(searchKeywordProvider.notifier).state = value;
+    });
   }
 
   TransformationController _ensureTransformController() {
@@ -255,6 +271,7 @@ class _MapPageState extends ConsumerState<MapPage>
                           isLoading: loading,
                           onCollapse: () => setState(() {
                             _searchController.clear();
+                            _setSearchKeyword('', immediate: true);
                             _searchExpanded = false;
                           }),
                         ),
@@ -441,7 +458,7 @@ class _MapPageState extends ConsumerState<MapPage>
       _setRouteDestination(poi);
     }
     _searchController.clear();
-    ref.read(searchKeywordProvider.notifier).state = '';
+    _setSearchKeyword('', immediate: true);
   }
 
   void _clearRoute() {
