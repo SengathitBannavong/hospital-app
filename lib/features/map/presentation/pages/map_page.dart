@@ -1,5 +1,5 @@
-import 'dart:math' as math;
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -77,7 +77,7 @@ class _MapPageState extends ConsumerState<MapPage>
 
   void _setSearchKeyword(String value, {bool immediate = false}) {
     _searchDebounceTimer?.cancel();
-    if (immediate) {
+    if (immediate || value.trim().isEmpty) {
       ref.read(searchKeywordProvider.notifier).state = value;
       return;
     }
