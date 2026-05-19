@@ -47,7 +47,7 @@ class RouterNotifier extends ChangeNotifier {
 
     // Not logged in: redirect to login unless on auth pages
     if (!isLoggedIn) {
-      return isLoggingIn ? null : '/login';
+      return null; // return isLoggingIn ? null : '/login';
     }
 
     // Logged in: don't allow access to auth pages except protected routes
@@ -73,7 +73,7 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: AppToast.navigatorKey,
-    initialLocation: '/welcome',
+    initialLocation: '/', //welcome
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [

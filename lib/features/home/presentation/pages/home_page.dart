@@ -7,6 +7,7 @@ import '../../../../core/widgets/medical_info_card.dart';
 import '../../../../core/widgets/fade_slide_transition.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/home_repository.dart';
+import 'package:go_router/go_router.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key, required this.title});
@@ -216,47 +217,58 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: AppSpacing.md),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 400),
-                child: Row(
+                child: Card(
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.notifications_active_rounded,
+                      color: context.colorScheme.primary,
+                    ),
+                    title: const Text('Bạn có 2 thông báo mới'),
+                    subtitle: const Text('Nhấn để xem danh sách thông báo'),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 16,
+                    ),
+                    onTap: () => context.go('/notification'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              FadeSlideTransition(
+                delay: const Duration(milliseconds: 450),
+                child: Text(
+                  'Truy cập nhanh',
+                  style: context.textTheme.titleMedium,
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.md),
+
+              FadeSlideTransition(
+                delay: const Duration(milliseconds: 500),
+                child: Wrap(
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.md,
                   children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () =>
-                            AppToast.showSuccess('Đặt lịch khám thành công'),
-                        icon: const Icon(Icons.check_circle_rounded),
-                        label: const Text('Thành công'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                        ),
-                      ),
+                    _QuickActionCard(
+                      title: 'Bản đồ',
+                      icon: Icons.map_rounded,
+                      onTap: () => context.go('/map'),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () =>
-                            AppToast.showWarning('Bác sĩ hiện đang bận'),
-                        icon: const Icon(Icons.warning_rounded),
-                        label: const Text('Cảnh báo'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.warning,
-                        ),
-                      ),
+                    _QuickActionCard(
+                      title: 'Y tế',
+                      icon: Icons.local_hospital_rounded,
+                      onTap: () => context.go('/medical'),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () =>
-                            AppToast.showError('Không thể tải dữ liệu'),
-                        icon: const Icon(Icons.error_rounded),
-                        label: const Text('Lỗi'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.error,
-                        ),
-                      ),
+                    _QuickActionCard(
+                      title: 'Hồ sơ',
+                      icon: Icons.person_rounded,
+                      onTap: () => context.go('/profile'),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: AppSpacing.xl),
 
               // Status Badge Example
@@ -300,6 +312,45 @@ class _HomePageState extends ConsumerState<HomePage> {
           onPressed: _incrementCounter,
           tooltip: 'Thêm lịch hẹn',
           child: const Icon(Icons.add_rounded),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _QuickActionCard({
+    required this.title,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 150,
+      child: Card(
+        child: InkWell(
+          borderRadius: AppRadius.borderLg,
+          onTap: onTap,
+          child: Padding(
+            padding: AppSpacing.cardPadding,
+            child: Column(
+              children: [
+                Icon(icon, size: 32, color: context.colorScheme.primary),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  title,
+                  style: context.textTheme.labelLarge,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -30,7 +30,7 @@ class NotificationPage extends ConsumerWidget {
           : ListView.separated(
               padding: AppSpacing.pageWithTop,
               itemCount: notifications.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   const SizedBox(height: AppSpacing.md),
               itemBuilder: (context, index) {
                 final item = notifications[index];
