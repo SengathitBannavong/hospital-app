@@ -114,6 +114,7 @@ class NavigationController {
 
   void setSpeed(double multiplier) {
     _ref.read(navSpeedProvider.notifier).state = multiplier.clamp(0.25, 4.0);
+    _ref.read(navSecondsRemainingProvider.notifier).state = secondsRemaining;
   }
 
   void dispose() {

@@ -14,6 +14,7 @@ import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_grid_painter.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_legend_sheet.dart';
+import 'package:hospital_app/features/map/presentation/widgets/map_navigation_sheet.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_poi_metadata_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_route_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_search_results_panel.dart';
@@ -44,6 +45,7 @@ class _MapPageState extends ConsumerState<MapPage>
   double _lastMinScale = 0;
   int _lastRouteSignature = 0;
   bool _searchExpanded = true;
+  bool _arrivalOrderCommitted = false;
   final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
   Offset? _debugPoiCenter;
@@ -187,6 +189,8 @@ class _MapPageState extends ConsumerState<MapPage>
       ..listen<NavPhase>(navPhaseProvider, (_, next) {
         if (next == NavPhase.navigating) {
           _routeAnim.value = 1;
+        } else if (next == NavPhase.arrived) {
+          _handleNavigationArrived();
         }
       })
       ..listen<double>(navProgressProvider, (_, _) {
@@ -206,6 +210,10 @@ class _MapPageState extends ConsumerState<MapPage>
     final mediaBottom = MediaQuery.of(context).padding.bottom;
 
     final hasRoute = dest != null;
+    final showNavigationSheet =
+        navPhase == NavPhase.navigating ||
+        navPhase == NavPhase.paused ||
+        navPhase == NavPhase.arrived;
 
     return Scaffold(
       backgroundColor: MapSurface.background,
@@ -395,21 +403,33 @@ class _MapPageState extends ConsumerState<MapPage>
             ),
           ),
 
-          // Bottom-right: route plan FAB
-          Positioned(
-            right: AppSpacing.md,
-            bottom: mediaBottom + AppSpacing.md,
-            child: FloatingActionButton.extended(
-              heroTag: 'map-route-fab',
-              onPressed: _showRoutePanel,
-              icon: Icon(
-                hasRoute
-                    ? Icons.edit_location_alt_rounded
-                    : Icons.alt_route_rounded,
+          if (showNavigationSheet && dest != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: MapNavigationSheet(
+                destinationName: dest.poiName,
+                onDone: _handleNavigationDone,
+                onStop: _stopNavigation,
               ),
-              label: Text(hasRoute ? 'Route' : 'Plan route'),
+            )
+          else
+            // Bottom-right: route plan FAB
+            Positioned(
+              right: AppSpacing.md,
+              bottom: mediaBottom + AppSpacing.md,
+              child: FloatingActionButton.extended(
+                heroTag: 'map-route-fab',
+                onPressed: _showRoutePanel,
+                icon: Icon(
+                  hasRoute
+                      ? Icons.edit_location_alt_rounded
+                      : Icons.alt_route_rounded,
+                ),
+                label: Text(hasRoute ? 'Route' : 'Plan route'),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -565,12 +585,14 @@ class _MapPageState extends ConsumerState<MapPage>
 
   void _clearRoute() {
     ref.read(navigationControllerProvider).stop();
+    _arrivalOrderCommitted = false;
     ref.read(routeDestProvider.notifier).state = null;
     setState(() {});
   }
 
   void _completeRoute() {
     ref.read(navigationControllerProvider).stop();
+    _arrivalOrderCommitted = false;
     ref.read(routeDestProvider.notifier).state = null;
     ref.invalidate(routeResultProvider);
     setState(() {});
@@ -672,6 +694,7 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   bool _startNavigation() {
+    _arrivalOrderCommitted = false;
     _routeAnim.value = 1;
     final started = ref.read(navigationControllerProvider).start();
     if (!started) {
@@ -682,6 +705,42 @@ class _MapPageState extends ConsumerState<MapPage>
         );
     }
     return started;
+  }
+
+  void _stopNavigation() {
+    ref.read(navigationControllerProvider).stop();
+  }
+
+  void _handleNavigationDone() {
+    ref.read(navigationControllerProvider).stop();
+    _arrivalOrderCommitted = false;
+    ref.read(routeDestProvider.notifier).state = null;
+    ref.invalidate(routeResultProvider);
+    setState(() {});
+  }
+
+  Future<void> _handleNavigationArrived() async {
+    if (_arrivalOrderCommitted) return;
+    _arrivalOrderCommitted = true;
+    final start = ref.read(userPositionProvider);
+    final dest = ref.read(routeDestProvider);
+    final mode = ref.read(routeModeProvider);
+    if (start == null || dest == null) return;
+
+    try {
+      await ref
+          .read(mapRepositoryProvider)
+          .orderRoute(
+            startLocation: start,
+            destLocation: dest.gridLocation,
+            modeId: mode,
+          );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Arrival log failed')));
+    }
   }
 
   void _followNavigationDot({required int rows, required int cols}) {
