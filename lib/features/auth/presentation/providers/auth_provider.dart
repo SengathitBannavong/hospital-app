@@ -145,10 +145,9 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
 
   // Delete user account (requires authentication)
   Future<void> deleteAccount({required String password}) async {
-    final result = await _repository.deleteAccount(password: password);
+    await _repository.deleteAccount(password: password);
     // After successful deletion, logout
     await logout();
-    return result;
   }
 
   // Resend OTP verification code

@@ -64,6 +64,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
       if (!mounted) return;
 
+      final rootNavigator = Navigator.of(context, rootNavigator: true);
       var loadingDialogOpen = false;
 
       // Show loading indicator
@@ -81,22 +82,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             .deleteAccount(password: password);
 
         if (mounted) {
-          if (loadingDialogOpen) {
-            Navigator.of(context, rootNavigator: true).pop();
-            loadingDialogOpen = false;
-          }
           DeleteAccountService.showDeleteAccountSuccess(context);
         }
       } catch (e) {
         if (mounted) {
-          if (loadingDialogOpen) {
-            Navigator.of(context, rootNavigator: true).pop();
-            loadingDialogOpen = false;
-          }
           DeleteAccountService.showError(
             context,
             e.toString().replaceFirst('Exception: ', ''),
           );
+        }
+      } finally {
+        if (loadingDialogOpen && rootNavigator.canPop()) {
+          rootNavigator.pop();
+          loadingDialogOpen = false;
         }
       }
     }

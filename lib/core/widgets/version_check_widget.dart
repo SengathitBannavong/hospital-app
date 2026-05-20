@@ -36,6 +36,7 @@ class _VersionCheckWidgetState extends ConsumerState<VersionCheckWidget> {
 
       final packageInfo = await PackageInfo.fromPlatform();
       final version = packageInfo.version;
+      final packageName = packageInfo.packageName;
 
       if (!mounted) return;
 
@@ -53,6 +54,7 @@ class _VersionCheckWidgetState extends ConsumerState<VersionCheckWidget> {
         context,
         response: versionResponse,
         currentVersion: version,
+        packageName: packageName,
       );
     } catch (e) {
       debugPrint('Version check error: $e');

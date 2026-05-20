@@ -55,7 +55,7 @@ class DeleteAccountService {
           ),
         ],
       ),
-    );
+    ).whenComplete(passwordController.dispose);
   }
 
   /// Show success message after account deletion

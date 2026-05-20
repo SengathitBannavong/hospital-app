@@ -13,24 +13,25 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
 
-    return VersionCheckWidget(
-      child: ListenableBuilder(
-        listenable: themeController,
-        builder: (context, child) {
-          return MaterialApp.router(
-            routerConfig: router,
-            scaffoldMessengerKey: AppToast.scaffoldKey,
-            // go_router handles its own navigation key,
-            // but AppToast might need one
-            // We can set it in the router if needed.
-            debugShowCheckedModeBanner: false,
-            title: 'Hospital App',
-            theme: HospitalTheme.light,
-            darkTheme: HospitalTheme.dark,
-            themeMode: themeController.themeMode,
-          );
-        },
-      ),
+    return ListenableBuilder(
+      listenable: themeController,
+      builder: (context, child) {
+        return MaterialApp.router(
+          routerConfig: router,
+          scaffoldMessengerKey: AppToast.scaffoldKey,
+          // go_router handles its own navigation key,
+          // but AppToast might need one
+          // We can set it in the router if needed.
+          debugShowCheckedModeBanner: false,
+          title: 'Hospital App',
+          theme: HospitalTheme.light,
+          darkTheme: HospitalTheme.dark,
+          themeMode: themeController.themeMode,
+          builder: (context, child) {
+            return VersionCheckWidget(child: child ?? const SizedBox.shrink());
+          },
+        );
+      },
     );
   }
 }

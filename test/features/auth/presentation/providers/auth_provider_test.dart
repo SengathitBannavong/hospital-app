@@ -1,5 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
 import 'package:hospital_app/features/auth/data/auth_repository.dart';
 import 'package:hospital_app/features/auth/data/models/auth_user.dart';
 import 'package:hospital_app/features/auth/data/models/otp_response.dart';
@@ -8,6 +9,15 @@ import 'package:hospital_app/features/auth/presentation/providers/auth_provider.
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // Mock flutter_secure_storage method channel for token deletion
+  setUpAll(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('com.it4788.flutter_secure_storage'),
+          (call) async => null,
+        );
+  });
   group('AuthNotifier methods', () {
     test('verifyCredentials returns AuthUser', () async {
       final mockRepo = MockAuthRepository();
@@ -85,30 +95,29 @@ void main() {
       // No exception should be thrown
     });
 
-    test('deleteAccount clears state (without secure storage)', () async {
-      final mockRepo = MockAuthRepository();
+    test('deleteAccount calls repository and clears state', () async {
+      final mockRepo = MockAuthRepositoryWithTracking();
       final notifier = AuthNotifier(mockRepo);
 
       // Set initial state
-      notifier.setUser(
-        const AuthUser(
-          userId: 1,
-          fullName: 'Test User',
-          phoneNumber: '0900000001',
-          token: 'test_token',
-        ),
+      final testUser = const AuthUser(
+        userId: 1,
+        fullName: 'Test User',
+        phoneNumber: '0900000001',
+        token: 'test_token',
       );
+      notifier.setUser(testUser);
+      expect(notifier.state, testUser);
 
-      expect(notifier.state, isNotNull);
+      // Execute deleteAccount - should not throw
+      await notifier.deleteAccount(password: 'password123');
 
-      // Verify deleteAccount completes without throwing
-      // Note: logout() call inside deleteAccount may fail in unit test
-      // because it needs platform channel mocking for secure storage
-      try {
-        await notifier.deleteAccount(password: 'password123');
-      } catch (_) {
-        // Expected in unit test environment without proper mocking
-      }
+      // Verify repository deleteAccount was called with correct password
+      expect(mockRepo.deleteAccountCalled, true);
+      expect(mockRepo.lastDeletePassword, 'password123');
+
+      // Verify state is cleared after logout
+      expect(notifier.state, isNull);
     });
 
     test('checkVersion returns VersionCheckResponse', () async {
@@ -128,10 +137,7 @@ void main() {
       final mockRepo = MockAuthRepository();
       final notifier = AuthNotifier(mockRepo);
 
-      await notifier.resendOtp(
-        phoneNumber: '0900000001',
-        otpType: 'signup',
-      );
+      await notifier.resendOtp(phoneNumber: '0900000001', otpType: 'signup');
 
       // No exception should be thrown
     });
@@ -225,4 +231,16 @@ class MockAuthRepository implements AuthRepository {
     required String phoneNumber,
     String? otpType,
   }) async {}
+}
+
+/// Extended mock repository that tracks deleteAccount calls
+class MockAuthRepositoryWithTracking extends MockAuthRepository {
+  bool deleteAccountCalled = false;
+  String? lastDeletePassword;
+
+  @override
+  Future<void> deleteAccount({required String password}) async {
+    deleteAccountCalled = true;
+    lastDeletePassword = password;
+  }
 }
