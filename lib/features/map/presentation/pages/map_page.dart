@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
@@ -167,7 +169,9 @@ class _MapPageState extends ConsumerState<MapPage>
     final cols = metaAsync.value?.cols ?? _defaultCols;
     final routeLocations = ref.watch(routeLocationsProvider);
     final navDot = ref.watch(navDotProvider);
+    final navPhase = ref.watch(navPhaseProvider);
     final navProgress = ref.watch(navProgressProvider);
+    ref.watch(navigationControllerProvider);
     final defaultUserPosition = ref.watch(
       defaultUserPositionProvider(_defaultMapId),
     );
@@ -179,7 +183,22 @@ class _MapPageState extends ConsumerState<MapPage>
       });
     }
 
-    _maybeAnimateRoute(routeLocations);
+    ref
+      ..listen<NavPhase>(navPhaseProvider, (_, next) {
+        if (next == NavPhase.navigating) {
+          _routeAnim.value = 1;
+        }
+      })
+      ..listen<double>(navProgressProvider, (_, _) {
+        if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
+        _followNavigationDot(rows: rows, cols: cols);
+      });
+
+    if (navPhase == NavPhase.navigating && _routeAnim.value != 1) {
+      _routeAnim.value = 1;
+    } else if (navPhase != NavPhase.navigating) {
+      _maybeAnimateRoute(routeLocations);
+    }
 
     final loading = metaAsync.isLoading || nodesLoading || edgesLoading;
     final searching = keyword.trim().isNotEmpty;
@@ -461,6 +480,7 @@ class _MapPageState extends ConsumerState<MapPage>
           );
     if (location == null) return;
 
+    ref.read(navigationControllerProvider).stop();
     ref.read(userPositionProvider.notifier).state = location;
     ref.read(locationSourceProvider.notifier).state =
         LocationSource.simulatedPin;
@@ -544,11 +564,13 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   void _clearRoute() {
+    ref.read(navigationControllerProvider).stop();
     ref.read(routeDestProvider.notifier).state = null;
     setState(() {});
   }
 
   void _completeRoute() {
+    ref.read(navigationControllerProvider).stop();
     ref.read(routeDestProvider.notifier).state = null;
     ref.invalidate(routeResultProvider);
     setState(() {});
@@ -601,9 +623,16 @@ class _MapPageState extends ConsumerState<MapPage>
                   _clearRoute();
                   Navigator.of(sheetContext).maybePop();
                 },
-                onModeChanged: (v) =>
-                    ref.read(routeModeProvider.notifier).state = v,
+                onModeChanged: (v) => _setRouteMode(v),
                 onPickDestination: () => _showRoutePoiPicker(nodes),
+                onStartNavigation:
+                    userPosition != null && dest != null && routeResult.hasValue
+                    ? () {
+                        if (_startNavigation()) {
+                          Navigator.of(sheetContext).maybePop();
+                        }
+                      }
+                    : null,
               ),
             );
           },
@@ -628,12 +657,105 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   void _setRouteDestination(MapPoi poi) {
+    ref.read(navigationControllerProvider).stop();
     final start = ref.read(userPositionProvider);
     ref.read(routeDestProvider.notifier).state = poi;
     if (start == poi.gridLocation) {
       ref.read(routeDestProvider.notifier).state = null;
     }
     setState(() {});
+  }
+
+  void _setRouteMode(String mode) {
+    ref.read(navigationControllerProvider).stop();
+    ref.read(routeModeProvider.notifier).state = mode;
+  }
+
+  bool _startNavigation() {
+    _routeAnim.value = 1;
+    final started = ref.read(navigationControllerProvider).start();
+    if (!started) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Route preview has no path yet')),
+        );
+    }
+    return started;
+  }
+
+  void _followNavigationDot({required int rows, required int cols}) {
+    final controller = _transformController;
+    final dot = ref.read(navDotProvider);
+    if (!mounted ||
+        controller == null ||
+        dot == null ||
+        _lastViewportSize == Size.zero ||
+        _lastGridSize == Size.zero) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final currentController = _transformController;
+      if (currentController == null) return;
+
+      final sceneCenter = _dotSceneCenter(dot, rows, cols, _lastGridSize);
+      final transform = currentController.value;
+      final scale = transform.getMaxScaleOnAxis().clamp(
+        _minMapScale,
+        _maxMapScale,
+      );
+      final tx = transform.storage[12];
+      final ty = transform.storage[13];
+      final viewportPoint = Offset(
+        sceneCenter.dx * scale + tx,
+        sceneCenter.dy * scale + ty,
+      );
+      final centralRect = Rect.fromLTRB(
+        _lastViewportSize.width * 0.2,
+        _lastViewportSize.height * 0.2,
+        _lastViewportSize.width * 0.8,
+        _lastViewportSize.height * 0.8,
+      );
+      if (centralRect.contains(viewportPoint)) return;
+
+      final nextTx = _clampTranslate(
+        _lastViewportSize.width / 2 - sceneCenter.dx * scale,
+        _lastViewportSize.width,
+        _lastGridSize.width * scale,
+      );
+      final nextTy = _clampTranslate(
+        _lastViewportSize.height / 2 - sceneCenter.dy * scale,
+        _lastViewportSize.height,
+        _lastGridSize.height * scale,
+      );
+      currentController.value = Matrix4.identity()
+        ..translateByDouble(nextTx, nextTy, 0, 1)
+        ..scaleByDouble(scale.toDouble(), scale.toDouble(), 1, 1);
+    });
+  }
+
+  Offset _dotSceneCenter(NavDot dot, int rows, int cols, Size gridSize) {
+    final cellWidth = gridSize.width / cols;
+    final cellHeight = gridSize.height / rows;
+    final from = _cellCenter(dot.fromLocation, cols, cellWidth, cellHeight);
+    final to = _cellCenter(dot.toLocation, cols, cellWidth, cellHeight);
+    return Offset.lerp(from, to, dot.t.clamp(0.0, 1.0).toDouble()) ?? from;
+  }
+
+  Offset _cellCenter(
+    int location,
+    int cols,
+    double cellWidth,
+    double cellHeight,
+  ) {
+    final row = location ~/ cols;
+    final col = location % cols;
+    return Offset(
+      col * cellWidth + cellWidth / 2,
+      row * cellHeight + cellHeight / 2,
+    );
   }
 
   Offset _poiCenter(MapPoi poi, double cellWidth, double cellHeight) {

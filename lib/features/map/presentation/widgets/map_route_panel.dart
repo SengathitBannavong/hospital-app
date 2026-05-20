@@ -14,6 +14,7 @@ class MapRoutePanel extends StatelessWidget {
   final VoidCallback onClear;
   final ValueChanged<String> onModeChanged;
   final VoidCallback onPickDestination;
+  final VoidCallback? onStartNavigation;
 
   const MapRoutePanel({
     super.key,
@@ -26,6 +27,7 @@ class MapRoutePanel extends StatelessWidget {
     required this.onClear,
     required this.onModeChanged,
     required this.onPickDestination,
+    required this.onStartNavigation,
   });
 
   @override
@@ -117,6 +119,15 @@ class MapRoutePanel extends StatelessWidget {
             routeLocations: routeLocations,
             hasStart: userPosition != null,
             hasDestination: dest != null,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onStartNavigation,
+              icon: const Icon(Icons.navigation_rounded),
+              label: const Text('Start navigation'),
+            ),
           ),
         ],
       ),

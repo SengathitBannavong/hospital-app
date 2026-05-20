@@ -45,6 +45,16 @@ final locationSourceProvider = StateProvider<LocationSource>(
 final navPhaseProvider = StateProvider<NavPhase>((ref) => NavPhase.idle);
 final navProgressProvider = StateProvider<double>((ref) => 0.0);
 final navSpeedProvider = StateProvider<double>((ref) => 1.0);
+final navCurrentLocationProvider = StateProvider<int?>((ref) => null);
+final navMetersRemainingProvider = StateProvider<double>((ref) => 0.0);
+final navSecondsRemainingProvider = StateProvider<double>((ref) => 0.0);
+final navigationControllerProvider = Provider.autoDispose<NavigationController>(
+  (ref) {
+    final controller = NavigationController(ref);
+    ref.onDispose(controller.dispose);
+    return controller;
+  },
+);
 
 // Normalized POI names cache keyed by poiId — computed once when nodes settle.
 final normalizedPoiNamesProvider = Provider.family<Map<int, String>, int>((

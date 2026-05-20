@@ -17,6 +17,12 @@ final Paint _routeHaloPaint = Paint()
 final Paint _routeLinePaint = Paint()
   ..color = MapSurface.routeLine
   ..strokeCap = StrokeCap.round;
+final Paint _routeTraveledHaloPaint = Paint()
+  ..color = MapSurface.routeLineHalo.withValues(alpha: 0.45)
+  ..strokeCap = StrokeCap.round;
+final Paint _routeTraveledLinePaint = Paint()
+  ..color = MapSurface.routeLine.withValues(alpha: 0.4)
+  ..strokeCap = StrokeCap.round;
 
 final Map<String, Paint> _poiPaints = {
   for (final entry in MapPoiPalette.byType.entries)
@@ -159,9 +165,12 @@ class MapGridPainter extends CustomPainter {
     int colEnd,
   ) {
     final n = routeLocations.length;
-    final progress = routeProgress.clamp(0.0, 1.0);
+    final progress = routeProgress.clamp(0.0, 1.0).toDouble();
+    final navigationProgress = navProgress.clamp(0.0, 1.0).toDouble();
+    final isNavigating = navigationProgress > 0;
     final segments = (n - 1).clamp(0, n);
-    final reached = segments * progress;
+    final drawProgress = isNavigating ? 1.0 : progress;
+    final reached = segments * drawProgress;
     final lastSegmentIndex = reached.floor();
     final partial = reached - lastSegmentIndex;
     final cellsToPaint = (lastSegmentIndex + 1).clamp(0, n);
@@ -183,6 +192,13 @@ class MapGridPainter extends CustomPainter {
     final stroke = math.min(cellWidth, cellHeight) * 0.25;
     _routeHaloPaint.strokeWidth = stroke + 2;
     _routeLinePaint.strokeWidth = stroke;
+    _routeTraveledHaloPaint.strokeWidth = stroke + 2;
+    _routeTraveledLinePaint.strokeWidth = stroke;
+
+    if (isNavigating) {
+      _paintNavigationRoute(canvas, cellWidth, cellHeight, navigationProgress);
+      return;
+    }
 
     for (var i = 0; i < lastSegmentIndex && i < n - 1; i++) {
       final a = _cellCenter(routeLocations[i], cellWidth, cellHeight);
@@ -206,6 +222,82 @@ class MapGridPainter extends CustomPainter {
       canvas.drawLine(a, mid, _routeHaloPaint);
       canvas.drawLine(a, mid, _routeLinePaint);
     }
+  }
+
+  void _paintNavigationRoute(
+    Canvas canvas,
+    double cellWidth,
+    double cellHeight,
+    double progress,
+  ) {
+    final n = routeLocations.length;
+    if (n < 2) return;
+
+    final segments = n - 1;
+    final reached = segments * progress;
+    final splitIndex = reached.floor().clamp(0, segments - 1).toInt();
+    final splitT = (reached - splitIndex).clamp(0.0, 1.0).toDouble();
+    final splitStart = _cellCenter(
+      routeLocations[splitIndex],
+      cellWidth,
+      cellHeight,
+    );
+    final splitEnd = _cellCenter(
+      routeLocations[splitIndex + 1],
+      cellWidth,
+      cellHeight,
+    );
+    final splitPoint = Offset.lerp(splitStart, splitEnd, splitT) ?? splitStart;
+
+    for (var i = 0; i < splitIndex; i++) {
+      _drawRouteSegment(
+        canvas,
+        _cellCenter(routeLocations[i], cellWidth, cellHeight),
+        _cellCenter(routeLocations[i + 1], cellWidth, cellHeight),
+        _routeTraveledHaloPaint,
+        _routeTraveledLinePaint,
+      );
+    }
+
+    if (progress > 0) {
+      _drawRouteSegment(
+        canvas,
+        splitStart,
+        splitPoint,
+        _routeTraveledHaloPaint,
+        _routeTraveledLinePaint,
+      );
+    }
+
+    if (progress < 1) {
+      _drawRouteSegment(
+        canvas,
+        splitPoint,
+        splitEnd,
+        _routeHaloPaint,
+        _routeLinePaint,
+      );
+      for (var i = splitIndex + 1; i < n - 1; i++) {
+        _drawRouteSegment(
+          canvas,
+          _cellCenter(routeLocations[i], cellWidth, cellHeight),
+          _cellCenter(routeLocations[i + 1], cellWidth, cellHeight),
+          _routeHaloPaint,
+          _routeLinePaint,
+        );
+      }
+    }
+  }
+
+  void _drawRouteSegment(
+    Canvas canvas,
+    Offset from,
+    Offset to,
+    Paint haloPaint,
+    Paint linePaint,
+  ) {
+    canvas.drawLine(from, to, haloPaint);
+    canvas.drawLine(from, to, linePaint);
   }
 
   Offset _cellCenter(int location, double cellWidth, double cellHeight) {
