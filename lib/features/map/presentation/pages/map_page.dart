@@ -47,6 +47,7 @@ class _MapPageState extends ConsumerState<MapPage>
   int _lastRouteSignature = 0;
   bool _searchExpanded = true;
   bool _arrivalOrderCommitted = false;
+  bool _navCollapsed = false;
   final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
   Offset? _debugPoiCenter;
@@ -411,15 +412,23 @@ class _MapPageState extends ConsumerState<MapPage>
           ),
 
           if (showNavigationSheet && dest != null)
+            // Compact card anchored bottom-right so the map stays visible.
+            // Collapses to a small button when the user wants it hidden.
             Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: MapNavigationSheet(
-                destinationName: dest.poiName,
-                onDone: _handleNavigationDone,
-                onStop: _stopNavigation,
-              ),
+              right: AppSpacing.md,
+              bottom: mediaBottom + AppSpacing.md,
+              child: _navCollapsed
+                  ? _MapFab(
+                      icon: Icons.navigation_rounded,
+                      tooltip: 'Show navigation',
+                      onPressed: () => setState(() => _navCollapsed = false),
+                    )
+                  : MapNavigationSheet(
+                      destinationName: dest.poiName,
+                      onDone: _handleNavigationDone,
+                      onStop: _stopNavigation,
+                      onCollapse: () => setState(() => _navCollapsed = true),
+                    ),
             )
           else
             // Bottom-right: route plan FAB
@@ -566,6 +575,12 @@ class _MapPageState extends ConsumerState<MapPage>
               Navigator.of(sheetContext).maybePop();
               _setRouteDestination(poi);
             },
+            onSetCurrentLocation: poi.isLandmark
+                ? () {
+                    Navigator.of(sheetContext).maybePop();
+                    _setCurrentLocationFromPoi(poi);
+                  }
+                : null,
           ),
         );
       },
@@ -582,6 +597,16 @@ class _MapPageState extends ConsumerState<MapPage>
     final right = ((viewport.width - tx) / scale).clamp(0.0, grid.width);
     final bottom = ((viewport.height - ty) / scale).clamp(0.0, grid.height);
     return Rect.fromLTRB(left, top, right, bottom);
+  }
+
+  void _setCurrentLocationFromPoi(MapPoi poi) {
+    ref.read(navigationControllerProvider).stop();
+    ref.read(userPositionProvider.notifier).state = poi.gridLocation;
+    ref.read(locationSourceProvider.notifier).state = LocationSource.manual;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text("You are here · ${poi.poiName}")));
   }
 
   void _selectPoiFromSearch(MapPoi poi) {
@@ -714,6 +739,7 @@ class _MapPageState extends ConsumerState<MapPage>
 
   bool _startNavigation() {
     _arrivalOrderCommitted = false;
+    _navCollapsed = false;
     _routeAnim.value = 1;
     final started = ref.read(navigationControllerProvider).start();
     if (!started) {
@@ -731,8 +757,14 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   void _handleNavigationDone() {
+    // The user has walked the route, so their new position is the destination.
+    final dest = ref.read(routeDestProvider);
     ref.read(navigationControllerProvider).stop();
     _arrivalOrderCommitted = false;
+    if (dest != null) {
+      ref.read(userPositionProvider.notifier).state = dest.gridLocation;
+      ref.read(locationSourceProvider.notifier).state = LocationSource.manual;
+    }
     ref.read(routeDestProvider.notifier).state = null;
     ref.invalidate(routeResultProvider);
     setState(() {});

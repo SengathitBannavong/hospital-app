@@ -1,1 +1,1 @@
-enum LocationSource { entranceDefault, simulatedPin, qr }
+enum LocationSource { entranceDefault, simulatedPin, qr, manual }

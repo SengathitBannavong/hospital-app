@@ -7,12 +7,14 @@ class MapPoiMetadataPanel extends StatelessWidget {
   final MapPoi poi;
   final VoidCallback onClose;
   final VoidCallback onSetDestination;
+  final VoidCallback? onSetCurrentLocation;
 
   const MapPoiMetadataPanel({
     super.key,
     required this.poi,
     required this.onClose,
     required this.onSetDestination,
+    this.onSetCurrentLocation,
   });
 
   @override
@@ -122,6 +124,19 @@ class MapPoiMetadataPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
+          // Landmarks double as anchors the user can recognize, so they can
+          // mark "I'm here" without a QR scan or long-press.
+          if (poi.isLandmark && onSetCurrentLocation != null) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onSetCurrentLocation,
+                icon: const Icon(Icons.my_location_rounded),
+                label: const Text("I'm here"),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(

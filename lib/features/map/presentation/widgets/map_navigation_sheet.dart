@@ -8,12 +8,14 @@ class MapNavigationSheet extends ConsumerWidget {
   final String destinationName;
   final VoidCallback onDone;
   final VoidCallback onStop;
+  final VoidCallback onCollapse;
 
   const MapNavigationSheet({
     super.key,
     required this.destinationName,
     required this.onDone,
     required this.onStop,
+    required this.onCollapse,
   });
 
   @override
@@ -35,19 +37,19 @@ class MapNavigationSheet extends ConsumerWidget {
     final arrived = phase == NavPhase.arrived;
     final controller = ref.read(navigationControllerProvider);
 
-    return Material(
-      color: context.colorScheme.surface,
-      elevation: 8,
-      shadowColor: context.colorScheme.shadow,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-      child: SafeArea(
-        top: false,
+    return SizedBox(
+      width: 280,
+      child: Material(
+        color: context.colorScheme.surface,
+        elevation: 8,
+        shadowColor: context.colorScheme.shadow,
+        borderRadius: BorderRadius.circular(18),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
             AppSpacing.md,
-            AppSpacing.lg,
-            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.md,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -73,6 +75,12 @@ class MapNavigationSheet extends ConsumerWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                  ),
+                  IconButton(
+                    onPressed: onCollapse,
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.close_fullscreen_rounded, size: 18),
+                    tooltip: 'Hide',
                   ),
                 ],
               ),
