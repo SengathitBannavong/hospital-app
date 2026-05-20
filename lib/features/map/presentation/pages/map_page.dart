@@ -9,6 +9,7 @@ import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
+import 'package:hospital_app/features/map/presentation/pages/map_qr_scanner_page.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
@@ -389,6 +390,12 @@ class _MapPageState extends ConsumerState<MapPage>
               mainAxisSize: MainAxisSize.min,
               children: [
                 _MapFab(
+                  icon: Icons.qr_code_scanner_rounded,
+                  tooltip: 'Scan QR code',
+                  onPressed: _showQrScanner,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _MapFab(
                   icon: Icons.map_outlined,
                   tooltip: 'Map legend',
                   onPressed: _showLegend,
@@ -611,6 +618,18 @@ class _MapPageState extends ConsumerState<MapPage>
       showDragHandle: false,
       builder: (_) => const MapLegendSheet(),
     );
+  }
+
+  Future<void> _showQrScanner() async {
+    final positioned = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const MapQrScannerPage(mapId: _defaultMapId),
+      ),
+    );
+    if (!mounted || positioned != true) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('You are here')));
   }
 
   Future<void> _showRoutePanel() async {
