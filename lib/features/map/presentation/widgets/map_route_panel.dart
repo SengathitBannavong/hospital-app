@@ -5,27 +5,29 @@ import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'map_route_status.dart';
 
 class MapRoutePanel extends StatelessWidget {
-  final MapPoi? start;
+  final int? userPosition;
+  final String? userPositionName;
   final MapPoi? dest;
   final String mode;
   final AsyncValue<dynamic> routeResult;
   final List<int> routeLocations;
   final VoidCallback onClear;
   final ValueChanged<String> onModeChanged;
-  final VoidCallback onPickStart;
   final VoidCallback onPickDestination;
+  final VoidCallback? onStartNavigation;
 
   const MapRoutePanel({
     super.key,
-    required this.start,
+    required this.userPosition,
+    required this.userPositionName,
     required this.dest,
     required this.mode,
     required this.routeResult,
     required this.routeLocations,
     required this.onClear,
     required this.onModeChanged,
-    required this.onPickStart,
     required this.onPickDestination,
+    required this.onStartNavigation,
   });
 
   @override
@@ -54,19 +56,18 @@ class MapRoutePanel extends StatelessWidget {
                 ),
               ),
               TextButton.icon(
-                onPressed: (start == null && dest == null) ? null : onClear,
+                onPressed: dest == null ? null : onClear,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Clear'),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
-          _RouteEndpointRow(
+          _RouteStartChip(
             icon: Icons.my_location_rounded,
-            label: 'Start',
-            value: start?.poiName ?? 'Pick a place',
-            isSet: start != null,
-            onPick: onPickStart,
+            label: 'From',
+            value: userPositionName ?? 'You are here',
+            isSet: userPosition != null,
             accent: scheme.primary,
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -116,8 +117,86 @@ class MapRoutePanel extends StatelessWidget {
           MapRouteStatus(
             routeResult: routeResult,
             routeLocations: routeLocations,
-            hasStart: start != null,
+            hasStart: userPosition != null,
             hasDestination: dest != null,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onStartNavigation,
+              icon: const Icon(Icons.navigation_rounded),
+              label: const Text('Start navigation'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RouteStartChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool isSet;
+  final Color accent;
+
+  const _RouteStartChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.isSet,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: AppRadius.borderMd,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.16),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 16, color: accent),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: context.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                Text(
+                  isSet ? value : 'Locating entrance...',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: isSet ? scheme.onSurface : scheme.onSurfaceVariant,
+                    fontWeight: isSet ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -16,6 +16,8 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>hospital_app</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Scan hospital QR codes to set your indoor position.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
