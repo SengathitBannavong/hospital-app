@@ -85,13 +85,14 @@ Scope: grid-based map rendering, route preview/navigation, floor switching.
 - [ ] Turn-by-turn route APIs are not wired in UI/repository: `route/get_steps`, `route/get_next`, `route/get_eta`, `route/pass_node`, and `route/recalculate`.
 - [x] `route/order` is wired (logged on arrival).
 - [ ] Dynamic rerouting: when an edge is blocked or heavily congested (`edge_status` / `flow/get_alerts` / obstacles), push an alert and offer an alternative detour route — via `route/recalculate` online, or a client-side reroute over the cached graph when offline.
-- [ ] Wheelchair/stretcher/hospital-cart modes are selectable in the route panel and change simulated nav speed, but still need verification against real backend route responses.
+- [ ] Verify non-walking modes against backend: `route/preview` returns a `speed_factor` (walking = 1); confirm the wheelchair/stretcher/hospital-cart values and that they flow into the displayed ETA.
 - [ ] Patient-side traffic/flow data is not surfaced: `flow/get_density`, `flow/get_heatmap`, `flow/get_bottlenecks`, `flow/get_forecast`, `flow/get_alerts`, and `flow/edge_status`.
 - [ ] Patient-side location/obstacle reporting is not wired: `flow/ping_location`, `flow/report_obstacle`, and `flow/get_obstacles`.
 - [ ] Offline support (required by teacher): cache the map via `map/sync_full` and add client-side routing (Dijkstra/A* over the edge graph) so route preview, steps, and rerouting work with no signal.
 - [ ] Wire route history/clear-history into UI if needed for demo (`route/order` is already wired on arrival).
 - [ ] Add loading/error UI polish for route preview failures.
-- [ ] Confirm real `route/preview` response shape with backend (path key + `distance`/`estimated_time`); nav ETA currently uses a 1-cell≈1-m fallback.
+- [x] `route/preview` response shape confirmed (live test): `data.steps[]` of `{step_order, grid_row, grid_col, grid_location}`, plus `distance`, `estimated_time`, `mode_id`, `speed_factor`. Already parsed by `extractRouteLocations` + nav sheet; the cell-based ETA fallback now only matters offline.
+- [ ] Confirm meters-per-cell with backend so distance/ETA labels ("m"/"sec") are truthful — `distance` is a cell count and `estimated_time` is cells ÷ `speed_factor` (grid units, not real meters/seconds).
 
 ### Map — out of scope (optional do for this project)
 

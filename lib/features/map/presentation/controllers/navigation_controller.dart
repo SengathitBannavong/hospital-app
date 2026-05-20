@@ -40,6 +40,7 @@ class NavigationController {
   double _travelled = 0;
   double _totalLength = 0;
   String _modeId = 'walking';
+  double? _etaSeconds;
 
   NavigationController(this._ref) {
     _ticker = Ticker(_onTick);
@@ -77,6 +78,8 @@ class NavigationController {
     _modeId = mode;
     _travelled = 0;
     _totalLength = (_path.length - 1).toDouble();
+    final routeData = _ref.read(routeResultProvider).valueOrNull;
+    _etaSeconds = _readEstimatedTime(routeData);
     _lastElapsed = null;
     _setProgress(0);
     _ref.read(navPhaseProvider.notifier).state = NavPhase.navigating;
@@ -108,6 +111,7 @@ class NavigationController {
     _path = const <int>[];
     _travelled = 0;
     _totalLength = 0;
+    _etaSeconds = null;
     _setProgress(0);
     _ref.read(navPhaseProvider.notifier).state = NavPhase.idle;
   }
@@ -150,7 +154,21 @@ class NavigationController {
   }
 
   double get _speedCellsPerSecond {
-    return baseSpeedFor(_modeId) * _ref.read(navSpeedProvider);
+    final mult = _ref.read(navSpeedProvider);
+    final eta = _etaSeconds;
+    // Match the backend ETA: cover the whole path in `eta` seconds at base
+    // speed so the dot's travel time equals the displayed estimate. Fall back
+    // to the mode speed table when ETA is missing (e.g. offline).
+    if (eta != null && eta > 0 && _totalLength > 0) {
+      return (_totalLength / eta) * mult;
+    }
+    return baseSpeedFor(_modeId) * mult;
+  }
+
+  double? _readEstimatedTime(dynamic data) {
+    if (data is! Map) return null;
+    final value = data['estimated_time'];
+    return value is num && value > 0 ? value.toDouble() : null;
   }
 }
 
