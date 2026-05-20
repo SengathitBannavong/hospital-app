@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
+import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
@@ -22,8 +23,6 @@ class MapPage extends ConsumerStatefulWidget {
   @override
   ConsumerState<MapPage> createState() => _MapPageState();
 }
-
-enum _RoutePickTarget { start, destination }
 
 class _MapPageState extends ConsumerState<MapPage>
     with SingleTickerProviderStateMixin {
@@ -155,7 +154,10 @@ class _MapPageState extends ConsumerState<MapPage>
     );
     final keyword = ref.watch(searchKeywordProvider);
     final searchResultsAsync = ref.watch(searchResultsProvider(_defaultMapId));
-    final start = ref.watch(routeStartProvider);
+    final userPosition = ref.watch(userPositionProvider);
+    final userPositionPoi = ref.watch(
+      poiByCellProvider(_defaultMapId),
+    )[userPosition];
     final dest = ref.watch(routeDestProvider);
     final routeResultAsync = ref.watch(routeResultProvider);
     final nodes =
@@ -164,6 +166,18 @@ class _MapPageState extends ConsumerState<MapPage>
     final rows = metaAsync.value?.rows ?? _defaultRows;
     final cols = metaAsync.value?.cols ?? _defaultCols;
     final routeLocations = ref.watch(routeLocationsProvider);
+    final navDot = ref.watch(navDotProvider);
+    final navProgress = ref.watch(navProgressProvider);
+    final defaultUserPosition = ref.watch(
+      defaultUserPositionProvider(_defaultMapId),
+    );
+
+    if (userPosition == null && defaultUserPosition != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || ref.read(userPositionProvider) != null) return;
+        ref.read(userPositionProvider.notifier).state = defaultUserPosition;
+      });
+    }
 
     _maybeAnimateRoute(routeLocations);
 
@@ -172,7 +186,7 @@ class _MapPageState extends ConsumerState<MapPage>
     final mediaTop = MediaQuery.of(context).padding.top;
     final mediaBottom = MediaQuery.of(context).padding.bottom;
 
-    final hasRoute = start != null || dest != null;
+    final hasRoute = dest != null;
 
     return Scaffold(
       backgroundColor: MapSurface.background,
@@ -216,6 +230,12 @@ class _MapPageState extends ConsumerState<MapPage>
                     behavior: HitTestBehavior.opaque,
                     onTapDown: (details) =>
                         _handleTap(details.localPosition, rows, cols, cellSize),
+                    onLongPressStart: (details) => _handleLongPressStart(
+                      details.localPosition,
+                      rows,
+                      cols,
+                      cellSize,
+                    ),
                     child: SizedBox(
                       width: gridWidth,
                       height: gridHeight,
@@ -237,6 +257,8 @@ class _MapPageState extends ConsumerState<MapPage>
                                 pois: nodes,
                                 routeLocations: routeLocations,
                                 routeProgress: _routeAnim.value,
+                                userDot: navDot,
+                                navProgress: navProgress,
                                 visibleRect: visibleRect,
                                 debugTap: _debugTapScene,
                                 debugPoiCenter: _debugPoiCenter,
@@ -293,8 +315,7 @@ class _MapPageState extends ConsumerState<MapPage>
                                       results: searchResultsAsync,
                                       query: keyword.trim(),
                                       suggestions: nodes.take(3).toList(),
-                                      onSelect: (poi) =>
-                                          _selectPoiFromSearch(poi, start),
+                                      onSelect: _selectPoiFromSearch,
                                       onRetry: () => ref.invalidate(
                                         searchResultsProvider(_defaultMapId),
                                       ),
@@ -323,12 +344,11 @@ class _MapPageState extends ConsumerState<MapPage>
               top: mediaTop + AppSpacing.md + 52,
               left: AppSpacing.md,
               child: _RoutePill(
-                start: start,
+                startName: userPositionPoi?.poiName ?? 'You are here',
                 dest: dest,
                 onTap: _showRoutePanel,
                 onClear: _clearRoute,
-                onDone:
-                    (start != null && dest != null && routeResultAsync.hasValue)
+                onDone: (userPosition != null && routeResultAsync.hasValue)
                     ? _completeRoute
                     : null,
               ),
@@ -414,6 +434,76 @@ class _MapPageState extends ConsumerState<MapPage>
     _showPoiSheet(nearest);
   }
 
+  void _handleLongPressStart(
+    Offset scenePosition,
+    int rows,
+    int cols,
+    double cellSize,
+  ) {
+    final tapCol = (scenePosition.dx / cellSize).floor();
+    final tapRow = (scenePosition.dy / cellSize).floor();
+    if (tapRow < 0 || tapRow >= rows || tapCol < 0 || tapCol >= cols) {
+      return;
+    }
+
+    final walkable = ref.read(walkableCellsProvider(_defaultMapId));
+    final tappedLocation = tapRow * cols + tapCol;
+    final location = walkable.contains(tappedLocation)
+        ? tappedLocation
+        : _nearestWalkableInNeighborhood(
+            scenePosition,
+            tapRow,
+            tapCol,
+            rows,
+            cols,
+            cellSize,
+            walkable,
+          );
+    if (location == null) return;
+
+    ref.read(userPositionProvider.notifier).state = location;
+    ref.read(locationSourceProvider.notifier).state =
+        LocationSource.simulatedPin;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('You are here')));
+  }
+
+  int? _nearestWalkableInNeighborhood(
+    Offset scenePosition,
+    int tapRow,
+    int tapCol,
+    int rows,
+    int cols,
+    double cellSize,
+    Set<int> walkable,
+  ) {
+    int? nearest;
+    double bestDistanceSq = double.infinity;
+    for (var dr = -1; dr <= 1; dr++) {
+      final row = tapRow + dr;
+      if (row < 0 || row >= rows) continue;
+      for (var dc = -1; dc <= 1; dc++) {
+        final col = tapCol + dc;
+        if (col < 0 || col >= cols) continue;
+        final location = row * cols + col;
+        if (!walkable.contains(location)) continue;
+        final center = Offset(
+          col * cellSize + cellSize / 2,
+          row * cellSize + cellSize / 2,
+        );
+        final dx = center.dx - scenePosition.dx;
+        final dy = center.dy - scenePosition.dy;
+        final distSq = dx * dx + dy * dy;
+        if (distSq < bestDistanceSq) {
+          bestDistanceSq = distSq;
+          nearest = location;
+        }
+      }
+    }
+    return nearest;
+  }
+
   Future<void> _showPoiSheet(MapPoi poi) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -425,10 +515,6 @@ class _MapPageState extends ConsumerState<MapPage>
           child: MapPoiMetadataPanel(
             poi: poi,
             onClose: () => Navigator.of(sheetContext).maybePop(),
-            onSetStart: () {
-              Navigator.of(sheetContext).maybePop();
-              _setRouteStart(poi);
-            },
             onSetDestination: () {
               Navigator.of(sheetContext).maybePop();
               _setRouteDestination(poi);
@@ -451,24 +537,18 @@ class _MapPageState extends ConsumerState<MapPage>
     return Rect.fromLTRB(left, top, right, bottom);
   }
 
-  void _selectPoiFromSearch(MapPoi poi, MapPoi? start) {
-    if (start == null) {
-      _setRouteStart(poi);
-    } else {
-      _setRouteDestination(poi);
-    }
+  void _selectPoiFromSearch(MapPoi poi) {
+    _setRouteDestination(poi);
     _searchController.clear();
     _setSearchKeyword('', immediate: true);
   }
 
   void _clearRoute() {
-    ref.read(routeStartProvider.notifier).state = null;
     ref.read(routeDestProvider.notifier).state = null;
     setState(() {});
   }
 
   void _completeRoute() {
-    ref.read(routeStartProvider.notifier).state = null;
     ref.read(routeDestProvider.notifier).state = null;
     ref.invalidate(routeResultProvider);
     setState(() {});
@@ -497,7 +577,10 @@ class _MapPageState extends ConsumerState<MapPage>
       builder: (sheetContext) {
         return Consumer(
           builder: (context, ref, _) {
-            final start = ref.watch(routeStartProvider);
+            final userPosition = ref.watch(userPositionProvider);
+            final userPositionPoi = ref.watch(
+              poiByCellProvider(_defaultMapId),
+            )[userPosition];
             final dest = ref.watch(routeDestProvider);
             final mode = ref.watch(routeModeProvider);
             final routeResult = ref.watch(routeResultProvider);
@@ -508,7 +591,8 @@ class _MapPageState extends ConsumerState<MapPage>
             return SafeArea(
               top: false,
               child: MapRoutePanel(
-                start: start,
+                userPosition: userPosition,
+                userPositionName: userPositionPoi?.poiName,
                 dest: dest,
                 mode: mode,
                 routeResult: routeResult,
@@ -519,10 +603,7 @@ class _MapPageState extends ConsumerState<MapPage>
                 },
                 onModeChanged: (v) =>
                     ref.read(routeModeProvider.notifier).state = v,
-                onPickStart: () =>
-                    _showRoutePoiPicker(_RoutePickTarget.start, nodes),
-                onPickDestination: () =>
-                    _showRoutePoiPicker(_RoutePickTarget.destination, nodes),
+                onPickDestination: () => _showRoutePoiPicker(nodes),
               ),
             );
           },
@@ -531,44 +612,26 @@ class _MapPageState extends ConsumerState<MapPage>
     );
   }
 
-  Future<void> _showRoutePoiPicker(
-    _RoutePickTarget target,
-    List<MapPoi> pois,
-  ) async {
+  Future<void> _showRoutePoiPicker(List<MapPoi> pois) async {
     final normalized = ref.read(normalizedPoiNamesProvider(_defaultMapId));
     final selected = await showModalBottomSheet<MapPoi>(
       context: context,
       isScrollControlled: true,
       builder: (context) => _RoutePoiPickerSheet(
-        title: target == _RoutePickTarget.start
-            ? 'Pick a start point'
-            : 'Pick a destination',
+        title: 'Pick a destination',
         pois: pois,
         normalizedNames: normalized,
       ),
     );
     if (!mounted || selected == null) return;
-    if (target == _RoutePickTarget.start) {
-      _setRouteStart(selected);
-    } else {
-      _setRouteDestination(selected);
-    }
-  }
-
-  void _setRouteStart(MapPoi poi) {
-    final dest = ref.read(routeDestProvider);
-    ref.read(routeStartProvider.notifier).state = poi;
-    if (dest?.gridLocation == poi.gridLocation) {
-      ref.read(routeDestProvider.notifier).state = null;
-    }
-    setState(() {});
+    _setRouteDestination(selected);
   }
 
   void _setRouteDestination(MapPoi poi) {
-    final start = ref.read(routeStartProvider);
+    final start = ref.read(userPositionProvider);
     ref.read(routeDestProvider.notifier).state = poi;
-    if (start?.gridLocation == poi.gridLocation) {
-      ref.read(routeStartProvider.notifier).state = null;
+    if (start == poi.gridLocation) {
+      ref.read(routeDestProvider.notifier).state = null;
     }
     setState(() {});
   }
@@ -591,14 +654,14 @@ class _MapPageState extends ConsumerState<MapPage>
 }
 
 class _RoutePill extends StatelessWidget {
-  final MapPoi? start;
+  final String startName;
   final MapPoi? dest;
   final VoidCallback? onTap;
   final VoidCallback? onClear;
   final VoidCallback? onDone;
 
   const _RoutePill({
-    required this.start,
+    required this.startName,
     required this.dest,
     required this.onTap,
     required this.onClear,
@@ -607,9 +670,8 @@ class _RoutePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (start == null && dest == null) return const SizedBox.shrink();
+    if (dest == null) return const SizedBox.shrink();
     final scheme = context.colorScheme;
-    final startName = start?.poiName ?? 'Pick start';
     final destName = dest?.poiName ?? 'Pick destination';
 
     return Semantics(

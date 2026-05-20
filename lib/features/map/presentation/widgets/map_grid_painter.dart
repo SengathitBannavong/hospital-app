@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 
 final Paint _backgroundPaint = Paint()..color = MapSurface.background;
@@ -22,6 +23,12 @@ final Map<String, Paint> _poiPaints = {
     entry.key: Paint()..color = entry.value,
 };
 final Paint _poiFallbackPaint = Paint()..color = MapPoiPalette.fallback;
+final Paint _userDotRingPaint = Paint()
+  ..color = const Color(0xFF0E8A6D).withValues(alpha: 0.22);
+final Paint _userDotPaint = Paint()..color = const Color(0xFF0E8A6D);
+final Paint _userDotStrokePaint = Paint()
+  ..color = const Color(0xFFFAFCFE)
+  ..style = PaintingStyle.stroke;
 
 class MapGridPainter extends CustomPainter {
   final int rows;
@@ -30,6 +37,8 @@ class MapGridPainter extends CustomPainter {
   final List<MapPoi> pois;
   final List<int> routeLocations;
   final double routeProgress;
+  final NavDot? userDot;
+  final double navProgress;
   final Rect? visibleRect;
   final Offset? debugTap;
   final Offset? debugPoiCenter;
@@ -42,6 +51,8 @@ class MapGridPainter extends CustomPainter {
     required this.pois,
     required this.routeLocations,
     this.routeProgress = 1.0,
+    this.userDot,
+    this.navProgress = 0,
     this.visibleRect,
     this.debugTap,
     this.debugPoiCenter,
@@ -108,6 +119,10 @@ class MapGridPainter extends CustomPainter {
       canvas.drawCircle(center, radius, paint);
     }
 
+    if (userDot != null) {
+      _paintUserDot(canvas, cellWidth, cellHeight);
+    }
+
     if (showDebug ?? false) {
       final debugRadius = math.min(cellWidth, cellHeight) * 0.2;
       if (debugTap != null) {
@@ -117,6 +132,21 @@ class MapGridPainter extends CustomPainter {
         canvas.drawCircle(debugPoiCenter!, debugRadius, _debugPoiPaint);
       }
     }
+  }
+
+  void _paintUserDot(Canvas canvas, double cellWidth, double cellHeight) {
+    final dot = userDot;
+    if (dot == null) return;
+    final from = _cellCenter(dot.fromLocation, cellWidth, cellHeight);
+    final to = _cellCenter(dot.toLocation, cellWidth, cellHeight);
+    final t = dot.t.clamp(0.0, 1.0).toDouble();
+    final center = Offset.lerp(from, to, t) ?? from;
+    final baseRadius = math.min(cellWidth, cellHeight) * 0.42;
+
+    _userDotStrokePaint.strokeWidth = math.max(1.5, baseRadius * 0.28);
+    canvas.drawCircle(center, baseRadius * 1.85, _userDotRingPaint);
+    canvas.drawCircle(center, baseRadius, _userDotPaint);
+    canvas.drawCircle(center, baseRadius, _userDotStrokePaint);
   }
 
   void _paintRoute(
@@ -207,6 +237,8 @@ class MapGridPainter extends CustomPainter {
         !identical(oldDelegate.walkableLocations, walkableLocations) ||
         !identical(oldDelegate.routeLocations, routeLocations) ||
         oldDelegate.routeProgress != routeProgress ||
+        oldDelegate.userDot != userDot ||
+        oldDelegate.navProgress != navProgress ||
         oldDelegate.rows != rows ||
         oldDelegate.cols != cols ||
         oldDelegate.visibleRect != visibleRect ||

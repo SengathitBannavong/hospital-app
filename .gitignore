@@ -75,6 +75,7 @@ context/
 # AI instruction
 GENIMI.md
 CLAUDE.md
+AGENTS.md
 
 # Commit message
 commit.*

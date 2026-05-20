@@ -6,14 +6,12 @@ import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 class MapPoiMetadataPanel extends StatelessWidget {
   final MapPoi poi;
   final VoidCallback onClose;
-  final VoidCallback onSetStart;
   final VoidCallback onSetDestination;
 
   const MapPoiMetadataPanel({
     super.key,
     required this.poi,
     required this.onClose,
-    required this.onSetStart,
     required this.onSetDestination,
   });
 
@@ -124,24 +122,13 @@ class MapPoiMetadataPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onSetStart,
-                  icon: const Icon(Icons.my_location_rounded),
-                  label: const Text('Set as start'),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onSetDestination,
-                  icon: const Icon(Icons.flag_rounded),
-                  label: const Text('Destination'),
-                ),
-              ),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onSetDestination,
+              icon: const Icon(Icons.flag_rounded),
+              label: const Text('Set destination'),
+            ),
           ),
         ],
       ),
