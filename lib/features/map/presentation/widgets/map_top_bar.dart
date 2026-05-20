@@ -36,11 +36,6 @@ class MapTopBar extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  _TopBarIconButton(
-                    icon: Icons.arrow_back_rounded,
-                    tooltip: 'Back',
-                    onPressed: () => Navigator.of(context).maybePop(),
-                  ),
                   if (onCollapse != null)
                     _TopBarIconButton(
                       icon: Icons.keyboard_arrow_up_rounded,
@@ -51,6 +46,7 @@ class MapTopBar extends StatelessWidget {
                     child: TextField(
                       controller: controller,
                       textInputAction: TextInputAction.search,
+                      onSubmitted: (_) => FocusScope.of(context).unfocus(),
                       decoration: const InputDecoration(
                         hintText: 'Search rooms, services, places',
                         prefixIcon: Icon(Icons.search_rounded),
@@ -63,12 +59,17 @@ class MapTopBar extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (controller.text.isNotEmpty)
-                    _TopBarIconButton(
-                      icon: Icons.close_rounded,
-                      tooltip: 'Clear search',
-                      onPressed: controller.clear,
-                    ),
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: controller,
+                    builder: (context, value, _) {
+                      if (value.text.isEmpty) return const SizedBox.shrink();
+                      return _TopBarIconButton(
+                        icon: Icons.close_rounded,
+                        tooltip: 'Clear search',
+                        onPressed: controller.clear,
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

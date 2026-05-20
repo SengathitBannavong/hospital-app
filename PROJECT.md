@@ -9,11 +9,12 @@ Admin-only web, traffic-control, and algorithm-engine features are intentionally
 
 - [x] Flutter feature-first structure is in place: `auth`, `map`, `medical`, `profile`, `home`, `main`.
 - [x] Riverpod is used for auth, map, medical, and profile state.
-- [x] GoRouter app shell is configured with bottom navigation for Home, Medical, Map, and Profile.
+- [x] GoRouter app shell is configured with bottom navigation for Home, Medical, Notification, Info, Map, and Profile.
 - [x] API client/endpoints exist for auth, map, route, medical, and profile.
 - [ ] Home page is still mostly a dashboard/demo surface; it fetches task count but does not yet aggregate notifications, appointments, utilities, route status, or asset shortcuts.
-- [ ] Notification and SOS endpoints/repositories/pages are not wired into the app shell yet.
-- [ ] Static info pages are not visible in the current route tree.
+- [x] Notification endpoints/repositories/pages are wired into the app shell.
+- [ ] SOS endpoints/repositories/pages are not wired into the app shell yet.
+- [x] Static info pages are visible in the current route tree (`/info`).
 - [ ] Several patient/public Swagger-backed features are not wired into the mobile app yet: voice support, active route guidance, asset booking, staff request, chat/FAQ, utilities, and feedback.
 - [ ] Demo flow and final QA checklist still need execution.
 
@@ -49,8 +50,8 @@ Scope: mobile dashboard, patient summary cards, quick actions, and public/patien
 - [x] Home includes pull-to-refresh, manual refresh, theme toggle, logout, toast examples, and animated summary cards.
 - [ ] Home still uses a local counter for appointments; no real appointment API/data flow is wired.
 - [ ] Home "doctors available" card is static demo content.
-- [ ] Home notification area is static/demo-only; it is not wired to `notification/get_list`.
-- [ ] Home quick actions are missing for Map, Medical tasks, Notifications, SOS, FAQ/help, utilities, wheelchair booking, staff request, and chat/support.
+- [x] Home notification area is static/demo-only; it is not wired to `notification/get_list`.
+- [x] Home quick actions are missing for Map, Medical tasks, Notifications, SOS, FAQ/help, utilities, wheelchair booking, staff request, and chat/support.
 - [ ] Home does not show live utility data even though Swagger exposes `util/weather`, `util/parking`, `util/pharmacy`, `util/canteen`, and `util/wifi`.
 - [ ] Home does not show active route status even though Swagger exposes `route/get_active` and route lifecycle APIs.
 - [ ] Home does not surface device/asset state even though Swagger exposes wheelchair/device APIs.
@@ -110,12 +111,21 @@ Scope: notification list, mark read, delete, profile edit.
 - [x] Profile provider supports fetch and update.
 - [x] Profile repository is wired to get/set profile endpoints.
 - [x] Notification model files exist under `lib/features/notification_support/models/`.
-- [ ] Notification list page is missing.
-- [ ] Notification provider/state management is missing.
-- [ ] Notification repository/API endpoint constants are missing.
-- [ ] Mark-read action is not wired to UI/API.
-- [ ] Delete notification action is not wired to UI/API.
-- [ ] Notification route or bottom-nav entry is not configured.
+- [x] Notification list page exists and is wired in app shell.
+- [x] Notification provider/state management exists.
+- [x] Notification repository/API endpoint constants are wired.
+- [x] Mark-read action is wired to UI/API.
+- [x] Delete notification action is wired to UI/API.
+- [x] Notification route or bottom-nav entry is configured.
+- [ ] Verify notification response fields (`id`, `title`, `message`, `created_at`, `is_read`) and update parsing if backend differs.
+- [ ] Confirm `DELETE /notification/delete` accepts JSON body in production.
+- [ ] Use `total/page/limit` to implement pagination or load-more.
+- [ ] Show notification time in UI (use `created_at`).
+- [ ] Add global unread badge count (tab/app bar).
+- [ ] Register device token with `user/set_devtoken` and update via push.
+- [ ] Add notification settings UI using `user/get_settings` and `user/set_settings`.
+- [ ] Add repository/provider tests for notification flow.
+- [ ] Manual QA: list load, pull-to-refresh, mark read, delete.
 - [ ] Push notification/device-token flow is not complete; Swagger exposes `user/set_devtoken`, user settings, and notification APIs, but app-side push registration still needs implementation.
 - [ ] Add profile update success/error toast handling if demo requires visible feedback.
 
@@ -127,13 +137,14 @@ Scope: static info pages and SOS feature.
 - [ ] SOS page/button is not visible in the route tree or main shell.
 - [ ] SOS provider/repository/API endpoint is missing.
 - [ ] SOS confirmation/error states are missing.
-- [ ] Static info pages are missing from routes and feature folders.
-- [ ] Define the static pages needed for demo, for example hospital guide, departments, visiting hours, help/contact.
+- [x] Static info page exists under `features/info` and is routed via `/info`.
+- [ ] Define/expand static info pages needed for demo (hospital guide, departments, visiting hours, help/contact).
 - [ ] Public utility APIs are available but not wired: `util/faq`, `util/about`, `util/contact`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather`.
 - [ ] Feedback submission is not wired; Swagger exposes `util/feedback`.
 - [ ] Language list/settings are not wired; Swagger exposes `util/languages`, `user/get_settings`, and `user/set_settings`.
 - [ ] File upload is not wired; Swagger exposes `util/upload`, useful for feedback/report images if backend accepts attachments.
-- [ ] Add navigation entry points for static info and SOS.
+- [x] Add navigation entry points for static info pages.
+- [ ] Add navigation entry points for SOS.
 
 ## Chat 7: Patient/Public API-backed Features Missing From Mobile
 
@@ -142,7 +153,7 @@ Scope: features available in `swagger.yaml` for patient/public/mobile use, exclu
 - [ ] Device/asset feature is missing from the app: `asset/asset_stations`, `asset/find_wheelchairs`, `asset/book_asset`, `asset/release_asset`, `asset/asset_health`, `asset/track_asset`, and `asset/report_broken_asset`.
 - [ ] Staff assistance request is missing: `staff/request_staff`.
 - [ ] Chat/support UI is missing: `chat/create_room`, `chat/get_rooms`, `chat/get_messages`, `chat/send_message`, `chat/get_unread_count`, `chat/mark_read`, and `ws/chat`.
-- [ ] FAQ/help center is missing even though `util/faq`, `util/about`, and `util/contact` are available.
+- [ ] FAQ/help center is static-only; `util/faq`, `util/about`, and `util/contact` are not wired.
 - [ ] Hospital utility pages are missing even though `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather` are available.
 - [ ] Feedback UI is missing even though `util/feedback` is available.
 - [ ] Route sharing/rating/history UI is missing even though route APIs exist.
