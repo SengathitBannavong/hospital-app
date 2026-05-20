@@ -144,12 +144,12 @@ class MapDebugGridPainter extends CustomPainter {
   }) {
     if (fontSize < 3) return; // unreadable when zoomed out; skip
     TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(color: color, fontSize: fontSize),
-      ),
-      textDirection: TextDirection.ltr,
-    )
+        text: TextSpan(
+          text: text,
+          style: TextStyle(color: color, fontSize: fontSize),
+        ),
+        textDirection: TextDirection.ltr,
+      )
       ..layout()
       ..paint(canvas, at);
   }
