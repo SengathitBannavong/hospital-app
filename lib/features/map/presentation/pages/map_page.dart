@@ -21,6 +21,9 @@ import 'package:hospital_app/features/map/presentation/widgets/map_route_panel.d
 import 'package:hospital_app/features/map/presentation/widgets/map_search_results_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_top_bar.dart';
 
+// debug
+// import 'package:hospital_app/features/map/presentation/widgets/map_debug_grid_painter.dart';
+
 class MapPage extends ConsumerStatefulWidget {
   const MapPage({super.key});
 
@@ -293,6 +296,12 @@ class _MapPageState extends ConsumerState<MapPage>
                                 debugPoiCenter: _debugPoiCenter,
                                 showDebug: _showDebugHitTest,
                               ),
+                              // foregroundPainter: MapDebugGridPainter(
+                              //   rows: rows,
+                              //   cols: cols,
+                              //   visibleRect: visibleRect,
+                              //   // labelCells: true,
+                              // ),
                             );
                           },
                         ),
@@ -429,6 +438,33 @@ class _MapPageState extends ConsumerState<MapPage>
                       onStop: _stopNavigation,
                       onCollapse: () => setState(() => _navCollapsed = true),
                     ),
+            )
+          else if (dest != null &&
+              userPosition != null &&
+              routeResultAsync.hasValue)
+            // Route is ready: one-tap Start, with a small Route options button
+            // above it for changing the mode or clearing.
+            Positioned(
+              right: AppSpacing.md,
+              bottom: mediaBottom + AppSpacing.md,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _MapFab(
+                    icon: Icons.tune_rounded,
+                    tooltip: 'Route options',
+                    onPressed: _showRoutePanel,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  FloatingActionButton.extended(
+                    heroTag: 'map-start-fab',
+                    onPressed: _startNavigation,
+                    icon: const Icon(Icons.navigation_rounded),
+                    label: const Text('Start'),
+                  ),
+                ],
+              ),
             )
           else
             // Bottom-right: route plan FAB
