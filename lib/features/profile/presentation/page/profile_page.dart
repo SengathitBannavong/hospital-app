@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/hospital_theme.dart';
+import '../../../../core/utils/app_toast.dart';
+import '../../../../core/utils/delete_account_service.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/profile_form.dart';
@@ -16,6 +20,87 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   bool _isEditing = false;
+
+  Future<void> _handleLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Đăng xuất'),
+        content: const Text('Bạn có chắc chắn muốn đăng xuất không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy bỏ'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Đăng xuất'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true || !mounted) return;
+
+    await ref.read(authStateProvider.notifier).logout();
+
+    if (!mounted) return;
+
+    AppToast.showSuccess('Đã đăng xuất thành công.');
+    context.go('/login');
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    final confirmed = await DeleteAccountService.showDeleteAccountConfirmation(
+      context,
+    );
+
+    if (confirmed == true && mounted) {
+      final password = await DeleteAccountService.showPasswordConfirmation(
+        context,
+      );
+
+      if (password == null || password.isEmpty) return;
+
+      if (!mounted) return;
+
+      var loadingDialogOpen = false;
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        useRootNavigator: true,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+      loadingDialogOpen = true;
+
+      try {
+        await ref
+            .read(authStateProvider.notifier)
+            .deleteAccount(password: password);
+
+        if (mounted) {
+          if (loadingDialogOpen) {
+            Navigator.of(context, rootNavigator: true).pop();
+            loadingDialogOpen = false;
+          }
+          DeleteAccountService.showDeleteAccountSuccess(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          if (loadingDialogOpen) {
+            Navigator.of(context, rootNavigator: true).pop();
+            loadingDialogOpen = false;
+          }
+          DeleteAccountService.showError(
+            context,
+            e.toString().replaceFirst('Exception: ', ''),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +155,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ProfileInfo(
                   profile: profile,
                   onEdit: () => setState(() => _isEditing = true),
+                  onDeleteAccount: _handleDeleteAccount,
+                  onLogout: _handleLogout,
                 ),
               const SizedBox(height: AppSpacing.xxl),
             ],

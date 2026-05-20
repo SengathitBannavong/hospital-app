@@ -5,6 +5,7 @@ import 'package:hospital_app/core/network/api_response_codes.dart';
 import 'models/auth_api_response.dart';
 import 'models/auth_user.dart';
 import 'models/otp_response.dart';
+import 'models/version_check_response.dart';
 
 class AuthRepository {
   // Login with phone and password
@@ -207,5 +208,53 @@ class AuthRepository {
       return e.response?.data['message'] ?? e.message ?? 'Unknown error';
     }
     return e.message ?? 'Unknown error';
+  }
+
+  // Check app version against backend
+  Future<VersionCheckResponse> checkVersion({
+    required String platform, // 'android' or 'ios'
+    required String appVersion, // e.g., "1.0.0"
+  }) async {
+    try {
+      final response = await ApiClient.instance.get(
+        ApiEndpoints.checkVersion,
+        queryParameters: {'platform': platform, 'app_version': appVersion},
+      );
+
+      final apiResponse = AuthApiResponse<VersionCheckResponse>.fromJson(
+        response.data,
+        (json) => VersionCheckResponse.fromJson(json as Map<String, dynamic>),
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success &&
+          apiResponse.data != null) {
+        return apiResponse.data!;
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  // Delete user account (requires authentication)
+  Future<void> deleteAccount({required String password}) async {
+    try {
+      final response = await ApiClient.instance.delete(
+        ApiEndpoints.deleteAccount,
+        data: {'password': password},
+      );
+
+      final apiResponse = AuthApiResponse<dynamic>.fromJson(
+        response.data,
+        (json) => json,
+      );
+
+      if (apiResponse.code != ApiResponseCodes.success) {
+        throw Exception(apiResponse.message);
+      }
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
   }
 }

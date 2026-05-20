@@ -8,6 +8,10 @@ class ApiEndpoints {
   static const String resetPassword = 'auth/reset_password';
   static const String logout = 'auth/logout';
   static const String changePassword = 'auth/change_password';
+  static const String deleteAccount = 'user/delete_account';
+
+  // System
+  static const String checkVersion = 'sys/check_version';
 
   // Medical & Others
   static const String patients = 'patients';
