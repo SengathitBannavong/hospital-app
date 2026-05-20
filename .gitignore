@@ -66,6 +66,9 @@ build/
 # Coverage
 coverage/
 
+# Generated QR codes
+scripts/qr_out/
+
 # Context
 context/
 .agent/
