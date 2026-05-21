@@ -77,13 +77,17 @@ class AuthRepository {
     String? otpType,
   }) async {
     try {
+      final normalizedOtpType = otpType == 'forgot_password'
+          ? 'reset_password'
+          : otpType;
+
       final response = await ApiClient.instance.post(
         ApiEndpoints.verifyOtp,
         data: {
           'phone_number': phoneNumber,
           'otp': otp,
           // ignore: use_null_aware_elements
-          if (otpType != null) 'otp_type': otpType,
+          if (normalizedOtpType != null) 'otp_type': normalizedOtpType,
         },
       );
 
@@ -103,23 +107,12 @@ class AuthRepository {
   // Resend OTP verification code
   Future<void> resendOtp({required String phoneNumber, String? otpType}) async {
     try {
-      final response = await ApiClient.instance.post(
-        ApiEndpoints.resendOtp,
-        data: {
-          'phone_number': phoneNumber,
-          // ignore: use_null_aware_elements
-          if (otpType != null) 'otp_type': otpType,
-        },
-      );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code != ApiResponseCodes.success) {
-        throw Exception(apiResponse.message);
+      if (otpType == 'forgot_password') {
+        await forgotPassword(phoneNumber);
+        return;
       }
+
+      throw Exception('Resend OTP is not supported for signup flow.');
     } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
@@ -161,7 +154,7 @@ class AuthRepository {
           'phone_number': phoneNumber,
           'otp': otp,
           'new_password': newPassword,
-          'otp_type': "forgot_password",
+          'otp_type': 'reset_password',
         },
       );
 
