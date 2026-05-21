@@ -178,6 +178,9 @@ class _MapPageState extends ConsumerState<MapPage>
     final navDot = ref.watch(navDotProvider);
     final navPhase = ref.watch(navPhaseProvider);
     final navProgress = ref.watch(navProgressProvider);
+    final flowVisible = ref.watch(flowOverlayVisibleProvider);
+    final flowSnapshot = ref.watch(flowSnapshotProvider(_defaultMapId));
+    final flow = flowSnapshot.valueOrNull;
     ref.watch(navigationControllerProvider);
     final defaultUserPosition = ref.watch(
       defaultUserPositionProvider(_defaultMapId),
@@ -295,6 +298,8 @@ class _MapPageState extends ConsumerState<MapPage>
                                 cols: cols,
                                 walkableLocations: walkable,
                                 pois: nodes,
+                                flowCells: flow?.cells ?? const [],
+                                showFlowOverlay: flowVisible,
                                 routeLocations: routeLocations,
                                 routeProgress: _routeAnim.value,
                                 userDot: navDot,
@@ -400,6 +405,25 @@ class _MapPageState extends ConsumerState<MapPage>
               ),
             ),
 
+          if (flow != null && (flow.alerts.isNotEmpty || flow.isStale))
+            Positioned(
+              top: mediaTop + AppSpacing.md + 104,
+              left: AppSpacing.md,
+              right: AppSpacing.md,
+              child: _FlowAlertBanner(
+                isStale: flow.isStale,
+                updatedAt: flow.updatedAt,
+                message: flow.alerts.isEmpty ? null : flow.alerts.first.message,
+              ),
+            ),
+
+          if (flowVisible)
+            Positioned(
+              left: AppSpacing.md,
+              bottom: mediaBottom + 204,
+              child: _FlowLegend(isStale: flow?.isStale ?? false),
+            ),
+
           // Bottom-left FAB cluster: legend + recenter
           Positioned(
             left: AppSpacing.md,
@@ -417,6 +441,17 @@ class _MapPageState extends ConsumerState<MapPage>
                   icon: Icons.map_outlined,
                   tooltip: 'Map legend',
                   onPressed: _showLegend,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _MapFab(
+                  icon: flowVisible
+                      ? Icons.thermostat_rounded
+                      : Icons.thermostat_outlined,
+                  tooltip: flowVisible ? 'Hide flow heatmap' : 'Show heatmap',
+                  onPressed: () {
+                    ref.read(flowOverlayVisibleProvider.notifier).state =
+                        !flowVisible;
+                  },
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 _MapFab(
@@ -1069,6 +1104,136 @@ class _MapFab extends StatelessWidget {
             child: Icon(icon, size: 22, color: scheme.onSurface),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FlowAlertBanner extends StatelessWidget {
+  final bool isStale;
+  final DateTime updatedAt;
+  final String? message;
+
+  const _FlowAlertBanner({
+    required this.isStale,
+    required this.updatedAt,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final text = message ?? 'Offline flow snapshot';
+    return Material(
+      color: isStale ? scheme.tertiaryContainer : scheme.errorContainer,
+      elevation: 2,
+      shadowColor: scheme.shadow,
+      borderRadius: AppRadius.borderMd,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isStale
+                  ? Icons.cloud_off_rounded
+                  : Icons.warning_amber_rounded,
+              size: 18,
+              color: isStale
+                  ? scheme.onTertiaryContainer
+                  : scheme.onErrorContainer,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                isStale ? '$text · ${_formatUpdatedAt(updatedAt)}' : text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: context.textTheme.labelMedium?.copyWith(
+                  color: isStale
+                      ? scheme.onTertiaryContainer
+                      : scheme.onErrorContainer,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatUpdatedAt(DateTime value) {
+    if (value.millisecondsSinceEpoch == 0) {
+      return 'no cached time';
+    }
+    final local = value.toLocal();
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return 'updated $hour:$minute';
+  }
+}
+
+class _FlowLegend extends StatelessWidget {
+  final bool isStale;
+
+  const _FlowLegend({required this.isStale});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Material(
+      color: scheme.surface,
+      elevation: 2,
+      shadowColor: scheme.shadow,
+      borderRadius: AppRadius.borderSm,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isStale ? 'Flow heatmap · stale' : 'Flow heatmap',
+              style: context.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _LegendSwatch(color: Color(0xFFFFD166)),
+                const SizedBox(width: 4),
+                Text('0', style: context.textTheme.labelSmall),
+                const SizedBox(width: AppSpacing.sm),
+                const _LegendSwatch(color: Color(0xFFE63946)),
+                const SizedBox(width: 4),
+                Text('1 density', style: context.textTheme.labelSmall),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendSwatch extends StatelessWidget {
+  final Color color;
+
+  const _LegendSwatch({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 14,
+      height: 14,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }

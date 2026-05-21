@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/route_step.dart';
 import 'package:hospital_app/features/map/data/services/route_modes.dart';
 import 'package:hospital_app/features/map/data/services/routing_engine.dart';
@@ -36,10 +37,9 @@ void main() {
         adjacency: const {
           0: [1, 3],
           1: [0, 2],
-          2: [1, 5],
+          2: [1, 4],
           3: [0, 4],
-          4: [3, 5],
-          5: [4, 2],
+          4: [3, 2],
         },
         cols: 3,
         edgeStatuses: {
@@ -51,7 +51,38 @@ void main() {
         },
       );
 
-      expect(result.path, [0, 3, 4, 5, 2]);
+      expect(result.path, [0, 3, 4, 2]);
+    });
+
+    test('prefers lower-cost routes when flow congestion is present', () {
+      final result = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 2,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1, 3],
+          1: [0, 2],
+          2: [1, 4],
+          3: [0, 4],
+          4: [3, 2],
+        },
+        cols: 3,
+        edgeStatuses: {
+          edgeStatusKey(0, 1): const EdgeStatus(
+            fromLocation: 0,
+            toLocation: 1,
+            congestion: 1,
+          ),
+          edgeStatusKey(1, 2): const EdgeStatus(
+            fromLocation: 1,
+            toLocation: 2,
+            congestion: 1,
+          ),
+        },
+      );
+
+      expect(result.path, [0, 3, 4, 2]);
+      expect(result.distance, 3);
     });
 
     test('uses screen coordinates for left and right maneuvers', () {

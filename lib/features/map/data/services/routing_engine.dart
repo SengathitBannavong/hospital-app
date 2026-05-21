@@ -1,23 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/data/models/route_step.dart';
 import 'package:hospital_app/features/map/data/services/route_modes.dart';
-
-// Phase E will replace this with the flow edge-status model.
-class EdgeStatus {
-  final int fromLocation;
-  final int toLocation;
-  final double congestion;
-  final bool blocked;
-
-  const EdgeStatus({
-    required this.fromLocation,
-    required this.toLocation,
-    this.congestion = 0,
-    this.blocked = false,
-  });
-}
 
 class RoutingEngine {
   RouteResult route({

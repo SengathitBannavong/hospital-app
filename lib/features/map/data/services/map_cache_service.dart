@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
 import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 
 class MapCacheService {
@@ -49,18 +50,48 @@ class MapCacheService {
     return DateTime.tryParse(raw);
   }
 
+  Future<void> saveFlowSnapshot({
+    required int mapId,
+    required FlowSnapshot snapshot,
+  }) async {
+    final box = await _openBox();
+    await box.put(_flowDataKey(mapId), jsonEncode(snapshot.toJson()));
+  }
+
+  Future<FlowSnapshot?> loadFlowSnapshot({required int mapId}) async {
+    final box = await _openBox();
+    final raw = box.get(_flowDataKey(mapId));
+    if (raw is String) {
+      final json = jsonDecode(raw);
+      if (json is Map) {
+        return FlowSnapshot.fromJson(Map<String, dynamic>.from(json)).asStale();
+      }
+    }
+    if (raw is Map) {
+      return FlowSnapshot.fromJson(Map<String, dynamic>.from(raw)).asStale();
+    }
+    return null;
+  }
+
   Future<Box<dynamic>> _openBox() {
     return _boxFuture ??= _initAndOpenBox();
   }
 
   Future<Box<dynamic>> _initAndOpenBox() async {
-    if (!Hive.isBoxOpen(_boxName)) {
-      await Hive.initFlutter();
+    if (Hive.isBoxOpen(_boxName)) {
+      return Hive.box<dynamic>(_boxName);
     }
-    return Hive.openBox<dynamic>(_boxName);
+    try {
+      return await Hive.openBox<dynamic>(_boxName);
+    } catch (_) {
+      await Hive.initFlutter();
+      return Hive.openBox<dynamic>(_boxName);
+    }
   }
 
   String _dataKey(int mapId) => 'map:$mapId:sync_full';
 
   String _lastSyncedAtDataKey(int mapId) => 'map:$mapId:last_synced_at';
+
+  String _flowDataKey(int mapId) => 'map:$mapId:flow_snapshot';
 }

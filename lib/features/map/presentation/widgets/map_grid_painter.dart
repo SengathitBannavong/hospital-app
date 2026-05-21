@@ -2,6 +2,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:hospital_app/features/map/data/models/flow_cell.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
@@ -23,6 +24,7 @@ final Paint _routeTraveledHaloPaint = Paint()
 final Paint _routeTraveledLinePaint = Paint()
   ..color = MapSurface.routeLine.withValues(alpha: 0.4)
   ..strokeCap = StrokeCap.round;
+final Paint _flowCellPaint = Paint();
 
 final Map<String, Paint> _poiPaints = {
   for (final entry in MapPoiPalette.byType.entries)
@@ -41,6 +43,8 @@ class MapGridPainter extends CustomPainter {
   final int cols;
   final Set<int> walkableLocations;
   final List<MapPoi> pois;
+  final List<FlowCell> flowCells;
+  final bool showFlowOverlay;
   final List<int> routeLocations;
   final double routeProgress;
   final NavDot? userDot;
@@ -55,6 +59,8 @@ class MapGridPainter extends CustomPainter {
     required this.cols,
     required this.walkableLocations,
     required this.pois,
+    this.flowCells = const <FlowCell>[],
+    this.showFlowOverlay = false,
     required this.routeLocations,
     this.routeProgress = 1.0,
     this.userDot,
@@ -110,6 +116,18 @@ class MapGridPainter extends CustomPainter {
       );
     }
 
+    if (showFlowOverlay && flowCells.isNotEmpty) {
+      _paintFlowOverlay(
+        canvas,
+        cellWidth,
+        cellHeight,
+        rowStart,
+        rowEnd,
+        colStart,
+        colEnd,
+      );
+    }
+
     final radius = math.min(cellWidth, cellHeight) * 0.35;
 
     for (final poi in pois) {
@@ -137,6 +155,37 @@ class MapGridPainter extends CustomPainter {
       if (debugPoiCenter != null) {
         canvas.drawCircle(debugPoiCenter!, debugRadius, _debugPoiPaint);
       }
+    }
+  }
+
+  void _paintFlowOverlay(
+    Canvas canvas,
+    double cellWidth,
+    double cellHeight,
+    int rowStart,
+    int rowEnd,
+    int colStart,
+    int colEnd,
+  ) {
+    for (final cell in flowCells) {
+      final row = cell.location ~/ cols;
+      final col = cell.location % cols;
+      if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
+      if (row < rowStart || row > rowEnd || col < colStart || col > colEnd) {
+        continue;
+      }
+
+      final density = cell.density.clamp(0.0, 1.0).toDouble();
+      if (density <= 0) continue;
+      _flowCellPaint.color = Color.lerp(
+        const Color(0xFFFFD166),
+        const Color(0xFFE63946),
+        density,
+      )!.withValues(alpha: 0.18 + density * 0.28);
+      canvas.drawRect(
+        Rect.fromLTWH(col * cellWidth, row * cellHeight, cellWidth, cellHeight),
+        _flowCellPaint,
+      );
     }
   }
 
@@ -327,7 +376,9 @@ class MapGridPainter extends CustomPainter {
   bool shouldRepaint(covariant MapGridPainter oldDelegate) {
     return !identical(oldDelegate.pois, pois) ||
         !identical(oldDelegate.walkableLocations, walkableLocations) ||
+        !identical(oldDelegate.flowCells, flowCells) ||
         !identical(oldDelegate.routeLocations, routeLocations) ||
+        oldDelegate.showFlowOverlay != showFlowOverlay ||
         oldDelegate.routeProgress != routeProgress ||
         oldDelegate.userDot != userDot ||
         oldDelegate.navProgress != navProgress ||

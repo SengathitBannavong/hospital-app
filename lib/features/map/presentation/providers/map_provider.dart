@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/features/map/data/models/edge_status.dart';
+import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
 import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
@@ -8,6 +12,7 @@ import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
+import 'package:hospital_app/features/map/data/services/flow_service.dart';
 import 'package:hospital_app/features/map/data/services/routing_engine.dart';
 import 'package:hospital_app/features/map/data/services/routing_service.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
@@ -38,6 +43,13 @@ final routingServiceProvider = Provider<RoutingService>((ref) {
   return RoutingService(
     repository: ref.watch(mapRepositoryProvider),
     engine: RoutingEngine(),
+  );
+});
+
+final flowServiceProvider = Provider<FlowService>((ref) {
+  return FlowService(
+    repository: ref.watch(mapRepositoryProvider),
+    cache: ref.watch(mapCacheProvider),
   );
 });
 
@@ -100,6 +112,7 @@ final locationSourceProvider = StateProvider<LocationSource>(
   (ref) => LocationSource.entranceDefault,
 );
 final navPhaseProvider = StateProvider<NavPhase>((ref) => NavPhase.idle);
+final flowOverlayVisibleProvider = StateProvider<bool>((ref) => false);
 final navProgressProvider = StateProvider<double>((ref) => 0.0);
 final navSpeedProvider = StateProvider<double>((ref) => 1.0);
 final navCurrentLocationProvider = StateProvider<int?>((ref) => null);
@@ -132,6 +145,33 @@ final navigationControllerProvider = Provider.autoDispose<NavigationController>(
     return controller;
   },
 );
+
+final flowSnapshotProvider = StreamProvider.autoDispose
+    .family<FlowSnapshot, int>((ref, mapId) async* {
+  final service = ref.watch(flowServiceProvider);
+  final phase = ref.watch(navPhaseProvider);
+  final interval = phase == NavPhase.navigating
+      ? const Duration(seconds: 15)
+      : const Duration(seconds: 30);
+
+  yield await service.snapshot(mapId: mapId);
+  final timer = Timer.periodic(interval, (_) {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(timer.cancel);
+});
+
+final flowEdgeStatusMapProvider = Provider.autoDispose
+    .family<Map<String, EdgeStatus>, int>((ref, mapId) {
+  final snapshot = ref.watch(flowSnapshotProvider(mapId)).valueOrNull;
+  if (snapshot == null) {
+    return const <String, EdgeStatus>{};
+  }
+  return {
+    for (final edge in snapshot.edgeStatuses)
+      edgeStatusKey(edge.fromLocation, edge.toLocation): edge,
+  };
+});
 
 // Normalized POI names cache keyed by poiId — computed once when nodes settle.
 final normalizedPoiNamesProvider = Provider.family<Map<int, String>, int>((
@@ -286,6 +326,7 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
   final meta = await ref.watch(mapMetaProvider(_defaultRouteMapId).future);
   await ref.watch(mapEdgesProvider(_defaultRouteMapId).future);
   final adjacency = ref.watch(adjacencyProvider(_defaultRouteMapId));
+  final edgeStatuses = ref.watch(flowEdgeStatusMapProvider(_defaultRouteMapId));
 
   return routingService.route(
     startLocation: start,
@@ -293,6 +334,7 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
     modeId: mode,
     adjacency: adjacency,
     cols: meta.cols,
+    edgeStatuses: edgeStatuses,
   );
 });
 

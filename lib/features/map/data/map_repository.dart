@@ -3,6 +3,9 @@ import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
 import 'package:hospital_app/core/network/api_response_codes.dart';
 import '../../auth/data/models/auth_api_response.dart';
+import 'models/edge_status.dart';
+import 'models/flow_alert.dart';
+import 'models/flow_cell.dart';
 import 'models/map_department.dart';
 import 'models/map_edges_response.dart';
 import 'models/map_floor.dart';
@@ -382,10 +385,244 @@ class MapRepository {
     }
   }
 
+  Future<List<FlowCell>> getFlowDensity({int? gridLocation}) async {
+    try {
+      final response = await ApiClient.instance.get(
+        ApiEndpoints.flowGetDensity,
+        queryParameters: {
+          'grid_location': ?gridLocation,
+        },
+      );
+
+      final apiResponse = AuthApiResponse<List<FlowCell>>.fromJson(
+        response.data,
+        (json) => _parseFlowCells(json),
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return apiResponse.data ?? const <FlowCell>[];
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<List<FlowCell>> getFlowHeatmap() async {
+    try {
+      final response = await ApiClient.instance.get(
+        ApiEndpoints.flowGetHeatmap,
+      );
+
+      final apiResponse = AuthApiResponse<List<FlowCell>>.fromJson(
+        response.data,
+        (json) => _parseFlowCells(json),
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return apiResponse.data ?? const <FlowCell>[];
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<List<FlowCell>> getFlowBottlenecks({int limit = 10}) async {
+    try {
+      final response = await ApiClient.instance.get(
+        ApiEndpoints.flowGetBottlenecks,
+        queryParameters: {'limit': limit},
+      );
+
+      final apiResponse = AuthApiResponse<List<FlowCell>>.fromJson(
+        response.data,
+        (json) => _parseFlowCells(json),
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return apiResponse.data ?? const <FlowCell>[];
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<List<FlowCell>> getFlowForecast({int hours = 24}) async {
+    try {
+      final response = await ApiClient.instance.get(
+        ApiEndpoints.flowGetForecast,
+        queryParameters: {'hours': hours},
+      );
+
+      final apiResponse = AuthApiResponse<List<FlowCell>>.fromJson(
+        response.data,
+        (json) => _parseFlowCells(json),
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return apiResponse.data ?? const <FlowCell>[];
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<List<FlowAlert>> getFlowAlerts() async {
+    try {
+      final response = await ApiClient.instance.get(ApiEndpoints.flowGetAlerts);
+
+      final apiResponse = AuthApiResponse<List<FlowAlert>>.fromJson(
+        response.data,
+        (json) => _parseFlowAlerts(json),
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return apiResponse.data ?? const <FlowAlert>[];
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<List<EdgeStatus>> getFlowEdgeStatus() async {
+    try {
+      final response = await ApiClient.instance.get(
+        ApiEndpoints.flowEdgeStatus,
+      );
+
+      final apiResponse = AuthApiResponse<List<EdgeStatus>>.fromJson(
+        response.data,
+        (json) => _parseEdgeStatuses(json),
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return apiResponse.data ?? const <EdgeStatus>[];
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
   String _extractErrorMessage(DioException e) {
     if (e.response?.data is Map<String, dynamic>) {
       return e.response?.data['message'] ?? e.message ?? 'Unknown error';
     }
     return e.message ?? 'Unknown error';
+  }
+
+  List<FlowCell> _parseFlowCells(dynamic json) {
+    final rows = _extractRows(json, keys: const ['cells', 'heatmap', 'data']);
+    return rows.map(_flowCellFromRaw).whereType<FlowCell>().toList();
+  }
+
+  FlowCell? _flowCellFromRaw(Map<String, dynamic> json) {
+    final location = _readInt(json['grid_location'] ?? json['location']);
+    if (location == null) {
+      return null;
+    }
+    final density = _readDouble(json['density'] ?? json['count']) ?? 0;
+    return FlowCell(location: location, density: density);
+  }
+
+  List<EdgeStatus> _parseEdgeStatuses(dynamic json) {
+    final rows = _extractRows(
+      json,
+      keys: const ['edge_statuses', 'edges', 'statuses', 'data'],
+    );
+    return rows.map(_edgeStatusFromRaw).whereType<EdgeStatus>().toList();
+  }
+
+  EdgeStatus? _edgeStatusFromRaw(Map<String, dynamic> json) {
+    final from = _readInt(
+      json['from_location'] ?? json['from'] ?? json['source_location'],
+    );
+    final to = _readInt(
+      json['to_location'] ?? json['to'] ?? json['target_location'],
+    );
+    if (from == null || to == null) {
+      return null;
+    }
+    return EdgeStatus(
+      fromLocation: from,
+      toLocation: to,
+      congestion: _readDouble(json['congestion'] ?? json['density']) ?? 0,
+      blocked: json['blocked'] == true || json['status'] == 'blocked',
+    );
+  }
+
+  List<FlowAlert> _parseFlowAlerts(dynamic json) {
+    final rows = _extractRows(json, keys: const ['alerts', 'items', 'data']);
+    return rows.map(_flowAlertFromRaw).whereType<FlowAlert>().toList();
+  }
+
+  FlowAlert? _flowAlertFromRaw(Map<String, dynamic> json) {
+    final message = json['message']?.toString() ?? json['title']?.toString();
+    if (message == null || message.isEmpty) {
+      return null;
+    }
+    return FlowAlert(
+      id: json['id']?.toString() ?? message,
+      message: message,
+      location: _readInt(json['location'] ?? json['grid_location']),
+      level:
+          json['level']?.toString() ?? json['severity']?.toString() ?? 'info',
+    );
+  }
+
+  List<Map<String, dynamic>> _extractRows(
+    dynamic json, {
+    required List<String> keys,
+  }) {
+    if (json is List) {
+      return json
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    if (json is Map) {
+      for (final key in keys) {
+        final value = json[key];
+        if (value is List) {
+          return value
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList();
+        }
+      }
+      if (_looksLikeRow(json)) {
+        return [Map<String, dynamic>.from(json)];
+      }
+    }
+    return const <Map<String, dynamic>>[];
+  }
+
+  bool _looksLikeRow(Map<dynamic, dynamic> json) {
+    return json.containsKey('grid_location') ||
+        json.containsKey('location') ||
+        json.containsKey('from_location') ||
+        json.containsKey('to_location') ||
+        json.containsKey('message');
+  }
+
+  int? _readInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  double? _readDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
   }
 }

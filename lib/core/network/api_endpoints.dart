@@ -47,6 +47,14 @@ class ApiEndpoints {
   static const String routeHistory = 'route/get_history';
   static const String routeClearHistory = 'route/clear_history';
 
+  // Flow
+  static const String flowGetDensity = 'flow/get_density';
+  static const String flowGetHeatmap = 'flow/get_heatmap';
+  static const String flowGetBottlenecks = 'flow/get_bottlenecks';
+  static const String flowGetForecast = 'flow/get_forecast';
+  static const String flowGetAlerts = 'flow/get_alerts';
+  static const String flowEdgeStatus = 'flow/edge_status';
+
   // Notification
   static const String notificationGetList = 'notification/get_list';
   static const String notificationSetRead = 'notification/set_read';
