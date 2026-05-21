@@ -343,6 +343,34 @@ class MapRepository {
     }
   }
 
+  Future<dynamic> recalculateRoute({
+    required String routeId,
+    required int currentLocation,
+  }) async {
+    try {
+      final response = await ApiClient.instance.post(
+        ApiEndpoints.routeRecalculate,
+        data: {
+          'route_id': routeId,
+          'current_location': currentLocation,
+        },
+      );
+
+      final apiResponse = AuthApiResponse<dynamic>.fromJson(
+        response.data,
+        (json) => json,
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return apiResponse.data;
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
   Future<RouteHistory> getRouteHistory() async {
     try {
       final response = await ApiClient.instance.get(ApiEndpoints.routeHistory);

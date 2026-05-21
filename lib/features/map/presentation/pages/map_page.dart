@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
+import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
@@ -51,6 +52,8 @@ class _MapPageState extends ConsumerState<MapPage>
   bool _searchExpanded = true;
   bool _arrivalOrderCommitted = false;
   bool _navCollapsed = false;
+  bool _rerouteInFlight = false;
+  final Set<String> _detouredEdgeKeys = <String>{};
   final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
   Offset? _debugPoiCenter;
@@ -168,7 +171,7 @@ class _MapPageState extends ConsumerState<MapPage>
       poiByCellProvider(_defaultMapId),
     )[userPosition];
     final dest = ref.watch(routeDestProvider);
-    final routeResultAsync = ref.watch(routeResultProvider);
+    final routeResultAsync = ref.watch(activeRouteResultProvider);
     final nodes =
         ref.watch(mapNodesProvider(_defaultMapId)).value ?? const <MapPoi>[];
     final walkable = ref.watch(walkableCellsProvider(_defaultMapId));
@@ -205,13 +208,17 @@ class _MapPageState extends ConsumerState<MapPage>
         if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
         _followNavigationDot(rows: rows, cols: cols);
       })
-      ..listen(routeResultProvider, (_, next) {
+      ..listen(activeRouteResultProvider, (_, next) {
         ref.read(passNodeReporterProvider).syncRoute(next.valueOrNull);
       })
       ..listen(positionSourceProvider, (_, next) {
         if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
-        final route = ref.read(routeResultProvider).valueOrNull;
+        final route = ref.read(activeRouteResultProvider).valueOrNull;
         unawaited(ref.read(passNodeReporterProvider).reportFrom(next, route));
+      })
+      ..listen(flowEdgeStatusMapProvider(_defaultMapId), (_, next) {
+        if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
+        unawaited(_maybeReroute(next));
       });
 
     if (navPhase == NavPhase.navigating && _routeAnim.value != 1) {
@@ -697,6 +704,7 @@ class _MapPageState extends ConsumerState<MapPage>
   void _clearRoute() {
     ref.read(navigationControllerProvider).stop();
     _arrivalOrderCommitted = false;
+    _resetRerouteState();
     ref.read(routeDestProvider.notifier).state = null;
     setState(() {});
   }
@@ -704,6 +712,7 @@ class _MapPageState extends ConsumerState<MapPage>
   void _completeRoute() {
     ref.read(navigationControllerProvider).stop();
     _arrivalOrderCommitted = false;
+    _resetRerouteState();
     ref.read(routeDestProvider.notifier).state = null;
     ref.invalidate(routeResultProvider);
     setState(() {});
@@ -750,7 +759,7 @@ class _MapPageState extends ConsumerState<MapPage>
             )[userPosition];
             final dest = ref.watch(routeDestProvider);
             final mode = ref.watch(routeModeProvider);
-            final routeResult = ref.watch(routeResultProvider);
+            final routeResult = ref.watch(activeRouteResultProvider);
             final routeLocations = ref.watch(routeLocationsProvider);
             final nodes =
                 ref.watch(mapNodesProvider(_defaultMapId)).value ??
@@ -803,6 +812,7 @@ class _MapPageState extends ConsumerState<MapPage>
 
   void _setRouteDestination(MapPoi poi) {
     ref.read(navigationControllerProvider).stop();
+    _resetRerouteState();
     final start = ref.read(userPositionProvider);
     ref.read(routeDestProvider.notifier).state = poi;
     if (start == poi.gridLocation) {
@@ -813,12 +823,90 @@ class _MapPageState extends ConsumerState<MapPage>
 
   void _setRouteMode(String mode) {
     ref.read(navigationControllerProvider).stop();
+    _resetRerouteState();
     ref.read(routeModeProvider.notifier).state = mode;
+  }
+
+  void _resetRerouteState() {
+    _rerouteInFlight = false;
+    _detouredEdgeKeys.clear();
+    ref.read(rerouteResultProvider.notifier).state = null;
+  }
+
+  Future<void> _maybeReroute(Map<String, EdgeStatus> edgeStatuses) async {
+    if (_rerouteInFlight || edgeStatuses.isEmpty) {
+      return;
+    }
+
+    final route = ref.read(activeRouteResultProvider).valueOrNull;
+    final position = ref.read(positionSourceProvider);
+    final decision = ref.read(rerouteWatcherProvider).evaluate(
+          routeResult: route,
+          position: position,
+          edgeStatuses: edgeStatuses,
+          ignoredEdgeKeys: _detouredEdgeKeys,
+        );
+    final edgeKey = decision.edgeKey;
+    if (!decision.shouldReroute || edgeKey == null) {
+      return;
+    }
+
+    _rerouteInFlight = true;
+    _detouredEdgeKeys.add(edgeKey);
+
+    try {
+      final currentLocation =
+          position.currentLocation ??
+          ref.read(navigationControllerProvider).currentLocationApprox;
+      final dest = ref.read(routeDestProvider);
+      if (currentLocation == null || dest == null) {
+        return;
+      }
+
+      final meta = await ref.read(mapMetaProvider(_defaultMapId).future);
+      await ref.read(mapEdgesProvider(_defaultMapId).future);
+      final adjacency = ref.read(adjacencyProvider(_defaultMapId));
+      final mode = ref.read(routeModeProvider);
+      final reroute = await ref.read(routingServiceProvider).reroute(
+            currentLocation: currentLocation,
+            destLocation: dest.gridLocation,
+            modeId: mode,
+            adjacency: adjacency,
+            cols: meta.cols,
+            edgeStatuses: edgeStatuses,
+          );
+      if (reroute.path.length < 2) {
+        _showRerouteSnack('No detour is available');
+        return;
+      }
+
+      ref.read(userPositionProvider.notifier).state = currentLocation;
+      ref.read(rerouteResultProvider.notifier).state = reroute;
+      _routeAnim.value = 1;
+      final reseated = ref.read(navigationControllerProvider).start();
+      if (!reseated) {
+        _showRerouteSnack('No detour is available');
+        return;
+      }
+      _showRerouteSnack('Route blocked. Detour applied.');
+    } catch (_) {
+      _showRerouteSnack('No detour is available');
+    } finally {
+      _rerouteInFlight = false;
+    }
+  }
+
+  void _showRerouteSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   bool _startNavigation() {
     _arrivalOrderCommitted = false;
     _navCollapsed = false;
+    _resetRerouteState();
     _routeAnim.value = 1;
     final started = ref.read(navigationControllerProvider).start();
     if (!started) {
@@ -840,6 +928,7 @@ class _MapPageState extends ConsumerState<MapPage>
     final dest = ref.read(routeDestProvider);
     ref.read(navigationControllerProvider).stop();
     _arrivalOrderCommitted = false;
+    _resetRerouteState();
     if (dest != null) {
       ref.read(userPositionProvider.notifier).state = dest.gridLocation;
       ref.read(locationSourceProvider.notifier).state = LocationSource.manual;

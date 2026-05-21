@@ -26,7 +26,7 @@ class MapNavigationSheet extends ConsumerWidget {
     final phase = ref.watch(navPhaseProvider);
     final progress = ref.watch(navProgressProvider).clamp(0.0, 1.0).toDouble();
     final speed = ref.watch(navSpeedProvider);
-    final routeResult = ref.watch(routeResultProvider);
+    final routeResult = ref.watch(activeRouteResultProvider);
     final fallbackCells = ref.watch(navMetersRemainingProvider);
     final fallbackEta = ref.watch(navSecondsRemainingProvider);
     final stepTracking = ref.watch(stepTrackingProvider);

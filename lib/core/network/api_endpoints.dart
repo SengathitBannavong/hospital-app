@@ -43,6 +43,7 @@ class ApiEndpoints {
   static const String routeOrderUnordered = 'route/order_unordered';
   static const String routeGetSteps = 'route/get_steps';
   static const String routeGetNext = 'route/get_next';
+  static const String routeRecalculate = 'route/recalculate';
   static const String routePassNode = 'route/pass_node';
   static const String routeHistory = 'route/get_history';
   static const String routeClearHistory = 'route/clear_history';

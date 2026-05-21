@@ -18,6 +18,7 @@ import 'package:hospital_app/features/map/data/services/routing_service.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/navigation/pass_node_reporter.dart';
 import 'package:hospital_app/features/map/presentation/navigation/position_source.dart';
+import 'package:hospital_app/features/map/presentation/navigation/reroute_watcher.dart';
 import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 
@@ -113,6 +114,7 @@ final locationSourceProvider = StateProvider<LocationSource>(
 );
 final navPhaseProvider = StateProvider<NavPhase>((ref) => NavPhase.idle);
 final flowOverlayVisibleProvider = StateProvider<bool>((ref) => false);
+final rerouteResultProvider = StateProvider<RouteResult?>((ref) => null);
 final navProgressProvider = StateProvider<double>((ref) => 0.0);
 final navSpeedProvider = StateProvider<double>((ref) => 1.0);
 final navCurrentLocationProvider = StateProvider<int?>((ref) => null);
@@ -129,10 +131,21 @@ final positionSourceProvider = Provider<PositionSource>((ref) {
 final stepTrackerProvider = Provider<StepTracker>((ref) {
   return const StepTracker();
 });
+final rerouteWatcherProvider = Provider<RerouteWatcher>((ref) {
+  return const RerouteWatcher();
+});
+final activeRouteResultProvider =
+    Provider.autoDispose<AsyncValue<RouteResult?>>((ref) {
+  final reroute = ref.watch(rerouteResultProvider);
+  if (reroute != null) {
+    return AsyncData(reroute);
+  }
+  return ref.watch(routeResultProvider);
+});
 final stepTrackingProvider = Provider.autoDispose<StepTrackingState>((ref) {
   final tracker = ref.watch(stepTrackerProvider);
   final position = ref.watch(positionSourceProvider);
-  final route = ref.watch(routeResultProvider).valueOrNull;
+  final route = ref.watch(activeRouteResultProvider).valueOrNull;
   return tracker.track(position: position, routeResult: route);
 });
 final passNodeReporterProvider = Provider<PassNodeReporter>((ref) {
@@ -340,7 +353,7 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
 
 // Extracted route locations memoized off the typed RouteResult.
 final routeLocationsProvider = Provider.autoDispose<List<int>>((ref) {
-  final result = ref.watch(routeResultProvider);
+  final result = ref.watch(activeRouteResultProvider);
   return result.maybeWhen(
     data: (route) => route?.path ?? const <int>[],
     orElse: () => const <int>[],

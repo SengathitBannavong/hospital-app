@@ -79,7 +79,7 @@ class NavigationController {
     _modeId = mode;
     _travelled = 0;
     _totalLength = (_path.length - 1).toDouble();
-    final routeResult = _ref.read(routeResultProvider).valueOrNull;
+    final routeResult = _ref.read(activeRouteResultProvider).valueOrNull;
     _etaSeconds = routeResult == null || routeResult.estimatedTime <= 0
         ? null
         : routeResult.estimatedTime;

@@ -56,6 +56,40 @@ class RoutingService {
     );
   }
 
+  Future<RouteResult> reroute({
+    required int currentLocation,
+    required int destLocation,
+    required String modeId,
+    required Map<int, List<int>> adjacency,
+    required int cols,
+    required Map<String, EdgeStatus> edgeStatuses,
+    String? routeId,
+  }) async {
+    if (routeId != null && await _hasNetwork()) {
+      try {
+        final preview = await _repository.recalculateRoute(
+          routeId: routeId,
+          currentLocation: currentLocation,
+        );
+        final result = _mapper.fromPreviewJson(preview);
+        if (result.path.isNotEmpty) {
+          return result;
+        }
+      } catch (_) {
+        // Fall through to local reroute; offline/local correctness is required.
+      }
+    }
+
+    return _engine.route(
+      startLocation: currentLocation,
+      destLocation: destLocation,
+      modeId: modeId,
+      adjacency: adjacency,
+      cols: cols,
+      edgeStatuses: edgeStatuses,
+    );
+  }
+
   Future<bool> _hasNetwork() async {
     final results = await _connectivity.checkConnectivity();
     return !results.contains(ConnectivityResult.none);
