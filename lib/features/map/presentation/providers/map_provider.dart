@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/map_repository.dart';
+import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 
 final mapRepositoryProvider = Provider<MapRepository>((ref) {
@@ -34,6 +37,24 @@ final mapEdgesProvider = FutureProvider.family<List<MapEdge>, int>((
 
 // Search keyword
 final searchKeywordProvider = StateProvider<String>((ref) => '');
+
+final userPositionProvider = StateProvider<int?>((ref) => null);
+final locationSourceProvider = StateProvider<LocationSource>(
+  (ref) => LocationSource.entranceDefault,
+);
+final navPhaseProvider = StateProvider<NavPhase>((ref) => NavPhase.idle);
+final navProgressProvider = StateProvider<double>((ref) => 0.0);
+final navSpeedProvider = StateProvider<double>((ref) => 1.0);
+final navCurrentLocationProvider = StateProvider<int?>((ref) => null);
+final navMetersRemainingProvider = StateProvider<double>((ref) => 0.0);
+final navSecondsRemainingProvider = StateProvider<double>((ref) => 0.0);
+final navigationControllerProvider = Provider.autoDispose<NavigationController>(
+  (ref) {
+    final controller = NavigationController(ref);
+    ref.onDispose(controller.dispose);
+    return controller;
+  },
+);
 
 // Normalized POI names cache keyed by poiId — computed once when nodes settle.
 final normalizedPoiNamesProvider = Provider.family<Map<int, String>, int>((
@@ -82,6 +103,33 @@ final walkableCellsProvider = Provider.family<Set<int>, int>((ref, mapId) {
       ..add(edge.toLocation);
   }
   return result;
+});
+
+final defaultUserPositionProvider = Provider.family<int?, int>((ref, mapId) {
+  final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];
+  final walkable = ref.watch(walkableCellsProvider(mapId));
+
+  if (nodes.isNotEmpty) {
+    for (final poi in nodes) {
+      if (poi.poiCode.toUpperCase().startsWith('ENT')) {
+        return poi.gridLocation;
+      }
+    }
+
+    for (final poi in nodes) {
+      if (poi.poiName.toLowerCase().contains('entrance')) {
+        return poi.gridLocation;
+      }
+    }
+
+    for (final poi in nodes) {
+      if (poi.isLandmark) {
+        return poi.gridLocation;
+      }
+    }
+  }
+
+  return walkable.isEmpty ? null : walkable.first;
 });
 
 // Adjacency for potential client-side routing / consumers. Cheap to keep here.
@@ -142,14 +190,13 @@ List<MapPoi> _filterPois(
 }
 
 // Route state
-final routeStartProvider = StateProvider<MapPoi?>((ref) => null);
 final routeDestProvider = StateProvider<MapPoi?>((ref) => null);
 final routeModeProvider = StateProvider<String>((ref) => 'walking');
 
 // Route result based on start + dest + mode
 final routeResultProvider = FutureProvider.autoDispose<dynamic>((ref) async {
   final repository = ref.watch(mapRepositoryProvider);
-  final start = ref.watch(routeStartProvider);
+  final start = ref.watch(userPositionProvider);
   final dest = ref.watch(routeDestProvider);
   final mode = ref.watch(routeModeProvider);
 
@@ -158,7 +205,7 @@ final routeResultProvider = FutureProvider.autoDispose<dynamic>((ref) async {
   }
 
   return repository.previewRoute(
-    startLocation: start.gridLocation,
+    startLocation: start,
     destLocation: dest.gridLocation,
     modeId: mode,
   );
@@ -170,6 +217,27 @@ final routeLocationsProvider = Provider.autoDispose<List<int>>((ref) {
   return result.maybeWhen(
     data: extractRouteLocations,
     orElse: () => const <int>[],
+  );
+});
+
+final navDotProvider = Provider.autoDispose<NavDot?>((ref) {
+  final path = ref.watch(routeLocationsProvider);
+  final progress = ref.watch(navProgressProvider).clamp(0.0, 1.0).toDouble();
+  final resting = ref.watch(userPositionProvider);
+
+  if (path.length < 2) {
+    return resting == null ? null : NavDot.resting(resting);
+  }
+
+  final totalLength = path.length - 1;
+  final reached = totalLength * progress;
+  final segmentIndex = reached.floor().clamp(0, totalLength - 1).toInt();
+  final t = (reached - segmentIndex).clamp(0.0, 1.0).toDouble();
+
+  return NavDot(
+    fromLocation: path[segmentIndex],
+    toLocation: path[segmentIndex + 1],
+    t: t,
   );
 });
 
