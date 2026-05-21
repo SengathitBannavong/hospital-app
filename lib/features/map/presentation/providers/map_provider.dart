@@ -20,6 +20,7 @@ import 'package:hospital_app/features/map/presentation/navigation/pass_node_repo
 import 'package:hospital_app/features/map/presentation/navigation/position_source.dart';
 import 'package:hospital_app/features/map/presentation/navigation/reroute_watcher.dart';
 import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
+import 'package:hospital_app/features/map/presentation/navigation/voice_service.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 
 const int _defaultRouteMapId = 1;
@@ -115,6 +116,7 @@ final locationSourceProvider = StateProvider<LocationSource>(
 final navPhaseProvider = StateProvider<NavPhase>((ref) => NavPhase.idle);
 final flowOverlayVisibleProvider = StateProvider<bool>((ref) => false);
 final rerouteResultProvider = StateProvider<RouteResult?>((ref) => null);
+final voiceMutedProvider = StateProvider<bool>((ref) => false);
 final navProgressProvider = StateProvider<double>((ref) => 0.0);
 final navSpeedProvider = StateProvider<double>((ref) => 1.0);
 final navCurrentLocationProvider = StateProvider<int?>((ref) => null);
@@ -133,6 +135,13 @@ final stepTrackerProvider = Provider<StepTracker>((ref) {
 });
 final rerouteWatcherProvider = Provider<RerouteWatcher>((ref) {
   return const RerouteWatcher();
+});
+final voiceServiceProvider = Provider<VoiceService>((ref) {
+  final service = VoiceService();
+  ref.onDispose(() {
+    service.reset();
+  });
+  return service;
 });
 final activeRouteResultProvider =
     Provider.autoDispose<AsyncValue<RouteResult?>>((ref) {

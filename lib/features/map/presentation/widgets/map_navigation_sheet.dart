@@ -4,6 +4,7 @@ import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/data/models/route_step.dart';
+import 'package:hospital_app/features/map/presentation/navigation/maneuver_text.dart';
 import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 
@@ -30,6 +31,7 @@ class MapNavigationSheet extends ConsumerWidget {
     final fallbackCells = ref.watch(navMetersRemainingProvider);
     final fallbackEta = ref.watch(navSecondsRemainingProvider);
     final stepTracking = ref.watch(stepTrackingProvider);
+    final voiceMuted = ref.watch(voiceMutedProvider);
     final metrics = _remainingMetrics(
       routeResult: routeResult,
       progress: progress,
@@ -85,6 +87,20 @@ class MapNavigationSheet extends ConsumerWidget {
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.close_fullscreen_rounded, size: 18),
                     tooltip: 'Hide',
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      ref.read(voiceMutedProvider.notifier).state =
+                          !voiceMuted;
+                    },
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      voiceMuted
+                          ? Icons.volume_off_rounded
+                          : Icons.volume_up_rounded,
+                      size: 18,
+                    ),
+                    tooltip: voiceMuted ? 'Unmute guidance' : 'Mute guidance',
                   ),
                 ],
               ),
@@ -203,7 +219,7 @@ class _GuidanceBanner extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  _instructionFor(step),
+                  maneuverInstruction(step),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: context.textTheme.labelLarge?.copyWith(
@@ -212,7 +228,7 @@ class _GuidanceBanner extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  _distanceLabel(state.distanceToNextStep),
+                  maneuverDistanceLabel(state.distanceToNextStep),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.textTheme.labelSmall?.copyWith(
@@ -239,28 +255,6 @@ class _GuidanceBanner extends StatelessWidget {
     };
   }
 
-  String _instructionFor(RouteStep step) {
-    final instruction = step.instruction;
-    if (instruction != null && instruction.trim().isNotEmpty) {
-      return instruction.trim();
-    }
-    return switch (step.maneuver) {
-      StepManeuver.start => 'Start navigation',
-      StepManeuver.straight => 'Continue straight',
-      StepManeuver.left => 'Turn left',
-      StepManeuver.right => 'Turn right',
-      StepManeuver.uTurn => 'Make a U-turn',
-      StepManeuver.floorChange => 'Change floor',
-      StepManeuver.arrive => 'Arrive at destination',
-    };
-  }
-
-  String _distanceLabel(double distance) {
-    if (distance <= 0) {
-      return 'Now';
-    }
-    return 'In ${distance.toStringAsFixed(0)} cells';
-  }
 }
 
 class _RemainingMetrics {

@@ -542,6 +542,48 @@ class MapRepository {
     }
   }
 
+  Future<String?> getVoiceKey() async {
+    try {
+      final response = await ApiClient.instance.get(
+        ApiEndpoints.sysGetVoiceKey,
+      );
+
+      final apiResponse = AuthApiResponse<String?>.fromJson(
+        response.data,
+        (json) => _parseVoiceKey(json),
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return apiResponse.data;
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<Map<String, String>> getVoiceFiles() async {
+    try {
+      final response = await ApiClient.instance.get(
+        ApiEndpoints.sysGetVoiceFiles,
+      );
+
+      final apiResponse = AuthApiResponse<Map<String, String>>.fromJson(
+        response.data,
+        (json) => _parseVoiceFiles(json),
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return apiResponse.data ?? const <String, String>{};
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
   String _extractErrorMessage(DioException e) {
     if (e.response?.data is Map<String, dynamic>) {
       return e.response?.data['message'] ?? e.message ?? 'Unknown error';
@@ -652,5 +694,45 @@ class MapRepository {
   double? _readDouble(dynamic value) {
     if (value is num) return value.toDouble();
     return double.tryParse(value?.toString() ?? '');
+  }
+
+  String? _parseVoiceKey(dynamic json) {
+    if (json is String && json.isNotEmpty) {
+      return json;
+    }
+    if (json is Map) {
+      for (final key in const ['voice_key', 'tts_key', 'key', 'api_key']) {
+        final value = json[key]?.toString();
+        if (value != null && value.isNotEmpty) {
+          return value;
+        }
+      }
+    }
+    return null;
+  }
+
+  Map<String, String> _parseVoiceFiles(dynamic json) {
+    if (json is Map) {
+      final files = json['files'] ?? json['clip_urls'] ?? json['clips'] ?? json;
+      if (files is Map) {
+        return {
+          for (final entry in files.entries)
+            if (entry.value != null)
+              entry.key.toString(): entry.value.toString(),
+        };
+      }
+    }
+    if (json is List) {
+      final result = <String, String>{};
+      for (final item in json.whereType<Map>()) {
+        final key = item['key'] ?? item['maneuver'] ?? item['id'];
+        final url = item['url'] ?? item['clip_url'] ?? item['file_url'];
+        if (key != null && url != null) {
+          result[key.toString()] = url.toString();
+        }
+      }
+      return result;
+    }
+    return const <String, String>{};
   }
 }

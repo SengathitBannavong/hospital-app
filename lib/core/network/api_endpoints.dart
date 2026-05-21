@@ -56,6 +56,10 @@ class ApiEndpoints {
   static const String flowGetAlerts = 'flow/get_alerts';
   static const String flowEdgeStatus = 'flow/edge_status';
 
+  // System
+  static const String sysGetVoiceKey = 'sys/get_voice_key';
+  static const String sysGetVoiceFiles = 'sys/get_voice_files';
+
   // Notification
   static const String notificationGetList = 'notification/get_list';
   static const String notificationSetRead = 'notification/set_read';

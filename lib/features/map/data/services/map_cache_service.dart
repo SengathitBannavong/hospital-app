@@ -73,6 +73,32 @@ class MapCacheService {
     return null;
   }
 
+  Future<void> saveVoiceFiles(Map<String, String> files) async {
+    final box = await _openBox();
+    await box.put(_voiceFilesKey, jsonEncode(files));
+  }
+
+  Future<Map<String, String>> loadVoiceFiles() async {
+    final box = await _openBox();
+    final raw = box.get(_voiceFilesKey);
+    if (raw is String) {
+      final json = jsonDecode(raw);
+      if (json is Map) {
+        return {
+          for (final entry in json.entries)
+            entry.key.toString(): entry.value.toString(),
+        };
+      }
+    }
+    if (raw is Map) {
+      return {
+        for (final entry in raw.entries)
+          entry.key.toString(): entry.value.toString(),
+      };
+    }
+    return const <String, String>{};
+  }
+
   Future<Box<dynamic>> _openBox() {
     return _boxFuture ??= _initAndOpenBox();
   }
@@ -94,4 +120,6 @@ class MapCacheService {
   String _lastSyncedAtDataKey(int mapId) => 'map:$mapId:last_synced_at';
 
   String _flowDataKey(int mapId) => 'map:$mapId:flow_snapshot';
+
+  String get _voiceFilesKey => 'voice:files';
 }

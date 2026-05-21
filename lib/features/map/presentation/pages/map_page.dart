@@ -201,7 +201,10 @@ class _MapPageState extends ConsumerState<MapPage>
         if (next == NavPhase.navigating) {
           _routeAnim.value = 1;
         } else if (next == NavPhase.arrived) {
+          unawaited(ref.read(voiceServiceProvider).reset());
           _handleNavigationArrived();
+        } else {
+          unawaited(ref.read(voiceServiceProvider).reset());
         }
       })
       ..listen<double>(navProgressProvider, (_, _) {
@@ -219,6 +222,20 @@ class _MapPageState extends ConsumerState<MapPage>
       ..listen(flowEdgeStatusMapProvider(_defaultMapId), (_, next) {
         if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
         unawaited(_maybeReroute(next));
+      })
+      ..listen(stepTrackingProvider, (_, next) {
+        if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
+        unawaited(
+          ref.read(voiceServiceProvider).speakFor(
+                state: next,
+                muted: ref.read(voiceMutedProvider),
+              ),
+        );
+      })
+      ..listen<bool>(voiceMutedProvider, (_, muted) {
+        if (muted) {
+          unawaited(ref.read(voiceServiceProvider).reset());
+        }
       });
 
     if (navPhase == NavPhase.navigating && _routeAnim.value != 1) {
