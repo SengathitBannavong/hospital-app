@@ -201,6 +201,14 @@ class _MapPageState extends ConsumerState<MapPage>
       ..listen<double>(navProgressProvider, (_, _) {
         if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
         _followNavigationDot(rows: rows, cols: cols);
+      })
+      ..listen(routeResultProvider, (_, next) {
+        ref.read(passNodeReporterProvider).syncRoute(next.valueOrNull);
+      })
+      ..listen(positionSourceProvider, (_, next) {
+        if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
+        final route = ref.read(routeResultProvider).valueOrNull;
+        unawaited(ref.read(passNodeReporterProvider).reportFrom(next, route));
       });
 
     if (navPhase == NavPhase.navigating && _routeAnim.value != 1) {

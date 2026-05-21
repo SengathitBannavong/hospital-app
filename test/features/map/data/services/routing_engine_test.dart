@@ -53,5 +53,35 @@ void main() {
 
       expect(result.path, [0, 3, 4, 5, 2]);
     });
+
+    test('uses screen coordinates for left and right maneuvers', () {
+      final rightTurn = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 5,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1],
+          1: [0, 2],
+          2: [1, 5],
+          5: [2],
+        },
+        cols: 3,
+      );
+      final leftTurn = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 7,
+        modeId: 'walking',
+        adjacency: const {
+          0: [3],
+          3: [0, 6],
+          6: [3, 7],
+          7: [6],
+        },
+        cols: 3,
+      );
+
+      expect(rightTurn.steps[2].maneuver, StepManeuver.right);
+      expect(leftTurn.steps[2].maneuver, StepManeuver.left);
+    });
   });
 }

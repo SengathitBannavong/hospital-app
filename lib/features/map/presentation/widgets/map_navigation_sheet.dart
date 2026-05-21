@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
+import 'package:hospital_app/features/map/data/models/route_step.dart';
+import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 
 class MapNavigationSheet extends ConsumerWidget {
@@ -27,6 +29,7 @@ class MapNavigationSheet extends ConsumerWidget {
     final routeResult = ref.watch(routeResultProvider);
     final fallbackCells = ref.watch(navMetersRemainingProvider);
     final fallbackEta = ref.watch(navSecondsRemainingProvider);
+    final stepTracking = ref.watch(stepTrackingProvider);
     final metrics = _remainingMetrics(
       routeResult: routeResult,
       progress: progress,
@@ -86,6 +89,8 @@ class MapNavigationSheet extends ConsumerWidget {
                 ],
               ),
               if (!arrived) ...[
+                const SizedBox(height: AppSpacing.sm),
+                _GuidanceBanner(state: stepTracking),
                 const SizedBox(height: AppSpacing.sm),
                 Wrap(
                   spacing: AppSpacing.sm,
@@ -161,6 +166,100 @@ class MapNavigationSheet extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _GuidanceBanner extends StatelessWidget {
+  final StepTrackingState state;
+
+  const _GuidanceBanner({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final step = state.nextStep ?? state.currentStep;
+    if (step == null) {
+      return const SizedBox.shrink();
+    }
+
+    final scheme = context.colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer,
+        borderRadius: AppRadius.borderSm,
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _maneuverIcon(step.maneuver),
+            color: scheme.onSecondaryContainer,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _instructionFor(step),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.textTheme.labelLarge?.copyWith(
+                    color: scheme.onSecondaryContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  _distanceLabel(state.distanceToNextStep),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSecondaryContainer.withValues(alpha: 0.78),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _maneuverIcon(StepManeuver maneuver) {
+    return switch (maneuver) {
+      StepManeuver.start => Icons.my_location_rounded,
+      StepManeuver.straight => Icons.straight_rounded,
+      StepManeuver.left => Icons.turn_left_rounded,
+      StepManeuver.right => Icons.turn_right_rounded,
+      StepManeuver.uTurn => Icons.u_turn_left_rounded,
+      StepManeuver.floorChange => Icons.stairs_rounded,
+      StepManeuver.arrive => Icons.flag_rounded,
+    };
+  }
+
+  String _instructionFor(RouteStep step) {
+    final instruction = step.instruction;
+    if (instruction != null && instruction.trim().isNotEmpty) {
+      return instruction.trim();
+    }
+    return switch (step.maneuver) {
+      StepManeuver.start => 'Start navigation',
+      StepManeuver.straight => 'Continue straight',
+      StepManeuver.left => 'Turn left',
+      StepManeuver.right => 'Turn right',
+      StepManeuver.uTurn => 'Make a U-turn',
+      StepManeuver.floorChange => 'Change floor',
+      StepManeuver.arrive => 'Arrive at destination',
+    };
+  }
+
+  String _distanceLabel(double distance) {
+    if (distance <= 0) {
+      return 'Now';
+    }
+    return 'In ${distance.toStringAsFixed(0)} cells';
   }
 }
 

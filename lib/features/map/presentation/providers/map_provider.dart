@@ -11,6 +11,9 @@ import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
 import 'package:hospital_app/features/map/data/services/routing_engine.dart';
 import 'package:hospital_app/features/map/data/services/routing_service.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
+import 'package:hospital_app/features/map/presentation/navigation/pass_node_reporter.dart';
+import 'package:hospital_app/features/map/presentation/navigation/position_source.dart';
+import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 
 const int _defaultRouteMapId = 1;
@@ -102,6 +105,26 @@ final navSpeedProvider = StateProvider<double>((ref) => 1.0);
 final navCurrentLocationProvider = StateProvider<int?>((ref) => null);
 final navMetersRemainingProvider = StateProvider<double>((ref) => 0.0);
 final navSecondsRemainingProvider = StateProvider<double>((ref) => 0.0);
+final positionSourceProvider = Provider<PositionSource>((ref) {
+  final navLocation = ref.watch(navCurrentLocationProvider);
+  final restingLocation = ref.watch(userPositionProvider);
+  return SimulatedPositionSource(
+    currentLocation: navLocation ?? restingLocation,
+    progress: ref.watch(navProgressProvider).clamp(0.0, 1.0).toDouble(),
+  );
+});
+final stepTrackerProvider = Provider<StepTracker>((ref) {
+  return const StepTracker();
+});
+final stepTrackingProvider = Provider.autoDispose<StepTrackingState>((ref) {
+  final tracker = ref.watch(stepTrackerProvider);
+  final position = ref.watch(positionSourceProvider);
+  final route = ref.watch(routeResultProvider).valueOrNull;
+  return tracker.track(position: position, routeResult: route);
+});
+final passNodeReporterProvider = Provider<PassNodeReporter>((ref) {
+  return PassNodeReporter();
+});
 final navigationControllerProvider = Provider.autoDispose<NavigationController>(
   (ref) {
     final controller = NavigationController(ref);
