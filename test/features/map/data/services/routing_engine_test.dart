@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hospital_app/features/map/data/models/route_step.dart';
+import 'package:hospital_app/features/map/data/services/route_modes.dart';
 import 'package:hospital_app/features/map/data/services/routing_engine.dart';
 
 void main() {
@@ -20,9 +22,9 @@ void main() {
       expect(result.distance, 2);
       expect(result.estimatedTime, 2 / baseSpeedFor('walking'));
       expect(result.steps.map((step) => step.maneuver), [
-        'start',
-        'straight',
-        'arrive',
+        StepManeuver.start,
+        StepManeuver.straight,
+        StepManeuver.arrive,
       ]);
     });
 

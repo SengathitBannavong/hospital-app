@@ -6,6 +6,7 @@ import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
 import 'package:hospital_app/features/map/data/services/routing_engine.dart';
 import 'package:hospital_app/features/map/data/services/routing_service.dart';
@@ -247,7 +248,9 @@ final routeDestProvider = StateProvider<MapPoi?>((ref) => null);
 final routeModeProvider = StateProvider<String>((ref) => 'walking');
 
 // Route result based on start + dest + mode
-final routeResultProvider = FutureProvider.autoDispose<dynamic>((ref) async {
+final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
+  ref,
+) async {
   final routingService = ref.watch(routingServiceProvider);
   final start = ref.watch(userPositionProvider);
   final dest = ref.watch(routeDestProvider);
@@ -270,11 +273,11 @@ final routeResultProvider = FutureProvider.autoDispose<dynamic>((ref) async {
   );
 });
 
-// Extracted route locations memoized off routeResultProvider.
+// Extracted route locations memoized off the typed RouteResult.
 final routeLocationsProvider = Provider.autoDispose<List<int>>((ref) {
   final result = ref.watch(routeResultProvider);
   return result.maybeWhen(
-    data: extractRouteLocations,
+    data: (route) => route?.path ?? const <int>[],
     orElse: () => const <int>[],
   );
 });
@@ -299,63 +302,6 @@ final navDotProvider = Provider.autoDispose<NavDot?>((ref) {
     t: t,
   );
 });
-
-List<int> extractRouteLocations(dynamic data) {
-  if (data == null) {
-    return const [];
-  }
-
-  if (data is List) {
-    return _coerceLocationsList(data);
-  }
-
-  if (data is Map) {
-    const keys = ['steps', 'path', 'path_locations', 'locations', 'nodes'];
-    for (final key in keys) {
-      final value = data[key];
-      if (value is List) {
-        if (key == 'steps') {
-          return _coerceRouteSteps(value);
-        }
-        return _coerceLocationsList(value);
-      }
-    }
-  }
-
-  return const [];
-}
-
-List<int> _coerceRouteSteps(List<dynamic> raw) {
-  final steps = raw.whereType<Map>().toList()
-    ..sort((a, b) {
-      final aOrder = a['step_order'];
-      final bOrder = b['step_order'];
-      if (aOrder is num && bOrder is num) {
-        return aOrder.compareTo(bOrder);
-      }
-      return 0;
-    });
-  return _coerceLocationsList(steps);
-}
-
-List<int> _coerceLocationsList(List<dynamic> raw) {
-  final locations = <int>[];
-  for (final item in raw) {
-    if (item is int) {
-      locations.add(item);
-    } else if (item is num) {
-      locations.add(item.toInt());
-    } else if (item is Map) {
-      final location = item['location'] ?? item['grid_location'];
-      if (location is int) {
-        locations.add(location);
-      } else if (location is num) {
-        locations.add(location.toInt());
-      }
-    }
-  }
-  return locations;
-}
 
 Future<MapSyncFull> _cachedOrOnlineSyncFull(Ref ref, int mapId) async {
   final cache = ref.read(mapCacheProvider);

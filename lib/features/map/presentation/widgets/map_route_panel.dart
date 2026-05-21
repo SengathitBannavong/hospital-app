@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'map_route_status.dart';
 
 class MapRoutePanel extends StatelessWidget {
@@ -9,7 +10,7 @@ class MapRoutePanel extends StatelessWidget {
   final String? userPositionName;
   final MapPoi? dest;
   final String mode;
-  final AsyncValue<dynamic> routeResult;
+  final AsyncValue<RouteResult?> routeResult;
   final List<int> routeLocations;
   final VoidCallback onClear;
   final ValueChanged<String> onModeChanged;

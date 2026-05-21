@@ -1,59 +1,10 @@
 import 'dart:math' as math;
 
-class RouteStep {
-  final int location;
-  final String maneuver;
-  final double distance;
+import 'package:hospital_app/features/map/data/models/route_result.dart';
+import 'package:hospital_app/features/map/data/models/route_step.dart';
+import 'package:hospital_app/features/map/data/services/route_modes.dart';
 
-  const RouteStep({
-    required this.location,
-    required this.maneuver,
-    required this.distance,
-  });
-
-  Map<String, dynamic> toJson(int order) {
-    return {
-      'step_order': order,
-      'grid_location': location,
-      'location': location,
-      'maneuver': maneuver,
-      'distance': distance,
-    };
-  }
-}
-
-class RouteResult {
-  final List<int> path;
-  final List<RouteStep> steps;
-  final double distance;
-  final double estimatedTime;
-  final String modeId;
-  final double speedFactor;
-
-  const RouteResult({
-    required this.path,
-    required this.steps,
-    required this.distance,
-    required this.estimatedTime,
-    required this.modeId,
-    required this.speedFactor,
-  });
-
-  Map<String, dynamic> toPreviewJson() {
-    return {
-      'path': path,
-      'steps': [
-        for (var i = 0; i < steps.length; i++) steps[i].toJson(i + 1),
-      ],
-      'distance': distance,
-      'estimated_time': estimatedTime,
-      'mode_id': modeId,
-      'speed_factor': speedFactor,
-      'source': 'offline',
-    };
-  }
-}
-
+// Phase E will replace this with the flow edge-status model.
 class EdgeStatus {
   final int fromLocation;
   final int toLocation;
@@ -193,12 +144,20 @@ class RoutingEngine {
     }
     if (path.length == 1) {
       return [
-        RouteStep(location: path.first, maneuver: 'arrive', distance: 0),
+        RouteStep(
+          location: path.first,
+          maneuver: StepManeuver.arrive,
+          distance: 0,
+        ),
       ];
     }
 
     final steps = <RouteStep>[
-      RouteStep(location: path.first, maneuver: 'start', distance: 0),
+      RouteStep(
+        location: path.first,
+        maneuver: StepManeuver.start,
+        distance: 0,
+      ),
     ];
     for (var i = 1; i < path.length - 1; i++) {
       steps.add(
@@ -210,18 +169,22 @@ class RoutingEngine {
       );
     }
     steps.add(
-      RouteStep(location: path.last, maneuver: 'arrive', distance: 0),
+      RouteStep(
+        location: path.last,
+        maneuver: StepManeuver.arrive,
+        distance: 0,
+      ),
     );
     return steps;
   }
 
-  String _maneuver(int previous, int current, int next, int cols) {
+  StepManeuver _maneuver(int previous, int current, int next, int cols) {
     final a = _direction(previous, current, cols);
     final b = _direction(current, next, cols);
-    if (a.dx == b.dx && a.dy == b.dy) return 'straight';
-    if (a.dx == -b.dx && a.dy == -b.dy) return 'u_turn';
+    if (a.dx == b.dx && a.dy == b.dy) return StepManeuver.straight;
+    if (a.dx == -b.dx && a.dy == -b.dy) return StepManeuver.uTurn;
     final cross = a.dx * b.dy - a.dy * b.dx;
-    return cross > 0 ? 'right' : 'left';
+    return cross > 0 ? StepManeuver.right : StepManeuver.left;
   }
 
   _Direction _direction(int from, int to, int cols) {
@@ -245,24 +208,6 @@ class RoutingEngine {
         .toDouble();
     return distance < 1 ? 1 : distance;
   }
-}
-
-double baseSpeedFor(String modeId) {
-  return switch (modeId) {
-    'wheelchair' => 4,
-    'stretcher' => 3,
-    'hospital_cart' => 3,
-    _ => 6,
-  };
-}
-
-double modeCostMultiplier(String modeId) {
-  return switch (modeId) {
-    'wheelchair' => 1.15,
-    'stretcher' => 1.35,
-    'hospital_cart' => 1.2,
-    _ => 1,
-  };
 }
 
 String edgeStatusKey(int fromLocation, int toLocation) {

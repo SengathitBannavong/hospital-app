@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/data/services/route_result_mapper.dart';
+import 'package:hospital_app/features/map/data/services/routing_engine.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 
 void main() {
@@ -200,30 +202,81 @@ void _addNormalizedHarness() {
     });
   });
 
-  group('extractRouteLocations', () {
-    test('sorts steps by step_order and extracts grid_location', () {
+  group('RouteResultMapper', () {
+    const mapper = RouteResultMapper();
+
+    test('sorts online preview steps and extracts grid_location path', () {
       final data = {
         'steps': [
           {'step_order': 2, 'grid_location': 20},
           {'step_order': 1, 'grid_location': 10},
           {'step_order': 3, 'grid_location': 30},
         ],
+        'distance': 2,
+        'estimated_time': 0.5,
+        'mode_id': 'walking',
+        'speed_factor': 4,
       };
-      expect(extractRouteLocations(data), [10, 20, 30]);
+
+      final result = mapper.fromPreviewJson(data);
+
+      expect(result.path, [10, 20, 30]);
+      expect(result.distance, 2);
+      expect(result.estimatedTime, 0.5);
+      expect(result.modeId, 'walking');
+      expect(result.speedFactor, 4);
     });
 
-    test('falls back to locations list', () {
-      expect(
-        extractRouteLocations({
-          'locations': [1, 2, 3],
-        }),
-        [1, 2, 3],
+    test('normalizes offline preview shape', () {
+      final result = mapper.fromPreviewJson({
+        'path': [1, 2, 3],
+        'steps': [
+          {'step_order': 1, 'location': 1, 'maneuver': 'start'},
+          {'step_order': 2, 'location': 2, 'maneuver': 'straight'},
+          {'step_order': 3, 'location': 3, 'maneuver': 'arrive'},
+        ],
+        'distance': 2,
+        'estimated_time': 0.3,
+        'mode_id': 'walking',
+        'speed_factor': 6,
+        'source': 'offline',
+      });
+
+      expect(result.path, [1, 2, 3]);
+      expect(result.steps, hasLength(3));
+    });
+
+    test('null/empty returns an empty result', () {
+      expect(mapper.fromPreviewJson(null).path, isEmpty);
+      expect(mapper.fromPreviewJson(<dynamic>[]).path, isEmpty);
+    });
+
+    test('engine and mapped preview produce equivalent paths', () {
+      final engineResult = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 2,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1],
+          1: [0, 2],
+          2: [1],
+        },
+        cols: 3,
       );
-    });
 
-    test('null/empty returns empty list', () {
-      expect(extractRouteLocations(null), isEmpty);
-      expect(extractRouteLocations(<dynamic>[]), isEmpty);
+      final onlineResult = mapper.fromPreviewJson({
+        'steps': [
+          {'step_order': 1, 'grid_location': 0},
+          {'step_order': 2, 'grid_location': 1},
+          {'step_order': 3, 'grid_location': 2},
+        ],
+        'distance': 2,
+        'estimated_time': 2 / 6,
+        'mode_id': 'walking',
+        'speed_factor': 6,
+      });
+
+      expect(engineResult.path, onlineResult.path);
     });
   });
 }

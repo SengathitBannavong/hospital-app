@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 
 class MapNavigationSheet extends ConsumerWidget {
@@ -24,14 +25,14 @@ class MapNavigationSheet extends ConsumerWidget {
     final progress = ref.watch(navProgressProvider).clamp(0.0, 1.0).toDouble();
     final speed = ref.watch(navSpeedProvider);
     final routeResult = ref.watch(routeResultProvider);
-    final fallbackMeters = ref.watch(navMetersRemainingProvider);
-    final fallbackSeconds = ref.watch(navSecondsRemainingProvider);
+    final fallbackCells = ref.watch(navMetersRemainingProvider);
+    final fallbackEta = ref.watch(navSecondsRemainingProvider);
     final metrics = _remainingMetrics(
       routeResult: routeResult,
       progress: progress,
       speed: speed,
-      fallbackMeters: fallbackMeters,
-      fallbackSeconds: fallbackSeconds,
+      fallbackCells: fallbackCells,
+      fallbackEta: fallbackEta,
     );
     final paused = phase == NavPhase.paused;
     final arrived = phase == NavPhase.arrived;
@@ -92,11 +93,11 @@ class MapNavigationSheet extends ConsumerWidget {
                   children: [
                     _MetricChip(
                       icon: Icons.straighten_rounded,
-                      label: _formatDistance(metrics.meters),
+                      label: _formatGridDistance(metrics.cells),
                     ),
                     _MetricChip(
                       icon: Icons.schedule_rounded,
-                      label: _formatSeconds(metrics.seconds),
+                      label: _formatGridEta(metrics.eta),
                     ),
                   ],
                 ),
@@ -164,56 +165,36 @@ class MapNavigationSheet extends ConsumerWidget {
 }
 
 class _RemainingMetrics {
-  final double meters;
-  final double seconds;
+  final double cells;
+  final double eta;
 
-  const _RemainingMetrics({required this.meters, required this.seconds});
+  const _RemainingMetrics({required this.cells, required this.eta});
 }
 
 _RemainingMetrics _remainingMetrics({
-  required AsyncValue<dynamic> routeResult,
+  required AsyncValue<RouteResult?> routeResult,
   required double progress,
   required double speed,
-  required double fallbackMeters,
-  required double fallbackSeconds,
+  required double fallbackCells,
+  required double fallbackEta,
 }) {
-  final data = routeResult.valueOrNull;
-  final distance = _readNumber(data, 'distance');
-  final estimatedTime = _readNumber(data, 'estimated_time');
-  if (distance != null || estimatedTime != null) {
+  final result = routeResult.valueOrNull;
+  if (result != null) {
     final remaining = (1 - progress).clamp(0.0, 1.0).toDouble();
     return _RemainingMetrics(
-      meters: distance == null
-          ? fallbackMeters
-          : (distance * remaining).toDouble(),
-      seconds: estimatedTime == null
-          ? fallbackSeconds
-          : (estimatedTime * remaining / speed).toDouble(),
+      cells: result.distance * remaining,
+      eta: result.estimatedTime * remaining / speed,
     );
   }
-  return _RemainingMetrics(meters: fallbackMeters, seconds: fallbackSeconds);
+  return _RemainingMetrics(cells: fallbackCells, eta: fallbackEta);
 }
 
-num? _readNumber(dynamic data, String key) {
-  if (data is! Map) {
-    return null;
-  }
-  final value = data[key];
-  return value is num ? value : null;
+String _formatGridDistance(num distance) {
+  return '${distance.toStringAsFixed(0)} cells';
 }
 
-String _formatDistance(num distance) {
-  if (distance >= 1000) {
-    return '${(distance / 1000).toStringAsFixed(1)} km';
-  }
-  return '${distance.toStringAsFixed(0)} m';
-}
-
-String _formatSeconds(num seconds) {
-  if (seconds < 60) {
-    return '${seconds.toStringAsFixed(0)} sec';
-  }
-  return '${(seconds / 60).toStringAsFixed(0)} min';
+String _formatGridEta(num eta) {
+  return '${eta.toStringAsFixed(1)} grid ETA';
 }
 
 class _MetricChip extends StatelessWidget {

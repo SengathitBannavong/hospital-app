@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
+import 'package:hospital_app/features/map/data/models/route_result.dart';
 
 class MapRouteStatus extends StatelessWidget {
-  final AsyncValue<dynamic> routeResult;
+  final AsyncValue<RouteResult?> routeResult;
   final List<int> routeLocations;
   final bool hasStart;
   final bool hasDestination;
@@ -62,16 +63,13 @@ class MapRouteStatus extends StatelessWidget {
 }
 
 class _RouteSummary extends StatelessWidget {
-  final dynamic data;
+  final RouteResult data;
   final List<int> routeLocations;
 
   const _RouteSummary({required this.data, required this.routeLocations});
 
   @override
   Widget build(BuildContext context) {
-    final distance = _readNumber(data, 'distance');
-    final estimatedTime = _readNumber(data, 'estimated_time');
-
     return Wrap(
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.sm,
@@ -80,41 +78,24 @@ class _RouteSummary extends StatelessWidget {
           icon: Icons.route_rounded,
           label: '${routeLocations.length} points',
         ),
-        if (distance != null)
-          _MetricChip(
-            icon: Icons.straighten_rounded,
-            label: _formatDistance(distance),
-          ),
-        if (estimatedTime != null)
-          _MetricChip(
-            icon: Icons.schedule_rounded,
-            label: _formatSeconds(estimatedTime),
-          ),
+        _MetricChip(
+          icon: Icons.straighten_rounded,
+          label: _formatGridDistance(data.distance),
+        ),
+        _MetricChip(
+          icon: Icons.schedule_rounded,
+          label: _formatGridEta(data.estimatedTime),
+        ),
       ],
     );
   }
 
-  num? _readNumber(dynamic data, String key) {
-    if (data is! Map) {
-      return null;
-    }
-
-    final value = data[key];
-    return value is num ? value : null;
+  String _formatGridDistance(num distance) {
+    return '${distance.toStringAsFixed(0)} cells';
   }
 
-  String _formatDistance(num distance) {
-    if (distance >= 1000) {
-      return '${(distance / 1000).toStringAsFixed(1)} km';
-    }
-    return '${distance.toStringAsFixed(0)} m';
-  }
-
-  String _formatSeconds(num seconds) {
-    if (seconds < 60) {
-      return '${seconds.toStringAsFixed(0)} sec';
-    }
-    return '${(seconds / 60).toStringAsFixed(0)} min';
+  String _formatGridEta(num eta) {
+    return '${eta.toStringAsFixed(1)} grid ETA';
   }
 }
 
