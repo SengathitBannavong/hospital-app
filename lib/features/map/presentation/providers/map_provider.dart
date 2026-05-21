@@ -4,25 +4,72 @@ import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
+import 'package:hospital_app/features/map/data/services/routing_engine.dart';
+import 'package:hospital_app/features/map/data/services/routing_service.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
+
+const int _defaultRouteMapId = 1;
 
 final mapRepositoryProvider = Provider<MapRepository>((ref) {
   return MapRepository();
 });
 
+final mapCacheProvider = Provider<MapCacheService>((ref) {
+  return MapCacheService();
+});
+
+final mapLastSyncedAtProvider = FutureProvider.family<DateTime?, int>((
+  ref,
+  mapId,
+) {
+  final cache = ref.watch(mapCacheProvider);
+  return cache.lastSyncedAt(mapId: mapId);
+});
+
+final routingServiceProvider = Provider<RoutingService>((ref) {
+  return RoutingService(
+    repository: ref.watch(mapRepositoryProvider),
+    engine: RoutingEngine(),
+  );
+});
+
 // Fetch map metadata by mapId. Rows and cols must come from the backend,
 // otherwise POI coordinates can be outside the painted grid.
-final mapMetaProvider = FutureProvider.family<MapFloor, int>((ref, mapId) {
+final mapMetaProvider = FutureProvider.family<MapFloor, int>((
+  ref,
+  mapId,
+) async {
   final repository = ref.watch(mapRepositoryProvider);
-  return repository.getMeta(mapId: mapId);
+  try {
+    return await repository.getMeta(mapId: mapId);
+  } catch (_) {
+    final syncFull = await _cachedOrOnlineSyncFull(ref, mapId);
+    final meta = syncFull.maps.where((map) => map.mapId == mapId).firstOrNull;
+    if (meta != null) {
+      return meta;
+    }
+    rethrow;
+  }
 });
 
 // Fetch nodes by mapId
-final mapNodesProvider = FutureProvider.family<List<MapPoi>, int>((ref, mapId) {
+final mapNodesProvider = FutureProvider.family<List<MapPoi>, int>((
+  ref,
+  mapId,
+) async {
   final repository = ref.watch(mapRepositoryProvider);
-  return repository.getNodes(mapId: mapId);
+  try {
+    final nodes = await repository.getNodes(mapId: mapId);
+    await _tryRefreshSyncFull(ref, mapId);
+    return nodes;
+  } catch (_) {
+    final syncFull = await _cachedOrOnlineSyncFull(ref, mapId);
+    return syncFull.pois.where((poi) => poi.mapId == mapId).toList();
+  }
 });
 
 // Fetch edges by mapId
@@ -31,8 +78,14 @@ final mapEdgesProvider = FutureProvider.family<List<MapEdge>, int>((
   mapId,
 ) async {
   final repository = ref.watch(mapRepositoryProvider);
-  final response = await repository.getEdges(mapId: mapId);
-  return response.edges;
+  try {
+    final response = await repository.getEdges(mapId: mapId);
+    await _tryRefreshSyncFull(ref, mapId);
+    return response.edges;
+  } catch (_) {
+    final syncFull = await _cachedOrOnlineSyncFull(ref, mapId);
+    return syncFull.edges;
+  }
 });
 
 // Search keyword
@@ -195,7 +248,7 @@ final routeModeProvider = StateProvider<String>((ref) => 'walking');
 
 // Route result based on start + dest + mode
 final routeResultProvider = FutureProvider.autoDispose<dynamic>((ref) async {
-  final repository = ref.watch(mapRepositoryProvider);
+  final routingService = ref.watch(routingServiceProvider);
   final start = ref.watch(userPositionProvider);
   final dest = ref.watch(routeDestProvider);
   final mode = ref.watch(routeModeProvider);
@@ -204,10 +257,16 @@ final routeResultProvider = FutureProvider.autoDispose<dynamic>((ref) async {
     return null;
   }
 
-  return repository.previewRoute(
+  final meta = await ref.watch(mapMetaProvider(_defaultRouteMapId).future);
+  await ref.watch(mapEdgesProvider(_defaultRouteMapId).future);
+  final adjacency = ref.watch(adjacencyProvider(_defaultRouteMapId));
+
+  return routingService.route(
     startLocation: start,
     destLocation: dest.gridLocation,
     modeId: mode,
+    adjacency: adjacency,
+    cols: meta.cols,
   );
 });
 
@@ -296,4 +355,31 @@ List<int> _coerceLocationsList(List<dynamic> raw) {
     }
   }
   return locations;
+}
+
+Future<MapSyncFull> _cachedOrOnlineSyncFull(Ref ref, int mapId) async {
+  final cache = ref.read(mapCacheProvider);
+  final cached = await cache.loadSyncFull(mapId: mapId);
+  if (cached != null) {
+    return cached;
+  }
+  return _refreshSyncFull(ref, mapId);
+}
+
+Future<MapSyncFull> _refreshSyncFull(Ref ref, int mapId) async {
+  final repository = ref.read(mapRepositoryProvider);
+  final cache = ref.read(mapCacheProvider);
+  final syncFull = await repository.syncFull(mapId: mapId);
+  await cache.saveSyncFull(mapId: mapId, syncFull: syncFull);
+  ref.invalidate(mapLastSyncedAtProvider(mapId));
+  return syncFull;
+}
+
+Future<void> _tryRefreshSyncFull(Ref ref, int mapId) async {
+  try {
+    await _refreshSyncFull(ref, mapId);
+  } catch (_) {
+    // Individual map endpoints remain authoritative when the bulk sync endpoint
+    // is unavailable; the cache refresh will retry on the next successful load.
+  }
 }
