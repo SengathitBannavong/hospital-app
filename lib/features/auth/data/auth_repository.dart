@@ -154,7 +154,6 @@ class AuthRepository {
           'phone_number': phoneNumber,
           'otp': otp,
           'new_password': newPassword,
-          'otp_type': 'reset_password',
         },
       );
 
