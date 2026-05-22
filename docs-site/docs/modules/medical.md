@@ -14,41 +14,38 @@ State logic is consolidated within `medical_providers.dart`, leveraging Riverpod
 
 | Provider | Description |
 | :--- | :--- |
-| **`medicalRepositoryProvider`** | Exposes `MedicalRepository` to the feature. |
-| **`medicalTasksProvider`** | Fetches the user's active medical tasks and exposes loading/error/data via `AsyncValue`. |
-| **`medicalHistoryProvider`** | Fetches completed or historical medical tasks. |
-| **`medicalQueueProvider(poiId)`** | Fetches the queue status for a department/room POI. |
-| **`medicalRoomOpenProvider(poiId)`** | Fetches whether a room is currently open. |
-| **`medicalResultStatusProvider(treatmentId)`** | Fetches result availability for a treatment. |
-| **`medicalPrescriptionProvider`** | Fetches the user's prescription data. |
+| **`taskProvider`** | Fetches and caches the user's active medical tasks (appointments, tests). Handles loading and error states via `AsyncValue`. |
+| **`queueProvider`** | Monitors the real-time queue status for the user's current department. |
+| **`prescriptionProvider`** | Manages the loaded prescription data for completed visits. |
 
 ## Widget Types & Patterns
 
 The module is broken down into distinct tab-like views, each supported by highly reusable list items.
 
 ```text
-📦 Medical routes
+📦 MedicalShell (TabBarView)
 ├── 📑 TaskListPage
 │   └── 📜 ListView.builder
 │       └── 🌟 FadeSlideTransition
-│           └── 📇 TaskCard
+│           └── 📇 TaskCard (Check-in flow)
 ├── 📑 QueuePage
 │   └── 📜 ListView.builder
 │       └── 🎫 QueueItem (Live Status)
 └── 📑 PrescriptionPage
     └── 📜 ListView
-        └── 💊 PrescriptionItemTile
+        └── 💊 MedicationCard
 ```
+
+:::tip[Optimistic UI Updates]
+For actions like "Check-in", the module often relies on local state mutation to provide instant feedback before the API confirms the action, ensuring the app feels incredibly fast.
+:::
 
 ## State Taxonomy
 
-- **Server State**: `medicalTasksProvider`, `medicalHistoryProvider`,
-  `medicalQueueProvider`, `medicalRoomOpenProvider`,
-  `medicalResultStatusProvider`, and `medicalPrescriptionProvider` fetch data
-  through `MedicalRepository`.
+- **Server State (Cached)**: `taskProvider`, `queueProvider`, and `prescriptionProvider`. These hold the source of truth fetched from the backend.
 - **Local UI State**: Minor states like expanded/collapsed cards or internal list view scroll offsets.
 
-## The Execution Lifecycle (Task List)
+## The Execution Lifecycle (Check-in Process)
 
 import MedicalFlowDiagram from '@site/static/img/diagrams/medical-flow.svg';
 
@@ -56,35 +53,37 @@ import MedicalFlowDiagram from '@site/static/img/diagrams/medical-flow.svg';
   <MedicalFlowDiagram width="100%" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} />
 </div>
 
-The task list flow is a straightforward provider-backed fetch.
+The most critical flow in this module is checking into an appointment, prioritizing **Optimistic UI Updates** to make the app feel incredibly fast.
 
 ### 1. 💻 Trigger (UI Layer)
-`TaskListPage` watches the task provider.
+The user taps the "Check-in" button on a `TaskCard`.
 ```dart
-final tasksState = ref.watch(medicalTasksProvider);
+// Inside TaskCard widget
+onTap: () => ref.read(taskProvider.notifier).checkIn(task.id)
 ```
 
 ### 2. ⚙️ Orchestration (Provider Layer)
-The provider delegates the fetch to the repository.
+The provider receives the intent, updates its internal state to `loading`, and delegates the network call.
 ```dart
-final medicalTasksProvider = FutureProvider<List<MedicalTask>>((ref) async {
-  final repository = ref.watch(medicalRepositoryProvider);
-  return repository.getTasks();
-});
+// Inside TaskNotifier
+state = const AsyncLoading();
+await _repository.checkIn(taskId);
 ```
 
 ### 3. 🌐 Execution (Repository Layer)
-The repository uses the shared Dio client and API endpoint constants.
+The repository formats the request and uses Dio to hit the backend endpoint.
 ```dart
-final response = await ApiClient.instance.get(ApiEndpoints.getTasks);
+// Inside MedicalRepository
+await dioClient.post('/medical/checkin', data: {'id': taskId});
 ```
 
-### 4. 🔄 Reactivity (UI Layer)
-The page renders loading, error, or data states from `AsyncValue`.
+### 4. 🔄 Reactivity & Optimism (UI Layer)
+Upon a successful 200 OK response, the provider mutates the local state array directly to reflect the "Checked In" status, avoiding an expensive full-list re-fetch.
 ```dart
-tasksState.when(
-  data: (tasks) => ListView.builder(...),
-  loading: () => const CircularProgressIndicator(),
-  error: (error, _) => ErrorView(error),
-);
+// Inside TaskNotifier (Optimistic mutation)
+final updatedTasks = state.value!.map((t) => 
+  t.id == taskId ? t.copyWith(status: 'CHECKED_IN') : t
+).toList();
+
+state = AsyncData(updatedTasks);
 ```

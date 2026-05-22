@@ -18,47 +18,44 @@ State orchestration is highly granular to prevent unnecessary rebuilds.
 
 | Provider | Type | Description |
 | :--- | :--- | :--- |
-| `authRepositoryProvider` | `Provider` | Exposes `AuthRepository` to auth state and flows. |
-| `authStateProvider` | `StateNotifierProvider` | The core provider exposing `AuthUser?`. `null` means the user is not logged in. |
+| `authStateProvider` | `StateNotifierProvider` | The core provider exposing an `AuthUser` object. Handles complex flows like `verifyCredentials`, `login`, and `logout`. |
 | `versionCheckProvider` | `FutureProvider.family` | Validates the current app version against the backend upon initialization. |
 | `deleteAccountProvider` | `FutureProvider.family` | Manages the destructive account deletion workflow. |
 
 ## Widget Types & Patterns
 
-The module is composed of several specialized screens utilizing shared core
-components and auth-specific form controls. Below is the structural composition
-of the primary login page:
+The module is composed of several specialized screens utilizing shared core components. Below is the structural composition of the primary `LoginPage`:
 
 ```text
-📦 LoginOtpPage
+📦 LoginPage
+├── 🛡️ VersionCheckWidget (Wrapper)
 └── 📜 SingleChildScrollView
     └── 🏗️ Column
-        ├── 🌟 FadeSlideTransition (Header)
-        │   └── 🛡️ Health Icon + welcome text
-        └── 🌟 FadeSlideTransition (Login Card)
-            ├── 📝 AuthTextField (Phone Number)
-            ├── 📝 AuthTextField (Password)
-            ├── 🔗 TextButton (Forgot Password)
-            ├── 🔘 FilledButton (Login)
-            └── 🔗 TextButton (Register)
+        ├── 🖼️ Image (App Logo)
+        ├── 🌟 FadeSlideTransition
+        │   └── 📝 CustomTextField (Phone Number)
+        ├── 🌟 FadeSlideTransition
+        │   └── 📝 CustomTextField (Password)
+        ├── 🌟 FadeSlideTransition
+        │   └── 🔘 CustomPrimaryButton (Login)
+        └── 🌟 FadeSlideTransition
+            └── 🔀 Row
+                ├── 🔗 TextButton (Forgot Password)
+                └── 🔗 TextButton (Register)
 ```
 
-- **Authentication Flow:** `WelcomePage`, `LoginOtpPage`, `RegisterPage`.
+- **Authentication Flow:** `WelcomePage`, `LoginPage`, `RegisterPage`.
 - **Recovery & Verification:** `OTPVerificationPage`, `ForgotPasswordPage`, `ResetPasswordPage`, `ChangePasswordPage`.
 
 :::tip[Navigation Pattern]
-Unauthenticated users attempting to access protected routes are automatically
-redirected to `LoginOtpPage` via the global `go_router` configuration listening
-to `authStateProvider`.
+Unauthenticated users attempting to access protected routes are automatically redirected to the `LoginPage` via the global `go_router` configuration listening to the `authStateProvider`.
 :::
 
 ## State Taxonomy
 
 Before diving into the flow, it's crucial to understand where data lives in the Auth module:
-- **Local UI State**: Form input controllers, validation error strings, and
-  submit loading flags (for example inside `LoginOtpPage`).
-- **Global State**: The `authStateProvider` holds `AuthUser?`. It is global
-  because `go_router` listens to it to determine route access.
+- **Local UI State**: Form input controllers, validation error strings (e.g., inside `LoginPage`).
+- **Global State**: The `authStateProvider` holds the `AuthUser` object. It is global because the entire app shell (`go_router`) depends on it to determine route access.
 - **Persistent State**: The JWT token securely stored on the device via `TokenRepository`.
 
 ## The Execution Lifecycle (Login)
@@ -69,26 +66,20 @@ import AuthFlowDiagram from '@site/static/img/diagrams/auth-flow.svg';
   <AuthFlowDiagram width="100%" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} />
 </div>
 
-The authentication flow leverages a direct provider-to-repository pattern. Below
-is the lifecycle of a successful login action:
+The authentication flow leverages a strict unidirectional pattern. Below is the lifecycle of a successful Login action:
 
 ### 1. 💻 Trigger (UI Layer)
-The user enters their phone number and password on `LoginOtpPage` and taps
-"Login". The UI dispatches the intent to the provider.
+The user enters their phone number and password on the `LoginPage` and taps "Login". The UI dispatches the intent to the provider.
 ```dart
-await ref.read(authStateProvider.notifier).login(phoneNumber, password);
+ref.read(authStateProvider.notifier).verifyCredentials(phone, password);
 ```
 
 ### 2. ⚙️ Orchestration (Provider Layer)
-The `AuthNotifier` delegates login to the repository. Loading/error state for
-the login button is local UI state in the page, not part of `authStateProvider`.
+The `AuthNotifier` transitions its state to `loading` and delegates the heavy lifting to the repository.
 ```dart
 // Inside AuthNotifier
-final user = await _repository.login(
-  phoneNumber: phoneNumber,
-  password: password,
-);
-await saveTokenAndSetUser(user);
+state = const AsyncLoading();
+final user = await _repository.login(phoneNumber: phone, password: password);
 ```
 
 ### 3. 🌐 Execution (Repository Layer)
@@ -106,14 +97,12 @@ await TokenRepository.saveToken(user.token);
 ```
 
 ### 5. 🔄 Reactivity (UI Layer)
-The `AuthNotifier` mutates its state to the `AuthUser` object. The login page
-then navigates to `/`, and the router also listens to auth changes for protected
-route redirects.
+The `AuthNotifier` mutates its state to the `AuthUser` object. The `go_router`, which is actively listening, detects this change and redirects to the `HomePage`.
 ```dart
 // go_router configuration
 redirect: (context, state) {
-  final isLoggedIn = ref.read(authStateProvider) != null;
-  if (!isLoggedIn && !isLoggingIn) return '/login';
+  final isAuth = ref.read(authStateProvider) != null;
+  if (isAuth && state.matchedLocation == '/login') return '/home';
   return null;
 }
 ```

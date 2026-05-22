@@ -30,5 +30,3 @@ The `hospital-app` relies on several major community packages to accelerate deve
 - **`mobile_scanner: ^5.2.3`**: Used in the Map module to scan QR codes for positioning ("I am here").
 - **`image_picker: ^1.2.0`**: Handles native gallery and camera access.
 - **`url_launcher: ^6.2.0`**: Used to open external links and trigger phone calls (e.g., SOS dial).
-- **`vector_math: ^2.2.0`**: Matrix/vector utilities used by interactive map transforms.
-- **`package_info_plus: ^8.0.0`**: Reads app package/version metadata for version checks.

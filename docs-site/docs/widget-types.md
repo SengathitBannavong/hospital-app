@@ -12,9 +12,10 @@ Our Flutter application separates UI components by their scope and reusability t
 Located in `lib/core/widgets/`. These are highly reusable components utilized across multiple features. They do not contain any feature-specific business logic.
 
 - **Examples**:
+  - `CustomPrimaryButton`
+  - `CustomTextField`
   - `FadeSlideTransition` (Shared animation wrapper)
-  - `MedicalInfoCard`
-  - `VersionCheckWidget`
+  - `ToastUtility` wrappers
 
 ## 2. Page Widgets (Screens)
 Located in `lib/features/{feature_name}/presentation/pages/`. These widgets represent full screen views navigable via `go_router`.
@@ -25,7 +26,7 @@ Located in `lib/features/{feature_name}/presentation/pages/`. These widgets repr
   - Wire up user actions to provider methods.
 - **Examples**:
   - `HomePage`
-  - `LoginOtpPage`
+  - `LoginPage`
   - `TaskListPage`
 
 ## 3. Feature-Specific Component Widgets

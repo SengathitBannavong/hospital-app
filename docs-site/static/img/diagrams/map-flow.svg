@@ -25,7 +25,7 @@
   <text x="510" y="140" fill="#94A3B8" font-size="12" text-anchor="middle">Fetch Route</text>
 
   <path d="M 730 150 L 790 150" stroke="#64748B" stroke-width="3" fill="none" marker-end="url(#arrow)" />
-  <text x="760" y="140" fill="#94A3B8" font-size="12" text-anchor="middle">HTTP POST</text>
+  <text x="760" y="140" fill="#94A3B8" font-size="12" text-anchor="middle">HTTP GET</text>
 
   <path d="M 790 170 L 730 170" stroke="#3B82F6" stroke-width="2" stroke-dasharray="5,5" fill="none" marker-end="url(#arrowBlue)" />
   <path d="M 540 170 L 480 170" stroke="#3B82F6" stroke-width="2" stroke-dasharray="5,5" fill="none" marker-end="url(#arrowBlue)" />
@@ -38,7 +38,7 @@
 
   <rect x="300" y="100" width="180" height="100" rx="16" fill="url(#boxGrad)" stroke="#8B5CF6" stroke-width="2" filter="url(#shadow)"/>
   <text x="390" y="140" fill="#F8FAFC" font-size="18" font-weight="bold" text-anchor="middle">⚙️ Provider</text>
-  <text x="390" y="165" fill="#94A3B8" font-size="14" text-anchor="middle">routeDestProvider</text>
+  <text x="390" y="165" fill="#94A3B8" font-size="14" text-anchor="middle">destinationProvider</text>
 
   <rect x="550" y="100" width="180" height="100" rx="16" fill="url(#boxGrad)" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
   <text x="640" y="140" fill="#F8FAFC" font-size="18" font-weight="bold" text-anchor="middle">📦 Repository</text>
