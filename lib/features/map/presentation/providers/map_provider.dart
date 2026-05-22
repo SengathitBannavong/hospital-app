@@ -13,6 +13,7 @@ import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
+import 'package:hospital_app/features/map/data/models/route_history.dart';
 import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
 import 'package:hospital_app/features/map/data/services/flow_service.dart';
 import 'package:hospital_app/features/map/data/services/report_queue.dart';
@@ -81,6 +82,10 @@ final flowServiceProvider = Provider<FlowService>((ref) {
 
 final reportQueueProvider = Provider<ReportQueue>((ref) {
   return ReportQueue(repository: ref.watch(mapRepositoryProvider));
+});
+
+final routeHistoryProvider = FutureProvider.autoDispose<RouteHistory>((ref) {
+  return ref.watch(mapRepositoryProvider).getRouteHistory();
 });
 
 // Fetch map metadata by mapId. Rows and cols must come from the backend,

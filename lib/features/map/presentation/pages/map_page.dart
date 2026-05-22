@@ -11,6 +11,8 @@ import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/data/models/route_history.dart';
+import 'package:hospital_app/features/map/data/models/route_history_entry.dart';
 import 'package:hospital_app/features/map/data/models/route_step.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
@@ -520,6 +522,12 @@ class _MapPageState extends ConsumerState<MapPage>
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 _MapFab(
+                  icon: Icons.history_rounded,
+                  tooltip: 'Route history',
+                  onPressed: _showRouteHistory,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _MapFab(
                   icon: Icons.map_outlined,
                   tooltip: 'Map legend',
                   onPressed: _showLegend,
@@ -897,6 +905,124 @@ class _MapPageState extends ConsumerState<MapPage>
     );
   }
 
+  Future<void> _showRouteHistory() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: false,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Consumer(
+          builder: (context, ref, _) {
+            return SafeArea(
+              top: false,
+              child: _RouteHistorySheet(
+                history: ref.watch(routeHistoryProvider),
+                onRetry: () => ref.invalidate(routeHistoryProvider),
+                onClearAll: _clearRouteHistory,
+                onRenavigate: (entry) async {
+                  final resolved = await _renavigateFromHistory(entry);
+                  if (!resolved || !sheetContext.mounted) {
+                    return;
+                  }
+                  Navigator.of(sheetContext).maybePop();
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _clearRouteHistory() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Clear route history?'),
+          content: const Text('This removes all saved route history.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Clear'),
+            ),
+          ],
+        );
+      },
+    );
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    try {
+      final result = await ref.read(mapRepositoryProvider).clearRouteHistory();
+      if (result.cleared) {
+        ref.invalidate(routeHistoryProvider);
+      }
+    } catch (_) {
+      _showSnack('Could not clear route history');
+    }
+  }
+
+  Future<bool> _renavigateFromHistory(RouteHistoryEntry entry) async {
+    final mapId = entry.mapId;
+    if (mapId != null && mapId != _activeMapId()) {
+      _switchFloorForHistory(mapId);
+    }
+
+    final destination = await _resolveHistoryDestination(entry);
+    if (destination == null) {
+      _showSnack('Could not find that destination on this map');
+      return false;
+    }
+
+    _setRouteDestination(destination);
+    return true;
+  }
+
+  Future<MapPoi?> _resolveHistoryDestination(RouteHistoryEntry entry) async {
+    final mapId = entry.mapId ?? _activeMapId();
+    if (mapId == null) {
+      return null;
+    }
+    await ref.read(mapNodesProvider(mapId).future);
+    final poiId = entry.resolvedPoiId;
+    if (poiId != null) {
+      final poi = ref.read(poiByIdProvider(mapId))[poiId];
+      if (poi != null) {
+        return poi;
+      }
+    }
+
+    final location = entry.resolvedLocation;
+    if (location != null) {
+      final poi = ref.read(poiByCellProvider(mapId))[location];
+      if (poi != null) {
+        return poi;
+      }
+    }
+    return null;
+  }
+
+  void _switchFloorForHistory(int mapId) {
+    _floorSwitchKeepsNavigation = true;
+    ref.read(navigationControllerProvider).stop();
+    _arrivalOrderCommitted = false;
+    _promptedFloorChangeLocation = null;
+    _resetRerouteState();
+    ref.read(userPositionProvider.notifier).state = null;
+    ref.read(navCurrentLocationProvider.notifier).state = null;
+    ref.read(locationSourceProvider.notifier).state =
+        LocationSource.entranceDefault;
+    ref.read(selectedFloorProvider.notifier).state = mapId;
+    ref.invalidate(routeResultProvider);
+    _routeAnim.value = 0;
+  }
+
   Future<void> _showQrScanner() async {
     final mapId = _activeMapId();
     if (mapId == null) return;
@@ -1143,6 +1269,10 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   void _showRerouteSnack(String message) {
+    _showSnack(message);
+  }
+
+  void _showSnack(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -1487,6 +1617,178 @@ class _FloorSelector extends StatelessWidget {
             onChanged: onChanged,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RouteHistorySheet extends StatelessWidget {
+  final AsyncValue<RouteHistory> history;
+  final VoidCallback onRetry;
+  final Future<void> Function() onClearAll;
+  final Future<void> Function(RouteHistoryEntry entry) onRenavigate;
+
+  const _RouteHistorySheet({
+    required this.history,
+    required this.onRetry,
+    required this.onClearAll,
+    required this.onRenavigate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.72,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Route history',
+                    style: context.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh_rounded),
+                  tooltip: 'Refresh history',
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Flexible(
+              child: history.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, _) => _HistoryMessage(
+                  icon: Icons.cloud_off_rounded,
+                  title: 'History unavailable',
+                  actionLabel: 'Retry',
+                  onAction: onRetry,
+                ),
+                data: (data) {
+                  if (data.routes.isEmpty) {
+                    return const _HistoryMessage(
+                      icon: Icons.history_rounded,
+                      title: 'No completed routes yet',
+                    );
+                  }
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: data.routes.length,
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: AppSpacing.sm),
+                    itemBuilder: (context, index) {
+                      final entry = data.routes[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: scheme.primaryContainer,
+                          foregroundColor: scheme.onPrimaryContainer,
+                          child: const Icon(Icons.alt_route_rounded),
+                        ),
+                        title: Text(
+                          entry.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          [
+                            if (entry.modeId != null) entry.modeId!,
+                            _relativeTime(entry.createdAt),
+                          ].join(' · '),
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => onRenavigate(entry),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: history.valueOrNull?.routes.isEmpty ?? true
+                    ? null
+                    : onClearAll,
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('Clear all'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _relativeTime(DateTime? value) {
+    if (value == null) {
+      return 'Unknown time';
+    }
+    final delta = DateTime.now().difference(value.toLocal());
+    if (delta.inMinutes < 1) {
+      return 'Just now';
+    }
+    if (delta.inHours < 1) {
+      return '${delta.inMinutes} min ago';
+    }
+    if (delta.inDays < 1) {
+      return '${delta.inHours} hr ago';
+    }
+    if (delta.inDays < 30) {
+      return '${delta.inDays} d ago';
+    }
+    final local = value.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '${local.year}-$month-$day';
+  }
+}
+
+class _HistoryMessage extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const _HistoryMessage({
+    required this.icon,
+    required this.title,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: scheme.onSurfaceVariant),
+          const SizedBox(height: AppSpacing.sm),
+          Text(title, style: context.textTheme.bodyMedium),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
+        ],
       ),
     );
   }
