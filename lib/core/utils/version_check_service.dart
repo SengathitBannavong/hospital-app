@@ -11,18 +11,14 @@ class VersionCheckService {
     String? currentVersion,
     String? packageName,
   }) async {
-    if (response.updateType == null ||
-        response.updateType == 'none') {
+    if (response.updateType == null || response.updateType == 'none') {
       return;
     }
 
     final isForceUpdate = response.updateType == 'force';
 
     final updateUrl =
-        response.downloadUrl ??
-        _fallbackStoreUrl(
-          packageName: packageName,
-        );
+        response.downloadUrl ?? _fallbackStoreUrl(packageName: packageName);
 
     if (!context.mounted) {
       return;
@@ -35,17 +31,12 @@ class VersionCheckService {
         canPop: !isForceUpdate,
         child: AlertDialog(
           title: Text(
-            isForceUpdate
-                ? 'Update Required'
-                : 'New Version Available',
-            style: Theme.of(
-              dialogContext,
-            ).textTheme.titleLarge,
+            isForceUpdate ? 'Update Required' : 'New Version Available',
+            style: Theme.of(dialogContext).textTheme.titleLarge,
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (response.message != null)
                 Text(response.message!)
@@ -58,16 +49,13 @@ class VersionCheckService {
                             'Update now for the best '
                             'experience.',
                 ),
-              if (currentVersion != null &&
-                  response.latestVersion != null) ...[
+              if (currentVersion != null && response.latestVersion != null) ...[
                 const SizedBox(height: 16),
                 Text(
                   'Current: $currentVersion '
                   '→ Latest: '
                   '${response.latestVersion}',
-                  style: Theme.of(
-                    dialogContext,
-                  ).textTheme.bodySmall,
+                  style: Theme.of(dialogContext).textTheme.bodySmall,
                 ),
               ],
             ],
@@ -75,8 +63,7 @@ class VersionCheckService {
           actions: [
             if (!isForceUpdate)
               TextButton(
-                onPressed: () =>
-                    Navigator.pop(dialogContext),
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('Later'),
               ),
             ElevatedButton(
@@ -84,11 +71,8 @@ class VersionCheckService {
                 final resolvedUrl = updateUrl;
 
                 if (resolvedUrl == null) {
-                  if (isForceUpdate &&
-                      context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(
+                  if (isForceUpdate && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
                           'Update is required, '
@@ -99,18 +83,14 @@ class VersionCheckService {
                     );
                   }
 
-                  if (!isForceUpdate &&
-                      dialogContext.mounted) {
+                  if (!isForceUpdate && dialogContext.mounted) {
                     Navigator.pop(dialogContext);
                   }
 
                   return;
                 }
 
-                final launched =
-                    await _launchUrl(
-                  resolvedUrl,
-                );
+                final launched = await _launchUrl(resolvedUrl);
 
                 if (!dialogContext.mounted) {
                   return;
@@ -121,11 +101,8 @@ class VersionCheckService {
                   return;
                 }
 
-                if (isForceUpdate &&
-                    context.mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(
+                if (isForceUpdate && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
                         'Unable to open the store. '
@@ -142,8 +119,7 @@ class VersionCheckService {
             ),
             if (isForceUpdate)
               TextButton(
-                onPressed: () =>
-                    SystemNavigator.pop(),
+                onPressed: () => SystemNavigator.pop(),
                 child: const Text('Exit App'),
               ),
           ],
@@ -152,20 +128,15 @@ class VersionCheckService {
     );
   }
 
-  static String? _fallbackStoreUrl({
-    String? packageName,
-  }) {
-    if (packageName == null ||
-        packageName.isEmpty) {
+  static String? _fallbackStoreUrl({String? packageName}) {
+    if (packageName == null || packageName.isEmpty) {
       return null;
     }
 
     return 'market://details?id=$packageName';
   }
 
-  static Future<bool> _launchUrl(
-    String url,
-  ) async {
+  static Future<bool> _launchUrl(String url) async {
     try {
       final uri = Uri.parse(url);
 
@@ -173,14 +144,9 @@ class VersionCheckService {
         return false;
       }
 
-      return launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      return launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
-      debugPrint(
-        'Error launching URL: $e',
-      );
+      debugPrint('Error launching URL: $e');
 
       return false;
     }
