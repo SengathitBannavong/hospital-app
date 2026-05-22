@@ -55,6 +55,9 @@ class ApiEndpoints {
   static const String flowGetForecast = 'flow/get_forecast';
   static const String flowGetAlerts = 'flow/get_alerts';
   static const String flowEdgeStatus = 'flow/edge_status';
+  static const String flowPingLocation = 'flow/ping_location';
+  static const String flowReportObstacle = 'flow/report_obstacle';
+  static const String flowGetObstacles = 'flow/get_obstacles';
 
   // System
   static const String sysGetVoiceKey = 'sys/get_voice_key';

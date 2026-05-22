@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
+import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
@@ -184,6 +185,9 @@ class _MapPageState extends ConsumerState<MapPage>
     final flowVisible = ref.watch(flowOverlayVisibleProvider);
     final flowSnapshot = ref.watch(flowSnapshotProvider(_defaultMapId));
     final flow = flowSnapshot.valueOrNull;
+    final obstacles =
+        ref.watch(obstaclesProvider(_defaultMapId)).valueOrNull ??
+        const <MapObstacle>[];
     ref.watch(navigationControllerProvider);
     final defaultUserPosition = ref.watch(
       defaultUserPositionProvider(_defaultMapId),
@@ -323,6 +327,7 @@ class _MapPageState extends ConsumerState<MapPage>
                                 walkableLocations: walkable,
                                 pois: nodes,
                                 flowCells: flow?.cells ?? const [],
+                                obstacles: obstacles,
                                 showFlowOverlay: flowVisible,
                                 routeLocations: routeLocations,
                                 routeProgress: _routeAnim.value,
@@ -619,6 +624,59 @@ class _MapPageState extends ConsumerState<MapPage>
           );
     if (location == null) return;
 
+    unawaited(_showCellActionSheet(location));
+  }
+
+  Future<void> _showCellActionSheet(int location) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: false,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.md,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cell $location',
+                  style: context.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ListTile(
+                  leading: const Icon(Icons.my_location_rounded),
+                  title: const Text('Set as current position'),
+                  onTap: () {
+                    Navigator.of(sheetContext).maybePop();
+                    _setCurrentLocationFromCell(location);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.report_problem_rounded),
+                  title: const Text('Report obstacle'),
+                  onTap: () {
+                    Navigator.of(sheetContext).maybePop();
+                    unawaited(_showReportObstacleSheet(location));
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _setCurrentLocationFromCell(int location) {
     ref.read(navigationControllerProvider).stop();
     ref.read(userPositionProvider.notifier).state = location;
     ref.read(locationSourceProvider.notifier).state =
@@ -626,6 +684,35 @@ class _MapPageState extends ConsumerState<MapPage>
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(const SnackBar(content: Text('You are here')));
+  }
+
+  Future<void> _showReportObstacleSheet(int location) async {
+    final report = await showModalBottomSheet<_ObstacleReportDraft>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _ObstacleReportSheet(location: location),
+    );
+    if (!mounted || report == null) return;
+
+    final obstacle = MapObstacle(
+      id: 'local-$location-${DateTime.now().microsecondsSinceEpoch}',
+      gridLocation: location,
+      type: report.type,
+      note: report.note,
+      reportedAt: DateTime.now().toUtc(),
+    );
+    final synced = await ref.read(reportQueueProvider).submitObstacle(obstacle);
+    ref.invalidate(obstaclesProvider(_defaultMapId));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            synced ? 'Obstacle reported' : 'Obstacle queued. Will sync later.',
+          ),
+        ),
+      );
   }
 
   int? _nearestWalkableInNeighborhood(
@@ -1340,6 +1427,121 @@ class _LegendSwatch extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(4),
+      ),
+    );
+  }
+}
+
+class _ObstacleReportDraft {
+  final String type;
+  final String? note;
+
+  const _ObstacleReportDraft({required this.type, this.note});
+}
+
+class _ObstacleReportSheet extends StatefulWidget {
+  final int location;
+
+  const _ObstacleReportSheet({required this.location});
+
+  @override
+  State<_ObstacleReportSheet> createState() => _ObstacleReportSheetState();
+}
+
+class _ObstacleReportSheetState extends State<_ObstacleReportSheet> {
+  static const _types = ['blockage', 'spill', 'crowd', 'maintenance'];
+
+  late final TextEditingController _noteController;
+  String _type = _types.first;
+
+  @override
+  void initState() {
+    super.initState();
+    _noteController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.lg,
+          AppSpacing.lg + bottomInset,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Report obstacle',
+              style: context.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Cell ${widget.location}',
+              style: context.textTheme.bodySmall?.copyWith(
+                color: context.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            DropdownButtonFormField<String>(
+              initialValue: _type,
+              decoration: const InputDecoration(labelText: 'Type'),
+              items: const [
+                DropdownMenuItem(value: 'blockage', child: Text('Blockage')),
+                DropdownMenuItem(value: 'spill', child: Text('Spill')),
+                DropdownMenuItem(value: 'crowd', child: Text('Crowd')),
+                DropdownMenuItem(
+                  value: 'maintenance',
+                  child: Text('Maintenance'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _type = value);
+                }
+              },
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _noteController,
+              minLines: 2,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'Note',
+                hintText: 'Optional',
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  final note = _noteController.text.trim();
+                  Navigator.of(context).pop(
+                    _ObstacleReportDraft(
+                      type: _type,
+                      note: note.isEmpty ? null : note,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.report_problem_rounded),
+                label: const Text('Submit report'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

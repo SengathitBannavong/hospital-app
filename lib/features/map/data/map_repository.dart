@@ -9,6 +9,7 @@ import 'models/flow_cell.dart';
 import 'models/map_department.dart';
 import 'models/map_edges_response.dart';
 import 'models/map_floor.dart';
+import 'models/map_obstacle.dart';
 import 'models/map_poi.dart';
 import 'models/map_sync_full.dart';
 import 'models/route_clear_history.dart';
@@ -584,6 +585,94 @@ class MapRepository {
     }
   }
 
+  Future<void> pingLocation({
+    required int gridLocation,
+    required int gridRow,
+    required int gridCol,
+    String? routeId,
+  }) async {
+    try {
+      final response = await ApiClient.instance.post(
+        ApiEndpoints.flowPingLocation,
+        data: {
+          'grid_location': gridLocation,
+          'grid_row': gridRow,
+          'grid_col': gridCol,
+          'route_id': ?routeId,
+        },
+      );
+
+      final apiResponse = AuthApiResponse<dynamic>.fromJson(
+        response.data,
+        (json) => json,
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return;
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<void> reportObstacle({
+    required int gridLocation,
+    required String type,
+    String? note,
+    String? routeId,
+  }) async {
+    try {
+      final response = await ApiClient.instance.post(
+        ApiEndpoints.flowReportObstacle,
+        data: {
+          'grid_location': gridLocation,
+          'report_type': type,
+          if (note != null && note.isNotEmpty) 'description': note,
+          'route_id': ?routeId,
+        },
+      );
+
+      final apiResponse = AuthApiResponse<dynamic>.fromJson(
+        response.data,
+        (json) => json,
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return;
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<List<MapObstacle>> getObstacles({String? status}) async {
+    try {
+      final response = await ApiClient.instance.get(
+        ApiEndpoints.flowGetObstacles,
+        queryParameters: {
+          'status': ?status,
+        },
+      );
+
+      final apiResponse = AuthApiResponse<List<MapObstacle>>.fromJson(
+        response.data,
+        (json) => _parseObstacles(json),
+      );
+
+      if (apiResponse.code == ApiResponseCodes.success) {
+        return apiResponse.data ?? const <MapObstacle>[];
+      }
+
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
   String _extractErrorMessage(DioException e) {
     if (e.response?.data is Map<String, dynamic>) {
       return e.response?.data['message'] ?? e.message ?? 'Unknown error';
@@ -636,6 +725,41 @@ class MapRepository {
     return rows.map(_flowAlertFromRaw).whereType<FlowAlert>().toList();
   }
 
+  List<MapObstacle> _parseObstacles(dynamic json) {
+    final rows = _extractRows(
+      json,
+      keys: const ['obstacles', 'reports', 'items', 'data'],
+    );
+    return rows.map(_obstacleFromRaw).whereType<MapObstacle>().toList();
+  }
+
+  MapObstacle? _obstacleFromRaw(Map<String, dynamic> json) {
+    final location = _readInt(json['grid_location'] ?? json['location']);
+    if (location == null) {
+      return null;
+    }
+    final type =
+        json['type']?.toString() ??
+        json['report_type']?.toString() ??
+        'obstacle';
+    final reportedAt =
+        DateTime.tryParse(
+          json['reported_at']?.toString() ??
+              json['created_at']?.toString() ??
+              '',
+        ) ??
+        DateTime.now().toUtc();
+    return MapObstacle(
+      id:
+          json['id']?.toString() ??
+          'obstacle-$location-${reportedAt.toIso8601String()}',
+      gridLocation: location,
+      type: type,
+      note: json['note']?.toString() ?? json['description']?.toString(),
+      reportedAt: reportedAt,
+    );
+  }
+
   FlowAlert? _flowAlertFromRaw(Map<String, dynamic> json) {
     final message = json['message']?.toString() ?? json['title']?.toString();
     if (message == null || message.isEmpty) {
@@ -682,7 +806,8 @@ class MapRepository {
         json.containsKey('location') ||
         json.containsKey('from_location') ||
         json.containsKey('to_location') ||
-        json.containsKey('message');
+        json.containsKey('message') ||
+        json.containsKey('report_type');
   }
 
   int? _readInt(dynamic value) {

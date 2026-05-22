@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
+import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 
 class MapCacheService {
@@ -99,6 +100,35 @@ class MapCacheService {
     return const <String, String>{};
   }
 
+  Future<void> saveObstacles({
+    required int mapId,
+    required List<MapObstacle> obstacles,
+  }) async {
+    final box = await _openBox();
+    await box.put(
+      _obstaclesKey(mapId),
+      jsonEncode(obstacles.map((obstacle) => obstacle.toJson()).toList()),
+    );
+  }
+
+  Future<List<MapObstacle>> loadObstacles({required int mapId}) async {
+    final box = await _openBox();
+    final raw = box.get(_obstaclesKey(mapId));
+    Object? decoded;
+    if (raw is String) {
+      decoded = jsonDecode(raw);
+    } else {
+      decoded = raw;
+    }
+    if (decoded is! List) {
+      return const <MapObstacle>[];
+    }
+    return decoded
+        .whereType<Map>()
+        .map((item) => MapObstacle.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
   Future<Box<dynamic>> _openBox() {
     return _boxFuture ??= _initAndOpenBox();
   }
@@ -122,4 +152,6 @@ class MapCacheService {
   String _flowDataKey(int mapId) => 'map:$mapId:flow_snapshot';
 
   String get _voiceFilesKey => 'voice:files';
+
+  String _obstaclesKey(int mapId) => 'map:$mapId:obstacles';
 }

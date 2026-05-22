@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
@@ -7,12 +8,14 @@ import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
+import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
 import 'package:hospital_app/features/map/data/services/flow_service.dart';
+import 'package:hospital_app/features/map/data/services/report_queue.dart';
 import 'package:hospital_app/features/map/data/services/routing_engine.dart';
 import 'package:hospital_app/features/map/data/services/routing_service.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
@@ -53,6 +56,10 @@ final flowServiceProvider = Provider<FlowService>((ref) {
     repository: ref.watch(mapRepositoryProvider),
     cache: ref.watch(mapCacheProvider),
   );
+});
+
+final reportQueueProvider = Provider<ReportQueue>((ref) {
+  return ReportQueue(repository: ref.watch(mapRepositoryProvider));
 });
 
 // Fetch map metadata by mapId. Rows and cols must come from the backend,
@@ -183,17 +190,77 @@ final flowSnapshotProvider = StreamProvider.autoDispose
   ref.onDispose(timer.cancel);
 });
 
+final obstaclesProvider = StreamProvider.autoDispose
+    .family<List<MapObstacle>, int>((ref, mapId) async* {
+  final repository = ref.watch(mapRepositoryProvider);
+  final cache = ref.watch(mapCacheProvider);
+  final queue = ref.watch(reportQueueProvider);
+  final phase = ref.watch(navPhaseProvider);
+  final interval = phase == NavPhase.navigating
+      ? const Duration(seconds: 15)
+      : const Duration(seconds: 30);
+
+  yield await _loadObstacles(
+    repository: repository,
+    cache: cache,
+    queue: queue,
+    mapId: mapId,
+  );
+  final timer = Timer.periodic(interval, (_) {
+    ref.invalidateSelf();
+  });
+  final subscription = queue.onConnectivityChanged().listen((results) {
+    if (results.contains(ConnectivityResult.none)) {
+      return;
+    }
+    unawaited(queue.flush().then((_) => ref.invalidateSelf()));
+  });
+  ref
+    ..onDispose(timer.cancel)
+    ..onDispose(subscription.cancel);
+});
+
 final flowEdgeStatusMapProvider = Provider.autoDispose
     .family<Map<String, EdgeStatus>, int>((ref, mapId) {
   final snapshot = ref.watch(flowSnapshotProvider(mapId)).valueOrNull;
-  if (snapshot == null) {
+  final obstacles = ref.watch(obstaclesProvider(mapId)).valueOrNull ??
+      const <MapObstacle>[];
+  final adjacency = ref.watch(adjacencyProvider(mapId));
+  if (snapshot == null && obstacles.isEmpty) {
     return const <String, EdgeStatus>{};
   }
-  return {
-    for (final edge in snapshot.edgeStatuses)
+  final edgeStatuses = <String, EdgeStatus>{
+    for (final edge in snapshot?.edgeStatuses ?? const <EdgeStatus>[])
       edgeStatusKey(edge.fromLocation, edge.toLocation): edge,
   };
+  return mergeObstacleEdgeStatuses(
+    edgeStatuses: edgeStatuses,
+    obstacles: obstacles,
+    adjacency: adjacency,
+  );
 });
+
+Map<String, EdgeStatus> mergeObstacleEdgeStatuses({
+  required Map<String, EdgeStatus> edgeStatuses,
+  required List<MapObstacle> obstacles,
+  required Map<int, List<int>> adjacency,
+}) {
+  final result = Map<String, EdgeStatus>.of(edgeStatuses);
+  for (final obstacle in obstacles) {
+    for (final next in adjacency[obstacle.gridLocation] ?? const <int>[]) {
+      final key = edgeStatusKey(obstacle.gridLocation, next);
+      final existing = result[key];
+      result[key] = existing == null
+          ? EdgeStatus(
+              fromLocation: obstacle.gridLocation,
+              toLocation: next,
+              blocked: true,
+            )
+          : existing.copyWith(blocked: true);
+    }
+  }
+  return result;
+}
 
 // Normalized POI names cache keyed by poiId — computed once when nodes settle.
 final normalizedPoiNamesProvider = Provider.family<Map<int, String>, int>((
@@ -415,4 +482,37 @@ Future<void> _tryRefreshSyncFull(Ref ref, int mapId) async {
     // Individual map endpoints remain authoritative when the bulk sync endpoint
     // is unavailable; the cache refresh will retry on the next successful load.
   }
+}
+
+Future<List<MapObstacle>> _loadObstacles({
+  required MapRepository repository,
+  required MapCacheService cache,
+  required ReportQueue queue,
+  required int mapId,
+}) async {
+  final queued = await queue.queuedObstacles();
+  try {
+    await queue.flush();
+    final remote = await repository.getObstacles();
+    final refreshedQueued = await queue.queuedObstacles();
+    final merged = _mergeObstacles(remote, refreshedQueued);
+    await cache.saveObstacles(mapId: mapId, obstacles: merged);
+    return merged;
+  } catch (_) {
+    final cached = await cache.loadObstacles(mapId: mapId);
+    return _mergeObstacles(cached, queued);
+  }
+}
+
+List<MapObstacle> _mergeObstacles(
+  List<MapObstacle> primary,
+  List<MapObstacle> secondary,
+) {
+  final byId = <String, MapObstacle>{
+    for (final obstacle in primary) obstacle.id: obstacle,
+  };
+  for (final obstacle in secondary) {
+    byId[obstacle.id] = obstacle;
+  }
+  return byId.values.toList(growable: false);
 }

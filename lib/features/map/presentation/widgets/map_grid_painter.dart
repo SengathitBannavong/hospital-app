@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
+import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
@@ -37,6 +38,10 @@ final Paint _userDotPaint = Paint()..color = const Color(0xFF0E8A6D);
 final Paint _userDotStrokePaint = Paint()
   ..color = const Color(0xFFFAFCFE)
   ..style = PaintingStyle.stroke;
+final Paint _obstaclePaint = Paint()..color = const Color(0xFFB42318);
+final Paint _obstacleStrokePaint = Paint()
+  ..color = const Color(0xFFFAFCFE)
+  ..style = PaintingStyle.stroke;
 
 class MapGridPainter extends CustomPainter {
   final int rows;
@@ -44,6 +49,7 @@ class MapGridPainter extends CustomPainter {
   final Set<int> walkableLocations;
   final List<MapPoi> pois;
   final List<FlowCell> flowCells;
+  final List<MapObstacle> obstacles;
   final bool showFlowOverlay;
   final List<int> routeLocations;
   final double routeProgress;
@@ -60,6 +66,7 @@ class MapGridPainter extends CustomPainter {
     required this.walkableLocations,
     required this.pois,
     this.flowCells = const <FlowCell>[],
+    this.obstacles = const <MapObstacle>[],
     this.showFlowOverlay = false,
     required this.routeLocations,
     this.routeProgress = 1.0,
@@ -143,6 +150,18 @@ class MapGridPainter extends CustomPainter {
       canvas.drawCircle(center, radius, paint);
     }
 
+    if (obstacles.isNotEmpty) {
+      _paintObstacles(
+        canvas,
+        cellWidth,
+        cellHeight,
+        rowStart,
+        rowEnd,
+        colStart,
+        colEnd,
+      );
+    }
+
     if (userDot != null) {
       _paintUserDot(canvas, cellWidth, cellHeight);
     }
@@ -155,6 +174,47 @@ class MapGridPainter extends CustomPainter {
       if (debugPoiCenter != null) {
         canvas.drawCircle(debugPoiCenter!, debugRadius, _debugPoiPaint);
       }
+    }
+  }
+
+  void _paintObstacles(
+    Canvas canvas,
+    double cellWidth,
+    double cellHeight,
+    int rowStart,
+    int rowEnd,
+    int colStart,
+    int colEnd,
+  ) {
+    final size = math.min(cellWidth, cellHeight);
+    final radius = size * 0.34;
+    _obstacleStrokePaint.strokeWidth = math.max(1.4, radius * 0.22);
+    for (final obstacle in obstacles) {
+      final row = obstacle.gridLocation ~/ cols;
+      final col = obstacle.gridLocation % cols;
+      if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
+      if (row < rowStart || row > rowEnd || col < colStart || col > colEnd) {
+        continue;
+      }
+      final center = _cellCenter(obstacle.gridLocation, cellWidth, cellHeight);
+      canvas.drawCircle(center, radius, _obstaclePaint);
+      canvas.drawCircle(center, radius, _obstacleStrokePaint);
+      final markStroke = math.max(1.2, radius * 0.18);
+      final markPaint = Paint()
+        ..color = const Color(0xFFFAFCFE)
+        ..strokeWidth = markStroke
+        ..strokeCap = StrokeCap.round;
+      canvas
+        ..drawLine(
+          Offset(center.dx, center.dy - radius * 0.45),
+          Offset(center.dx, center.dy + radius * 0.12),
+          markPaint,
+        )
+        ..drawCircle(
+          Offset(center.dx, center.dy + radius * 0.48),
+          markStroke * 0.75,
+          markPaint,
+        );
     }
   }
 
@@ -377,6 +437,7 @@ class MapGridPainter extends CustomPainter {
     return !identical(oldDelegate.pois, pois) ||
         !identical(oldDelegate.walkableLocations, walkableLocations) ||
         !identical(oldDelegate.flowCells, flowCells) ||
+        !identical(oldDelegate.obstacles, obstacles) ||
         !identical(oldDelegate.routeLocations, routeLocations) ||
         oldDelegate.showFlowOverlay != showFlowOverlay ||
         oldDelegate.routeProgress != routeProgress ||
