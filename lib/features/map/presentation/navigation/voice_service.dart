@@ -14,10 +14,7 @@ class VoiceCue {
 class VoiceCueDecider {
   String? _lastSpokenKey;
 
-  VoiceCue? decide({
-    required StepTrackingState state,
-    required bool muted,
-  }) {
+  VoiceCue? decide({required StepTrackingState state, required bool muted}) {
     if (muted) {
       return null;
     }
@@ -79,11 +76,11 @@ class VoiceService {
   final TtsSpeaker _speaker;
   final VoiceCueDecider _decider;
 
-  VoiceService({
-    TtsSpeaker? speaker,
-    VoiceCueDecider? decider,
-  }) : _speaker = speaker ?? FlutterTtsSpeaker(),
-       _decider = decider ?? VoiceCueDecider();
+  // TODO(Phase J backend:voice-clips): prefer cached sys/get_voice_files clips
+  // once the backend confirms availability; TTS remains the live path.
+  VoiceService({TtsSpeaker? speaker, VoiceCueDecider? decider})
+    : _speaker = speaker ?? FlutterTtsSpeaker(),
+      _decider = decider ?? VoiceCueDecider();
 
   Future<VoiceCue?> speakFor({
     required StepTrackingState state,

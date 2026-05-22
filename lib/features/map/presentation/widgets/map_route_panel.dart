@@ -12,6 +12,7 @@ class MapRoutePanel extends StatelessWidget {
   final String mode;
   final AsyncValue<RouteResult?> routeResult;
   final List<int> routeLocations;
+  final VoidCallback onRetry;
   final VoidCallback onClear;
   final ValueChanged<String> onModeChanged;
   final VoidCallback onPickDestination;
@@ -25,6 +26,7 @@ class MapRoutePanel extends StatelessWidget {
     required this.mode,
     required this.routeResult,
     required this.routeLocations,
+    required this.onRetry,
     required this.onClear,
     required this.onModeChanged,
     required this.onPickDestination,
@@ -120,6 +122,7 @@ class MapRoutePanel extends StatelessWidget {
             routeLocations: routeLocations,
             hasStart: userPosition != null,
             hasDestination: dest != null,
+            onRetry: onRetry,
           ),
           const SizedBox(height: AppSpacing.lg),
           SizedBox(

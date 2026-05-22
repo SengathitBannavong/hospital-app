@@ -32,4 +32,45 @@ void main() {
     expect(queued.single.gridLocation, 7);
     expect(queued.single.type, 'spill');
   });
+
+  test('ReportQueue flush success clears queued reports', () async {
+    final dir = await Directory.systemTemp.createTemp('report-flush-test-');
+    Hive.init(dir.path);
+    addTearDown(() async {
+      await Hive.close();
+      await dir.delete(recursive: true);
+    });
+
+    final repository = _ReportRepository();
+    final queue = ReportQueue(
+      repository: repository,
+      isOnline: () async => true,
+    );
+    final obstacle = MapObstacle(
+      id: 'local-2',
+      gridLocation: 9,
+      type: 'blockage',
+      reportedAt: DateTime.utc(2026, 5, 22),
+    );
+
+    await queue.enqueueObstacle(obstacle);
+    await queue.flush();
+
+    expect(await queue.queuedObstacles(), isEmpty);
+    expect(repository.reportedLocations, [9]);
+  });
+}
+
+class _ReportRepository extends MapRepository {
+  final reportedLocations = <int>[];
+
+  @override
+  Future<void> reportObstacle({
+    required int gridLocation,
+    required String type,
+    String? note,
+    String? routeId,
+  }) async {
+    reportedLocations.add(gridLocation);
+  }
 }

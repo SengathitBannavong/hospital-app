@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
+import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
@@ -20,6 +21,7 @@ import 'package:hospital_app/features/map/presentation/pages/map_qr_scanner_page
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
+import 'package:hospital_app/features/map/presentation/widgets/map_async_message.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_grid_painter.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_legend_sheet.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_navigation_sheet.dart';
@@ -476,15 +478,17 @@ class _MapPageState extends ConsumerState<MapPage>
               ),
             ),
 
-          if (flow != null && (flow.alerts.isNotEmpty || flow.isStale))
+          if ((flowSnapshot.isLoading && flow == null) ||
+              (flowSnapshot.hasError && flow == null) ||
+              (flow != null && (flow.alerts.isNotEmpty || flow.isStale)))
             Positioned(
               top: mediaTop + AppSpacing.md + 104,
               left: AppSpacing.md,
               right: AppSpacing.md,
               child: _FlowAlertBanner(
-                isStale: flow.isStale,
-                updatedAt: flow.updatedAt,
-                message: flow.alerts.isEmpty ? null : flow.alerts.first.message,
+                snapshot: flowSnapshot,
+                onRetry: () =>
+                    ref.invalidate(flowSnapshotProvider(activeMapId)),
               ),
             ),
 
@@ -1068,6 +1072,7 @@ class _MapPageState extends ConsumerState<MapPage>
                 mode: mode,
                 routeResult: routeResult,
                 routeLocations: routeLocations,
+                onRetry: () => ref.invalidate(routeResultProvider),
                 onClear: () {
                   _clearRoute();
                   Navigator.of(sheetContext).maybePop();
@@ -1674,7 +1679,7 @@ class _RouteHistorySheet extends StatelessWidget {
             Flexible(
               child: history.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => _HistoryMessage(
+                error: (_, _) => MapAsyncMessage(
                   icon: Icons.cloud_off_rounded,
                   title: 'History unavailable',
                   actionLabel: 'Retry',
@@ -1682,7 +1687,7 @@ class _RouteHistorySheet extends StatelessWidget {
                 ),
                 data: (data) {
                   if (data.routes.isEmpty) {
-                    return const _HistoryMessage(
+                    return const MapAsyncMessage(
                       icon: Icons.history_rounded,
                       title: 'No completed routes yet',
                     );
@@ -1761,56 +1766,69 @@ class _RouteHistorySheet extends StatelessWidget {
   }
 }
 
-class _HistoryMessage extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  const _HistoryMessage({
-    required this.icon,
-    required this.title,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: scheme.onSurfaceVariant),
-          const SizedBox(height: AppSpacing.sm),
-          Text(title, style: context.textTheme.bodyMedium),
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            TextButton(onPressed: onAction, child: Text(actionLabel!)),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 class _FlowAlertBanner extends StatelessWidget {
-  final bool isStale;
-  final DateTime updatedAt;
-  final String? message;
+  final AsyncValue<FlowSnapshot> snapshot;
+  final VoidCallback onRetry;
 
-  const _FlowAlertBanner({
-    required this.isStale,
-    required this.updatedAt,
-    required this.message,
-  });
+  const _FlowAlertBanner({required this.snapshot, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final flow = snapshot.valueOrNull;
+    final isLoading = snapshot.isLoading && flow == null;
+    final isError = snapshot.hasError && flow == null;
+    final isStale = flow?.isStale ?? false;
+    final message = flow?.alerts.isEmpty ?? true
+        ? null
+        : flow?.alerts.first.message;
+    final updatedAt = flow?.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
     final text = message ?? 'Offline flow snapshot';
+    final content = isLoading
+        ? const MapAsyncMessage(
+            icon: Icons.sync_rounded,
+            title: 'Loading flow snapshot...',
+            compact: true,
+          )
+        : isError
+        ? MapAsyncMessage(
+            icon: Icons.error_outline_rounded,
+            title: 'Flow snapshot unavailable',
+            actionLabel: 'Retry',
+            onAction: onRetry,
+            compact: true,
+          )
+        : Row(
+            children: [
+              Icon(
+                isStale ? Icons.cloud_off_rounded : Icons.warning_amber_rounded,
+                size: 18,
+                color: isStale
+                    ? scheme.onTertiaryContainer
+                    : scheme.onErrorContainer,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  isStale ? '$text · ${_formatUpdatedAt(updatedAt)}' : text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.textTheme.labelMedium?.copyWith(
+                    color: isStale
+                        ? scheme.onTertiaryContainer
+                        : scheme.onErrorContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          );
     return Material(
-      color: isStale ? scheme.tertiaryContainer : scheme.errorContainer,
+      color: isLoading
+          ? scheme.surface
+          : isStale
+          ? scheme.tertiaryContainer
+          : scheme.errorContainer,
       elevation: 2,
       shadowColor: scheme.shadow,
       borderRadius: AppRadius.borderMd,
@@ -1819,31 +1837,7 @@ class _FlowAlertBanner extends StatelessWidget {
           horizontal: AppSpacing.md,
           vertical: AppSpacing.sm,
         ),
-        child: Row(
-          children: [
-            Icon(
-              isStale ? Icons.cloud_off_rounded : Icons.warning_amber_rounded,
-              size: 18,
-              color: isStale
-                  ? scheme.onTertiaryContainer
-                  : scheme.onErrorContainer,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                isStale ? '$text · ${_formatUpdatedAt(updatedAt)}' : text,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: context.textTheme.labelMedium?.copyWith(
-                  color: isStale
-                      ? scheme.onTertiaryContainer
-                      : scheme.onErrorContainer,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
+        child: content,
       ),
     );
   }

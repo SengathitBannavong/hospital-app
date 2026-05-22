@@ -7,6 +7,7 @@ import 'package:hospital_app/features/map/data/models/route_step.dart';
 import 'package:hospital_app/features/map/presentation/navigation/maneuver_text.dart';
 import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
+import 'package:hospital_app/features/map/presentation/widgets/map_async_message.dart';
 
 class MapNavigationSheet extends ConsumerWidget {
   final String destinationName;
@@ -90,8 +91,7 @@ class MapNavigationSheet extends ConsumerWidget {
                   ),
                   IconButton(
                     onPressed: () {
-                      ref.read(voiceMutedProvider.notifier).state =
-                          !voiceMuted;
+                      ref.read(voiceMutedProvider.notifier).state = !voiceMuted;
                     },
                     visualDensity: VisualDensity.compact,
                     icon: Icon(
@@ -107,6 +107,23 @@ class MapNavigationSheet extends ConsumerWidget {
               if (!arrived) ...[
                 const SizedBox(height: AppSpacing.sm),
                 _GuidanceBanner(state: stepTracking),
+                if (routeResult.isLoading) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  const MapAsyncMessage(
+                    icon: Icons.sync_rounded,
+                    title: 'Updating route preview...',
+                    compact: true,
+                  ),
+                ] else if (routeResult.hasError) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  MapAsyncMessage(
+                    icon: Icons.error_outline_rounded,
+                    title: 'Route preview failed',
+                    actionLabel: 'Retry',
+                    onAction: () => ref.invalidate(routeResultProvider),
+                    compact: true,
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.sm),
                 Wrap(
                   spacing: AppSpacing.sm,
@@ -254,7 +271,6 @@ class _GuidanceBanner extends StatelessWidget {
       StepManeuver.arrive => Icons.flag_rounded,
     };
   }
-
 }
 
 class _RemainingMetrics {
@@ -283,11 +299,21 @@ _RemainingMetrics _remainingMetrics({
 }
 
 String _formatGridDistance(num distance) {
+  // TODO(Phase J backend:meters-per-cell): replace cell counts with real
+  // distance units after the backend publishes a meters-per-cell ratio.
   return '${distance.toStringAsFixed(0)} cells';
 }
 
 String _formatGridEta(num eta) {
-  return '${eta.toStringAsFixed(1)} grid ETA';
+  final seconds = eta.round().clamp(0, 1 << 31);
+  if (seconds < 60) {
+    return '$seconds sec';
+  }
+  final minutes = seconds / 60;
+  if (minutes < 10) {
+    return '~${minutes.toStringAsFixed(1)} min';
+  }
+  return '~${minutes.round()} min';
 }
 
 class _MetricChip extends StatelessWidget {

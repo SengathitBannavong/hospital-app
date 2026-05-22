@@ -8,6 +8,8 @@ part 'route_history_entry.g.dart';
 class RouteHistoryEntry with _$RouteHistoryEntry {
   const RouteHistoryEntry._();
 
+  // TODO(Phase J backend:route-history-fields): trim nullable alias fields once
+  // route/get_history publishes the exact entry contract.
   const factory RouteHistoryEntry({
     String? id,
     @JsonKey(name: 'route_id') String? routeId,

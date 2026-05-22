@@ -447,9 +447,10 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
   final adjacency = ref.watch(adjacencyProvider(mapId));
   final edgeStatuses = ref.watch(flowEdgeStatusMapProvider(mapId));
 
-  // TODO(Phase H backend): offline cross-floor routing requires a documented
-  // stair/elevator link model between map_ids. swagger.yaml only exposes
-  // per-floor map nodes/edges today, so the local engine stays floor-scoped.
+  // TODO(Phase J backend:cross-floor-links): offline cross-floor routing
+  // requires a documented stair/elevator link model between map_ids. swagger.yaml
+  // only exposes per-floor map nodes/edges today, so the local engine stays
+  // floor-scoped.
 
   return routingService.route(
     startLocation: start,

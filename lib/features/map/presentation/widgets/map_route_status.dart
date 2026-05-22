@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
+import 'package:hospital_app/features/map/presentation/widgets/map_async_message.dart';
 
 class MapRouteStatus extends StatelessWidget {
   final AsyncValue<RouteResult?> routeResult;
   final List<int> routeLocations;
   final bool hasStart;
   final bool hasDestination;
+  final VoidCallback onRetry;
 
   const MapRouteStatus({
     super.key,
@@ -15,6 +17,7 @@ class MapRouteStatus extends StatelessWidget {
     required this.routeLocations,
     required this.hasStart,
     required this.hasDestination,
+    required this.onRetry,
   });
 
   @override
@@ -43,10 +46,12 @@ class MapRouteStatus extends StatelessWidget {
         message: 'Calculating route...',
         color: context.colorScheme.primary,
       ),
-      error: (error, _) => _StatusMessage(
+      error: (_, _) => MapAsyncMessage(
         icon: Icons.error_outline_rounded,
-        message: 'Route error: ${error.toString()}',
-        color: context.colorScheme.error,
+        title: 'Route preview failed',
+        actionLabel: 'Retry',
+        onAction: onRetry,
+        compact: true,
       ),
     );
   }
@@ -91,12 +96,26 @@ class _RouteSummary extends StatelessWidget {
   }
 
   String _formatGridDistance(num distance) {
+    // TODO(Phase J backend:meters-per-cell): replace cell counts with real
+    // distance units after the backend publishes a meters-per-cell ratio.
     return '${distance.toStringAsFixed(0)} cells';
   }
 
   String _formatGridEta(num eta) {
-    return '${eta.toStringAsFixed(1)} grid ETA';
+    return _formatEta(eta);
   }
+}
+
+String _formatEta(num eta) {
+  final seconds = eta.round().clamp(0, 1 << 31);
+  if (seconds < 60) {
+    return '$seconds sec';
+  }
+  final minutes = seconds / 60;
+  if (minutes < 10) {
+    return '~${minutes.toStringAsFixed(1)} min';
+  }
+  return '~${minutes.round()} min';
 }
 
 class _MetricChip extends StatelessWidget {

@@ -65,6 +65,8 @@ class RoutingService {
     required Map<String, EdgeStatus> edgeStatuses,
     String? routeId,
   }) async {
+    // TODO(Phase J backend:route-id): wire online route/recalculate once the
+    // active route flow provides a stable route_id from route/order.
     if (routeId != null && await _hasNetwork()) {
       try {
         final preview = await _repository.recalculateRoute(

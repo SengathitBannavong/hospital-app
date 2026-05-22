@@ -11,13 +11,16 @@ class ReportQueue {
 
   final MapRepository _repository;
   final Connectivity _connectivity;
+  final Future<bool> Function()? _isOnline;
   Future<Box<dynamic>>? _boxFuture;
 
   ReportQueue({
     required MapRepository repository,
     Connectivity? connectivity,
+    Future<bool> Function()? isOnline,
   }) : _repository = repository,
-       _connectivity = connectivity ?? Connectivity();
+       _connectivity = connectivity ?? Connectivity(),
+       _isOnline = isOnline;
 
   Future<bool> submitObstacle(MapObstacle obstacle) async {
     if (await _hasNetwork()) {
@@ -92,6 +95,10 @@ class ReportQueue {
   }
 
   Future<bool> _hasNetwork() async {
+    final isOnline = _isOnline;
+    if (isOnline != null) {
+      return isOnline();
+    }
     final results = await _connectivity.checkConnectivity();
     return !results.contains(ConnectivityResult.none);
   }

@@ -351,10 +351,7 @@ class MapRepository {
     try {
       final response = await ApiClient.instance.post(
         ApiEndpoints.routeRecalculate,
-        data: {
-          'route_id': routeId,
-          'current_location': currentLocation,
-        },
+        data: {'route_id': routeId, 'current_location': currentLocation},
       );
 
       final apiResponse = AuthApiResponse<dynamic>.fromJson(
@@ -418,9 +415,7 @@ class MapRepository {
     try {
       final response = await ApiClient.instance.get(
         ApiEndpoints.flowGetDensity,
-        queryParameters: {
-          'grid_location': ?gridLocation,
-        },
+        queryParameters: {'grid_location': ?gridLocation},
       );
 
       final apiResponse = AuthApiResponse<List<FlowCell>>.fromJson(
@@ -591,6 +586,8 @@ class MapRepository {
     required int gridCol,
     String? routeId,
   }) async {
+    // TODO(Phase J backend:flow-ping): confirm payload fields, route_id usage,
+    // and cadence before wiring simulated navigation to flow/ping_location.
     try {
       final response = await ApiClient.instance.post(
         ApiEndpoints.flowPingLocation,
@@ -653,9 +650,7 @@ class MapRepository {
     try {
       final response = await ApiClient.instance.get(
         ApiEndpoints.flowGetObstacles,
-        queryParameters: {
-          'status': ?status,
-        },
+        queryParameters: {'status': ?status},
       );
 
       final apiResponse = AuthApiResponse<List<MapObstacle>>.fromJson(

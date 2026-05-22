@@ -27,8 +27,10 @@ class PassNodeReporter {
       return;
     }
 
-    // The current RouteResult has no route_id field. Until a server route id is
-    // available, keep the simulated pass_node report queued and no-op safe.
+    // TODO(Phase J backend:route-id): route/order must return a route_id before
+    // online pass_node, route/get_steps, route/get_next, and route/recalculate
+    // can be activated. Until then, keep simulated pass_node reports queued and
+    // no-op safe.
     _offlineQueue.add(location);
   }
 }
