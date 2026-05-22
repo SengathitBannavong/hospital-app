@@ -20,14 +20,15 @@ Before diving into individual components, here is the high-level structural comp
     └── 🛡️ VersionCheckWidget (Global Wrapper)
         └── 🔀 go_router (Route Management)
             ├── 🔒 Unauthenticated Branch
-            │   └── 📦 LoginPage
+            │   └── 📦 LoginOtpPage
             └── 🔓 Authenticated Branch
-                └── 📦 MainShell (ScaffoldWithBottomNavBar)
+                └── 📦 MainShell
                     └── 📄 StatefulNavigationShell
                         ├── 📑 Home Branch
-                        ├── 📑 Map Branch
                         ├── 📑 Medical Branch
                         ├── 📑 Notification Branch
+                        ├── 📑 Info Branch
+                        ├── 📑 Map Branch
                         └── 📑 Profile Branch
 ```
 
@@ -76,7 +77,11 @@ A structural wrapper widget used at the root of the application (or specific pro
 
 ## Form Controls (Buttons & Fields)
 
-While not contained in a single file, the application relies heavily on stylized controls to maintain an "Anthropic-like" premium feel. 
+While not contained in a single global file, the application uses a mix of
+standard Material controls and feature-specific controls.
 
-- **Primary Buttons**: Always feature rounded corners (`AppRadius.borderLg`), bold typography, and respond to the global theme colors.
-- **Text Fields**: Utilize filled backgrounds with subtle borders, prioritizing readability and clear error states during validation (e.g., used in `LoginPage` and `ProfileEditForm`).
+- **Buttons**: Most screens use standard Material buttons (`FilledButton`,
+  `ElevatedButton`, `TextButton`, and `FloatingActionButton`) styled through the
+  app theme or local `ButtonStyle`s.
+- **Text Fields**: Auth screens use `AuthTextField`; profile editing uses
+  `ProfileForm` fields; map search uses `MapTopBar`.
