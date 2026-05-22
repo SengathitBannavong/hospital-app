@@ -48,22 +48,6 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
     setState(() => _isVerifying = true);
 
     try {
-      // 1. Verify OTP with Backend
-      final backendOtpType = widget.otpType == 'forgot_password'
-          ? 'reset_password'
-          : widget.otpType;
-
-      await ref
-          .read(authStateProvider.notifier)
-          .verifyOtp(
-            phoneNumber: widget.phoneNumber,
-            otp: otp,
-            otpType: backendOtpType,
-          );
-
-      if (!mounted) return;
-
-      // 2. Handle different OTP types
       switch (widget.otpType) {
         case 'signup':
           await ref
