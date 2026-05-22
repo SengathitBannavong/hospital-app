@@ -10,21 +10,8 @@ import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
-import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
-import 'package:hospital_app/features/map/data/models/route_result.dart';
-import 'package:hospital_app/features/map/data/models/route_history.dart';
-import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
-import 'package:hospital_app/features/map/data/services/flow_service.dart';
-import 'package:hospital_app/features/map/data/services/report_queue.dart';
-import 'package:hospital_app/features/map/data/services/routing_engine.dart';
-import 'package:hospital_app/features/map/data/services/routing_service.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
-import 'package:hospital_app/features/map/presentation/navigation/pass_node_reporter.dart';
-import 'package:hospital_app/features/map/presentation/navigation/position_source.dart';
-import 'package:hospital_app/features/map/presentation/navigation/reroute_watcher.dart';
-import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
-import 'package:hospital_app/features/map/presentation/navigation/voice_service.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 
 final mapRepositoryProvider = Provider<MapRepository>((ref) {
@@ -147,52 +134,11 @@ final locationSourceProvider = StateProvider<LocationSource>(
   (ref) => LocationSource.entranceDefault,
 );
 final navPhaseProvider = StateProvider<NavPhase>((ref) => NavPhase.idle);
-final flowOverlayVisibleProvider = StateProvider<bool>((ref) => false);
-final rerouteResultProvider = StateProvider<RouteResult?>((ref) => null);
-final voiceMutedProvider = StateProvider<bool>((ref) => false);
 final navProgressProvider = StateProvider<double>((ref) => 0.0);
 final navSpeedProvider = StateProvider<double>((ref) => 1.0);
 final navCurrentLocationProvider = StateProvider<int?>((ref) => null);
 final navMetersRemainingProvider = StateProvider<double>((ref) => 0.0);
 final navSecondsRemainingProvider = StateProvider<double>((ref) => 0.0);
-final positionSourceProvider = Provider<PositionSource>((ref) {
-  final navLocation = ref.watch(navCurrentLocationProvider);
-  final restingLocation = ref.watch(userPositionProvider);
-  return SimulatedPositionSource(
-    currentLocation: navLocation ?? restingLocation,
-    progress: ref.watch(navProgressProvider).clamp(0.0, 1.0).toDouble(),
-  );
-});
-final stepTrackerProvider = Provider<StepTracker>((ref) {
-  return const StepTracker();
-});
-final rerouteWatcherProvider = Provider<RerouteWatcher>((ref) {
-  return const RerouteWatcher();
-});
-final voiceServiceProvider = Provider<VoiceService>((ref) {
-  final service = VoiceService();
-  ref.onDispose(() {
-    service.reset();
-  });
-  return service;
-});
-final activeRouteResultProvider =
-    Provider.autoDispose<AsyncValue<RouteResult?>>((ref) {
-      final reroute = ref.watch(rerouteResultProvider);
-      if (reroute != null) {
-        return AsyncData(reroute);
-      }
-      return ref.watch(routeResultProvider);
-    });
-final stepTrackingProvider = Provider.autoDispose<StepTrackingState>((ref) {
-  final tracker = ref.watch(stepTrackerProvider);
-  final position = ref.watch(positionSourceProvider);
-  final route = ref.watch(activeRouteResultProvider).valueOrNull;
-  return tracker.track(position: position, routeResult: route);
-});
-final passNodeReporterProvider = Provider<PassNodeReporter>((ref) {
-  return PassNodeReporter();
-});
 final navigationControllerProvider = Provider.autoDispose<NavigationController>(
   (ref) {
     final controller = NavigationController(ref);
@@ -200,94 +146,6 @@ final navigationControllerProvider = Provider.autoDispose<NavigationController>(
     return controller;
   },
 );
-
-final flowSnapshotProvider = StreamProvider.autoDispose
-    .family<FlowSnapshot, int>((ref, mapId) async* {
-      final service = ref.watch(flowServiceProvider);
-      final phase = ref.watch(navPhaseProvider);
-      final interval = phase == NavPhase.navigating
-          ? const Duration(seconds: 15)
-          : const Duration(seconds: 30);
-
-      yield await service.snapshot(mapId: mapId);
-      final timer = Timer.periodic(interval, (_) {
-        ref.invalidateSelf();
-      });
-      ref.onDispose(timer.cancel);
-    });
-
-final obstaclesProvider = StreamProvider.autoDispose
-    .family<List<MapObstacle>, int>((ref, mapId) async* {
-      final repository = ref.watch(mapRepositoryProvider);
-      final cache = ref.watch(mapCacheProvider);
-      final queue = ref.watch(reportQueueProvider);
-      final phase = ref.watch(navPhaseProvider);
-      final interval = phase == NavPhase.navigating
-          ? const Duration(seconds: 15)
-          : const Duration(seconds: 30);
-
-      yield await _loadObstacles(
-        repository: repository,
-        cache: cache,
-        queue: queue,
-        mapId: mapId,
-      );
-      final timer = Timer.periodic(interval, (_) {
-        ref.invalidateSelf();
-      });
-      final subscription = queue.onConnectivityChanged().listen((results) {
-        if (results.contains(ConnectivityResult.none)) {
-          return;
-        }
-        unawaited(queue.flush().then((_) => ref.invalidateSelf()));
-      });
-      ref
-        ..onDispose(timer.cancel)
-        ..onDispose(subscription.cancel);
-    });
-
-final flowEdgeStatusMapProvider = Provider.autoDispose
-    .family<Map<String, EdgeStatus>, int>((ref, mapId) {
-      final snapshot = ref.watch(flowSnapshotProvider(mapId)).valueOrNull;
-      final obstacles =
-          ref.watch(obstaclesProvider(mapId)).valueOrNull ??
-          const <MapObstacle>[];
-      final adjacency = ref.watch(adjacencyProvider(mapId));
-      if (snapshot == null && obstacles.isEmpty) {
-        return const <String, EdgeStatus>{};
-      }
-      final edgeStatuses = <String, EdgeStatus>{
-        for (final edge in snapshot?.edgeStatuses ?? const <EdgeStatus>[])
-          edgeStatusKey(edge.fromLocation, edge.toLocation): edge,
-      };
-      return mergeObstacleEdgeStatuses(
-        edgeStatuses: edgeStatuses,
-        obstacles: obstacles,
-        adjacency: adjacency,
-      );
-    });
-
-Map<String, EdgeStatus> mergeObstacleEdgeStatuses({
-  required Map<String, EdgeStatus> edgeStatuses,
-  required List<MapObstacle> obstacles,
-  required Map<int, List<int>> adjacency,
-}) {
-  final result = Map<String, EdgeStatus>.of(edgeStatuses);
-  for (final obstacle in obstacles) {
-    for (final next in adjacency[obstacle.gridLocation] ?? const <int>[]) {
-      final key = edgeStatusKey(obstacle.gridLocation, next);
-      final existing = result[key];
-      result[key] = existing == null
-          ? EdgeStatus(
-              fromLocation: obstacle.gridLocation,
-              toLocation: next,
-              blocked: true,
-            )
-          : existing.copyWith(blocked: true);
-    }
-  }
-  return result;
-}
 
 // Normalized POI names cache keyed by poiId — computed once when nodes settle.
 final normalizedPoiNamesProvider = Provider.family<Map<int, String>, int>((
@@ -427,10 +285,8 @@ final routeDestProvider = StateProvider<MapPoi?>((ref) => null);
 final routeModeProvider = StateProvider<String>((ref) => 'walking');
 
 // Route result based on start + dest + mode
-final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
-  ref,
-) async {
-  final routingService = ref.watch(routingServiceProvider);
+final routeResultProvider = FutureProvider.autoDispose<dynamic>((ref) async {
+  final repository = ref.watch(mapRepositoryProvider);
   final start = ref.watch(userPositionProvider);
   final dest = ref.watch(routeDestProvider);
   final mode = ref.watch(routeModeProvider);
@@ -442,17 +298,7 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
     return null;
   }
 
-  final meta = await ref.watch(mapMetaProvider(mapId).future);
-  await ref.watch(mapEdgesProvider(mapId).future);
-  final adjacency = ref.watch(adjacencyProvider(mapId));
-  final edgeStatuses = ref.watch(flowEdgeStatusMapProvider(mapId));
-
-  // TODO(Phase J backend:cross-floor-links): offline cross-floor routing
-  // requires a documented stair/elevator link model between map_ids. swagger.yaml
-  // only exposes per-floor map nodes/edges today, so the local engine stays
-  // floor-scoped.
-
-  return routingService.route(
+  return repository.previewRoute(
     startLocation: start,
     destLocation: dest.gridLocation,
     modeId: mode,
@@ -478,6 +324,23 @@ final navDotProvider = Provider.autoDispose<NavDot?>((ref) {
 
   if (path.length < 2) {
     return resting == null ? null : NavDot.resting(resting);
+  }
+
+  final totalLength = path.length - 1;
+  final reached = totalLength * progress;
+  final segmentIndex = reached.floor().clamp(0, totalLength - 1).toInt();
+  final t = (reached - segmentIndex).clamp(0.0, 1.0).toDouble();
+
+  return NavDot(
+    fromLocation: path[segmentIndex],
+    toLocation: path[segmentIndex + 1],
+    t: t,
+  );
+});
+
+List<int> extractRouteLocations(dynamic data) {
+  if (data == null) {
+    return const [];
   }
 
   final totalLength = path.length - 1;

@@ -1,7 +1,6 @@
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
-import 'package:hospital_app/features/map/data/services/route_modes.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 
 class NavDot {
@@ -79,10 +78,8 @@ class NavigationController {
     _modeId = mode;
     _travelled = 0;
     _totalLength = (_path.length - 1).toDouble();
-    final routeResult = _ref.read(activeRouteResultProvider).valueOrNull;
-    _etaSeconds = routeResult == null || routeResult.estimatedTime <= 0
-        ? null
-        : routeResult.estimatedTime;
+    final routeData = _ref.read(routeResultProvider).valueOrNull;
+    _etaSeconds = _readEstimatedTime(routeData);
     _lastElapsed = null;
     _setProgress(0);
     _ref.read(navPhaseProvider.notifier).state = NavPhase.navigating;
@@ -168,4 +165,18 @@ class NavigationController {
     return baseSpeedFor(_modeId) * mult;
   }
 
+  double? _readEstimatedTime(dynamic data) {
+    if (data is! Map) return null;
+    final value = data['estimated_time'];
+    return value is num && value > 0 ? value.toDouble() : null;
+  }
+}
+
+double baseSpeedFor(String modeId) {
+  return switch (modeId) {
+    'wheelchair' => 4,
+    'stretcher' => 3,
+    'hospital_cart' => 3,
+    _ => 6,
+  };
 }

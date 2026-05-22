@@ -43,12 +43,11 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
           .forgotPassword(phoneNumber);
 
       if (mounted) {
-        // Show OTP code for development (mock API)
-        if (response.otpCode != null) {
-          AppToast.showSuccess('Mã xác thực đã được gửi.');
-          // Navigate to OTP verification page
-        }
-        context.push('/verify-otp/$phoneNumber/forgot_password');
+        AppToast.showSuccess('Mã xác thực đã được gửi.');
+        context.push(
+          '/verify-otp/$phoneNumber/forgot_password',
+          extra: {'otp_code': response.otpCode},
+        );
       }
     } catch (error) {
       if (!mounted) return;

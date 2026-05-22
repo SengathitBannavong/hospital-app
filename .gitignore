@@ -83,3 +83,6 @@ AGENTS.md
 # Commit message
 commit.*
 commit
+
+# Local test output artifact
+test_results.txt

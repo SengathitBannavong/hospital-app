@@ -25,7 +25,6 @@ final Paint _routeTraveledHaloPaint = Paint()
 final Paint _routeTraveledLinePaint = Paint()
   ..color = MapSurface.routeLine.withValues(alpha: 0.4)
   ..strokeCap = StrokeCap.round;
-final Paint _flowCellPaint = Paint();
 
 final Map<String, Paint> _poiPaints = {
   for (final entry in MapPoiPalette.byType.entries)
@@ -36,10 +35,6 @@ final Paint _userDotRingPaint = Paint()
   ..color = const Color(0xFF0E8A6D).withValues(alpha: 0.22);
 final Paint _userDotPaint = Paint()..color = const Color(0xFF0E8A6D);
 final Paint _userDotStrokePaint = Paint()
-  ..color = const Color(0xFFFAFCFE)
-  ..style = PaintingStyle.stroke;
-final Paint _obstaclePaint = Paint()..color = const Color(0xFFB42318);
-final Paint _obstacleStrokePaint = Paint()
   ..color = const Color(0xFFFAFCFE)
   ..style = PaintingStyle.stroke;
 
@@ -150,18 +145,6 @@ class MapGridPainter extends CustomPainter {
       canvas.drawCircle(center, radius, paint);
     }
 
-    if (obstacles.isNotEmpty) {
-      _paintObstacles(
-        canvas,
-        cellWidth,
-        cellHeight,
-        rowStart,
-        rowEnd,
-        colStart,
-        colEnd,
-      );
-    }
-
     if (userDot != null) {
       _paintUserDot(canvas, cellWidth, cellHeight);
     }
@@ -174,78 +157,6 @@ class MapGridPainter extends CustomPainter {
       if (debugPoiCenter != null) {
         canvas.drawCircle(debugPoiCenter!, debugRadius, _debugPoiPaint);
       }
-    }
-  }
-
-  void _paintObstacles(
-    Canvas canvas,
-    double cellWidth,
-    double cellHeight,
-    int rowStart,
-    int rowEnd,
-    int colStart,
-    int colEnd,
-  ) {
-    final size = math.min(cellWidth, cellHeight);
-    final radius = size * 0.34;
-    _obstacleStrokePaint.strokeWidth = math.max(1.4, radius * 0.22);
-    for (final obstacle in obstacles) {
-      final row = obstacle.gridLocation ~/ cols;
-      final col = obstacle.gridLocation % cols;
-      if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
-      if (row < rowStart || row > rowEnd || col < colStart || col > colEnd) {
-        continue;
-      }
-      final center = _cellCenter(obstacle.gridLocation, cellWidth, cellHeight);
-      canvas.drawCircle(center, radius, _obstaclePaint);
-      canvas.drawCircle(center, radius, _obstacleStrokePaint);
-      final markStroke = math.max(1.2, radius * 0.18);
-      final markPaint = Paint()
-        ..color = const Color(0xFFFAFCFE)
-        ..strokeWidth = markStroke
-        ..strokeCap = StrokeCap.round;
-      canvas
-        ..drawLine(
-          Offset(center.dx, center.dy - radius * 0.45),
-          Offset(center.dx, center.dy + radius * 0.12),
-          markPaint,
-        )
-        ..drawCircle(
-          Offset(center.dx, center.dy + radius * 0.48),
-          markStroke * 0.75,
-          markPaint,
-        );
-    }
-  }
-
-  void _paintFlowOverlay(
-    Canvas canvas,
-    double cellWidth,
-    double cellHeight,
-    int rowStart,
-    int rowEnd,
-    int colStart,
-    int colEnd,
-  ) {
-    for (final cell in flowCells) {
-      final row = cell.location ~/ cols;
-      final col = cell.location % cols;
-      if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
-      if (row < rowStart || row > rowEnd || col < colStart || col > colEnd) {
-        continue;
-      }
-
-      final density = cell.density.clamp(0.0, 1.0).toDouble();
-      if (density <= 0) continue;
-      _flowCellPaint.color = Color.lerp(
-        const Color(0xFFFFD166),
-        const Color(0xFFE63946),
-        density,
-      )!.withValues(alpha: 0.18 + density * 0.28);
-      canvas.drawRect(
-        Rect.fromLTWH(col * cellWidth, row * cellHeight, cellWidth, cellHeight),
-        _flowCellPaint,
-      );
     }
   }
 

@@ -5,18 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
-import 'package:hospital_app/features/map/data/models/edge_status.dart';
-import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
-import 'package:hospital_app/features/map/data/models/map_floor.dart';
-import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
-import 'package:hospital_app/features/map/data/models/route_history.dart';
-import 'package:hospital_app/features/map/data/models/route_history_entry.dart';
-import 'package:hospital_app/features/map/data/models/route_step.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
-import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
 import 'package:hospital_app/features/map/presentation/pages/map_qr_scanner_page.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
@@ -59,10 +51,6 @@ class _MapPageState extends ConsumerState<MapPage>
   bool _searchExpanded = true;
   bool _arrivalOrderCommitted = false;
   bool _navCollapsed = false;
-  bool _rerouteInFlight = false;
-  bool _floorSwitchKeepsNavigation = false;
-  int? _promptedFloorChangeLocation;
-  final Set<String> _detouredEdgeKeys = <String>{};
   final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
   Offset? _debugPoiCenter;
@@ -210,10 +198,10 @@ class _MapPageState extends ConsumerState<MapPage>
       mapEdgesProvider(activeMapId).select((a) => a.isLoading),
     );
     final keyword = ref.watch(searchKeywordProvider);
-    final searchResultsAsync = ref.watch(searchResultsProvider(activeMapId));
+    final searchResultsAsync = ref.watch(searchResultsProvider(_defaultMapId));
     final userPosition = ref.watch(userPositionProvider);
     final userPositionPoi = ref.watch(
-      poiByCellProvider(activeMapId),
+      poiByCellProvider(_defaultMapId),
     )[userPosition];
     final dest = ref.watch(routeDestProvider);
     final routeResultAsync = ref.watch(activeRouteResultProvider);
@@ -226,15 +214,9 @@ class _MapPageState extends ConsumerState<MapPage>
     final navDot = ref.watch(navDotProvider);
     final navPhase = ref.watch(navPhaseProvider);
     final navProgress = ref.watch(navProgressProvider);
-    final flowVisible = ref.watch(flowOverlayVisibleProvider);
-    final flowSnapshot = ref.watch(flowSnapshotProvider(activeMapId));
-    final flow = flowSnapshot.valueOrNull;
-    final obstacles =
-        ref.watch(obstaclesProvider(activeMapId)).valueOrNull ??
-        const <MapObstacle>[];
     ref.watch(navigationControllerProvider);
     final defaultUserPosition = ref.watch(
-      defaultUserPositionProvider(activeMapId),
+      defaultUserPositionProvider(_defaultMapId),
     );
 
     if (userPosition == null && defaultUserPosition != null) {
@@ -249,41 +231,12 @@ class _MapPageState extends ConsumerState<MapPage>
         if (next == NavPhase.navigating) {
           _routeAnim.value = 1;
         } else if (next == NavPhase.arrived) {
-          unawaited(ref.read(voiceServiceProvider).reset());
           _handleNavigationArrived();
-        } else {
-          unawaited(ref.read(voiceServiceProvider).reset());
         }
       })
       ..listen<double>(navProgressProvider, (_, _) {
         if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
         _followNavigationDot(rows: rows, cols: cols);
-      })
-      ..listen(activeRouteResultProvider, (_, next) {
-        ref.read(passNodeReporterProvider).syncRoute(next.valueOrNull);
-      })
-      ..listen(positionSourceProvider, (_, next) {
-        if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
-        final route = ref.read(activeRouteResultProvider).valueOrNull;
-        unawaited(ref.read(passNodeReporterProvider).reportFrom(next, route));
-      })
-      ..listen(flowEdgeStatusMapProvider(activeMapId), (_, next) {
-        if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
-        unawaited(_maybeReroute(next));
-      })
-      ..listen(stepTrackingProvider, (_, next) {
-        if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
-        unawaited(_maybePromptFloorChange(next));
-        unawaited(
-          ref
-              .read(voiceServiceProvider)
-              .speakFor(state: next, muted: ref.read(voiceMutedProvider)),
-        );
-      })
-      ..listen<bool>(voiceMutedProvider, (_, muted) {
-        if (muted) {
-          unawaited(ref.read(voiceServiceProvider).reset());
-        }
       });
 
     if (navPhase == NavPhase.navigating && _routeAnim.value != 1) {
@@ -526,12 +479,6 @@ class _MapPageState extends ConsumerState<MapPage>
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 _MapFab(
-                  icon: Icons.history_rounded,
-                  tooltip: 'Route history',
-                  onPressed: _showRouteHistory,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _MapFab(
                   icon: Icons.map_outlined,
                   tooltip: 'Map legend',
                   onPressed: _showLegend,
@@ -676,9 +623,7 @@ class _MapPageState extends ConsumerState<MapPage>
       return;
     }
 
-    final mapId = _activeMapId();
-    if (mapId == null) return;
-    final walkable = ref.read(walkableCellsProvider(mapId));
+    final walkable = ref.read(walkableCellsProvider(_defaultMapId));
     final tappedLocation = tapRow * cols + tapCol;
     final location = walkable.contains(tappedLocation)
         ? tappedLocation
@@ -693,59 +638,6 @@ class _MapPageState extends ConsumerState<MapPage>
           );
     if (location == null) return;
 
-    unawaited(_showCellActionSheet(location));
-  }
-
-  Future<void> _showCellActionSheet(int location) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: false,
-      builder: (sheetContext) {
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.md,
-              AppSpacing.lg,
-              AppSpacing.lg,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Cell $location',
-                  style: context.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                ListTile(
-                  leading: const Icon(Icons.my_location_rounded),
-                  title: const Text('Set as current position'),
-                  onTap: () {
-                    Navigator.of(sheetContext).maybePop();
-                    _setCurrentLocationFromCell(location);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.report_problem_rounded),
-                  title: const Text('Report obstacle'),
-                  onTap: () {
-                    Navigator.of(sheetContext).maybePop();
-                    unawaited(_showReportObstacleSheet(location));
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _setCurrentLocationFromCell(int location) {
     ref.read(navigationControllerProvider).stop();
     ref.read(userPositionProvider.notifier).state = location;
     ref.read(locationSourceProvider.notifier).state =
@@ -753,38 +645,6 @@ class _MapPageState extends ConsumerState<MapPage>
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(const SnackBar(content: Text('You are here')));
-  }
-
-  Future<void> _showReportObstacleSheet(int location) async {
-    final report = await showModalBottomSheet<_ObstacleReportDraft>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => _ObstacleReportSheet(location: location),
-    );
-    if (!mounted || report == null) return;
-
-    final obstacle = MapObstacle(
-      id: 'local-$location-${DateTime.now().microsecondsSinceEpoch}',
-      gridLocation: location,
-      type: report.type,
-      note: report.note,
-      reportedAt: DateTime.now().toUtc(),
-    );
-    final synced = await ref.read(reportQueueProvider).submitObstacle(obstacle);
-    final mapId = _activeMapId();
-    if (mapId != null) {
-      ref.invalidate(obstaclesProvider(mapId));
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            synced ? 'Obstacle reported' : 'Obstacle queued. Will sync later.',
-          ),
-        ),
-      );
   }
 
   int? _nearestWalkableInNeighborhood(
@@ -880,7 +740,6 @@ class _MapPageState extends ConsumerState<MapPage>
   void _clearRoute() {
     ref.read(navigationControllerProvider).stop();
     _arrivalOrderCommitted = false;
-    _resetRerouteState();
     ref.read(routeDestProvider.notifier).state = null;
     setState(() {});
   }
@@ -888,7 +747,6 @@ class _MapPageState extends ConsumerState<MapPage>
   void _completeRoute() {
     ref.read(navigationControllerProvider).stop();
     _arrivalOrderCommitted = false;
-    _resetRerouteState();
     ref.read(routeDestProvider.notifier).state = null;
     ref.invalidate(routeResultProvider);
     setState(() {});
@@ -909,129 +767,11 @@ class _MapPageState extends ConsumerState<MapPage>
     );
   }
 
-  Future<void> _showRouteHistory() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: false,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return Consumer(
-          builder: (context, ref, _) {
-            return SafeArea(
-              top: false,
-              child: _RouteHistorySheet(
-                history: ref.watch(routeHistoryProvider),
-                onRetry: () => ref.invalidate(routeHistoryProvider),
-                onClearAll: _clearRouteHistory,
-                onRenavigate: (entry) async {
-                  final resolved = await _renavigateFromHistory(entry);
-                  if (!resolved || !sheetContext.mounted) {
-                    return;
-                  }
-                  Navigator.of(sheetContext).maybePop();
-                },
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _clearRouteHistory() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Clear route history?'),
-          content: const Text('This removes all saved route history.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Clear'),
-            ),
-          ],
-        );
-      },
-    );
-    if (!mounted || confirmed != true) {
-      return;
-    }
-
-    try {
-      final result = await ref.read(mapRepositoryProvider).clearRouteHistory();
-      if (result.cleared) {
-        ref.invalidate(routeHistoryProvider);
-      }
-    } catch (_) {
-      _showSnack('Could not clear route history');
-    }
-  }
-
-  Future<bool> _renavigateFromHistory(RouteHistoryEntry entry) async {
-    final mapId = entry.mapId;
-    if (mapId != null && mapId != _activeMapId()) {
-      _switchFloorForHistory(mapId);
-    }
-
-    final destination = await _resolveHistoryDestination(entry);
-    if (destination == null) {
-      _showSnack('Could not find that destination on this map');
-      return false;
-    }
-
-    _setRouteDestination(destination);
-    return true;
-  }
-
-  Future<MapPoi?> _resolveHistoryDestination(RouteHistoryEntry entry) async {
-    final mapId = entry.mapId ?? _activeMapId();
-    if (mapId == null) {
-      return null;
-    }
-    await ref.read(mapNodesProvider(mapId).future);
-    final poiId = entry.resolvedPoiId;
-    if (poiId != null) {
-      final poi = ref.read(poiByIdProvider(mapId))[poiId];
-      if (poi != null) {
-        return poi;
-      }
-    }
-
-    final location = entry.resolvedLocation;
-    if (location != null) {
-      final poi = ref.read(poiByCellProvider(mapId))[location];
-      if (poi != null) {
-        return poi;
-      }
-    }
-    return null;
-  }
-
-  void _switchFloorForHistory(int mapId) {
-    _floorSwitchKeepsNavigation = true;
-    ref.read(navigationControllerProvider).stop();
-    _arrivalOrderCommitted = false;
-    _promptedFloorChangeLocation = null;
-    _resetRerouteState();
-    ref.read(userPositionProvider.notifier).state = null;
-    ref.read(navCurrentLocationProvider.notifier).state = null;
-    ref.read(locationSourceProvider.notifier).state =
-        LocationSource.entranceDefault;
-    ref.read(selectedFloorProvider.notifier).state = mapId;
-    ref.invalidate(routeResultProvider);
-    _routeAnim.value = 0;
-  }
-
   Future<void> _showQrScanner() async {
-    final mapId = _activeMapId();
-    if (mapId == null) return;
     final positioned = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => MapQrScannerPage(mapId: mapId)),
+      MaterialPageRoute(
+        builder: (_) => const MapQrScannerPage(mapId: _defaultMapId),
+      ),
     );
     if (!mounted || positioned != true) return;
     ScaffoldMessenger.of(context)
@@ -1048,20 +788,15 @@ class _MapPageState extends ConsumerState<MapPage>
         return Consumer(
           builder: (context, ref, _) {
             final userPosition = ref.watch(userPositionProvider);
-            final mapId =
-                ref.watch(selectedFloorProvider) ??
-                ref.watch(floorsProvider).valueOrNull?.firstOrNull?.mapId;
-            final userPositionPoi = mapId == null
-                ? null
-                : ref.watch(poiByCellProvider(mapId))[userPosition];
+            final userPositionPoi = ref.watch(
+              poiByCellProvider(_defaultMapId),
+            )[userPosition];
             final dest = ref.watch(routeDestProvider);
             final mode = ref.watch(routeModeProvider);
-            final routeResult = ref.watch(activeRouteResultProvider);
+            final routeResult = ref.watch(routeResultProvider);
             final routeLocations = ref.watch(routeLocationsProvider);
             final nodes =
-                (mapId == null
-                    ? const <MapPoi>[]
-                    : ref.watch(mapNodesProvider(mapId)).value) ??
+                ref.watch(mapNodesProvider(_defaultMapId)).value ??
                 const <MapPoi>[];
             return SafeArea(
               top: false,
@@ -1072,7 +807,6 @@ class _MapPageState extends ConsumerState<MapPage>
                 mode: mode,
                 routeResult: routeResult,
                 routeLocations: routeLocations,
-                onRetry: () => ref.invalidate(routeResultProvider),
                 onClear: () {
                   _clearRoute();
                   Navigator.of(sheetContext).maybePop();
@@ -1096,9 +830,7 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   Future<void> _showRoutePoiPicker(List<MapPoi> pois) async {
-    final mapId = _activeMapId();
-    if (mapId == null) return;
-    final normalized = ref.read(normalizedPoiNamesProvider(mapId));
+    final normalized = ref.read(normalizedPoiNamesProvider(_defaultMapId));
     final selected = await showModalBottomSheet<MapPoi>(
       context: context,
       isScrollControlled: true,
@@ -1114,7 +846,6 @@ class _MapPageState extends ConsumerState<MapPage>
 
   void _setRouteDestination(MapPoi poi) {
     ref.read(navigationControllerProvider).stop();
-    _resetRerouteState();
     final start = ref.read(userPositionProvider);
     ref.read(routeDestProvider.notifier).state = poi;
     if (start == poi.gridLocation) {
@@ -1125,169 +856,12 @@ class _MapPageState extends ConsumerState<MapPage>
 
   void _setRouteMode(String mode) {
     ref.read(navigationControllerProvider).stop();
-    _resetRerouteState();
     ref.read(routeModeProvider.notifier).state = mode;
-  }
-
-  void _resetRerouteState() {
-    _rerouteInFlight = false;
-    _detouredEdgeKeys.clear();
-    ref.read(rerouteResultProvider.notifier).state = null;
-  }
-
-  void _resetForFloorSwitch() {
-    ref.read(navigationControllerProvider).stop();
-    _arrivalOrderCommitted = false;
-    _promptedFloorChangeLocation = null;
-    _resetRerouteState();
-    ref.read(userPositionProvider.notifier).state = null;
-    ref.read(navCurrentLocationProvider.notifier).state = null;
-    ref.read(routeDestProvider.notifier).state = null;
-    ref.read(locationSourceProvider.notifier).state =
-        LocationSource.entranceDefault;
-    ref.invalidate(routeResultProvider);
-    _routeAnim.value = 0;
-    setState(() {});
-  }
-
-  Future<void> _maybePromptFloorChange(StepTrackingState state) async {
-    final step = state.currentStep;
-    if (step == null ||
-        step.maneuver != StepManeuver.floorChange ||
-        step.location == _promptedFloorChangeLocation ||
-        _floorSwitchKeepsNavigation) {
-      return;
-    }
-
-    final dest = ref.read(routeDestProvider);
-    final activeMapId = _activeMapId();
-    if (dest == null || activeMapId == null || dest.mapId == activeMapId) {
-      return;
-    }
-
-    _promptedFloorChangeLocation = step.location;
-    final floors = ref.read(floorsProvider).valueOrNull ?? const <MapFloor>[];
-    final target = floors
-        .where((floor) => floor.mapId == dest.mapId)
-        .firstOrNull;
-    final targetName = target?.mapName ?? 'floor ${dest.mapId}';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Change floor'),
-          content: Text('Take stairs/elevator to $targetName.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Not yet'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('I am there'),
-            ),
-          ],
-        );
-      },
-    );
-    if (!mounted || confirmed != true) {
-      return;
-    }
-
-    _floorSwitchKeepsNavigation = true;
-    ref.read(selectedFloorProvider.notifier).state = dest.mapId;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('Showing $targetName')));
-  }
-
-  Future<void> _maybeReroute(Map<String, EdgeStatus> edgeStatuses) async {
-    if (_rerouteInFlight || edgeStatuses.isEmpty) {
-      return;
-    }
-
-    final route = ref.read(activeRouteResultProvider).valueOrNull;
-    final position = ref.read(positionSourceProvider);
-    final decision = ref
-        .read(rerouteWatcherProvider)
-        .evaluate(
-          routeResult: route,
-          position: position,
-          edgeStatuses: edgeStatuses,
-          ignoredEdgeKeys: _detouredEdgeKeys,
-        );
-    final edgeKey = decision.edgeKey;
-    if (!decision.shouldReroute || edgeKey == null) {
-      return;
-    }
-
-    _rerouteInFlight = true;
-    _detouredEdgeKeys.add(edgeKey);
-
-    try {
-      final currentLocation =
-          position.currentLocation ??
-          ref.read(navigationControllerProvider).currentLocationApprox;
-      final dest = ref.read(routeDestProvider);
-      if (currentLocation == null || dest == null) {
-        return;
-      }
-
-      final mapId = _activeMapId();
-      if (mapId == null) {
-        return;
-      }
-
-      final meta = await ref.read(mapMetaProvider(mapId).future);
-      await ref.read(mapEdgesProvider(mapId).future);
-      final adjacency = ref.read(adjacencyProvider(mapId));
-      final mode = ref.read(routeModeProvider);
-      final reroute = await ref
-          .read(routingServiceProvider)
-          .reroute(
-            currentLocation: currentLocation,
-            destLocation: dest.gridLocation,
-            modeId: mode,
-            adjacency: adjacency,
-            cols: meta.cols,
-            edgeStatuses: edgeStatuses,
-          );
-      if (reroute.path.length < 2) {
-        _showRerouteSnack('No detour is available');
-        return;
-      }
-
-      ref.read(userPositionProvider.notifier).state = currentLocation;
-      ref.read(rerouteResultProvider.notifier).state = reroute;
-      _routeAnim.value = 1;
-      final reseated = ref.read(navigationControllerProvider).start();
-      if (!reseated) {
-        _showRerouteSnack('No detour is available');
-        return;
-      }
-      _showRerouteSnack('Route blocked. Detour applied.');
-    } catch (_) {
-      _showRerouteSnack('No detour is available');
-    } finally {
-      _rerouteInFlight = false;
-    }
-  }
-
-  void _showRerouteSnack(String message) {
-    _showSnack(message);
-  }
-
-  void _showSnack(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   bool _startNavigation() {
     _arrivalOrderCommitted = false;
     _navCollapsed = false;
-    _resetRerouteState();
     _routeAnim.value = 1;
     final started = ref.read(navigationControllerProvider).start();
     if (!started) {
@@ -1309,7 +883,6 @@ class _MapPageState extends ConsumerState<MapPage>
     final dest = ref.read(routeDestProvider);
     ref.read(navigationControllerProvider).stop();
     _arrivalOrderCommitted = false;
-    _resetRerouteState();
     if (dest != null) {
       ref.read(userPositionProvider.notifier).state = dest.gridLocation;
       ref.read(locationSourceProvider.notifier).state = LocationSource.manual;

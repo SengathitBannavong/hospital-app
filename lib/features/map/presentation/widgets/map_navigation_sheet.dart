@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
-import 'package:hospital_app/features/map/data/models/route_result.dart';
-import 'package:hospital_app/features/map/data/models/route_step.dart';
-import 'package:hospital_app/features/map/presentation/navigation/maneuver_text.dart';
-import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
-import 'package:hospital_app/features/map/presentation/widgets/map_async_message.dart';
 
 class MapNavigationSheet extends ConsumerWidget {
   final String destinationName;
@@ -28,17 +23,15 @@ class MapNavigationSheet extends ConsumerWidget {
     final phase = ref.watch(navPhaseProvider);
     final progress = ref.watch(navProgressProvider).clamp(0.0, 1.0).toDouble();
     final speed = ref.watch(navSpeedProvider);
-    final routeResult = ref.watch(activeRouteResultProvider);
-    final fallbackCells = ref.watch(navMetersRemainingProvider);
-    final fallbackEta = ref.watch(navSecondsRemainingProvider);
-    final stepTracking = ref.watch(stepTrackingProvider);
-    final voiceMuted = ref.watch(voiceMutedProvider);
+    final routeResult = ref.watch(routeResultProvider);
+    final fallbackMeters = ref.watch(navMetersRemainingProvider);
+    final fallbackSeconds = ref.watch(navSecondsRemainingProvider);
     final metrics = _remainingMetrics(
       routeResult: routeResult,
       progress: progress,
       speed: speed,
-      fallbackCells: fallbackCells,
-      fallbackEta: fallbackEta,
+      fallbackMeters: fallbackMeters,
+      fallbackSeconds: fallbackSeconds,
     );
     final paused = phase == NavPhase.paused;
     final arrived = phase == NavPhase.arrived;
@@ -89,41 +82,9 @@ class MapNavigationSheet extends ConsumerWidget {
                     icon: const Icon(Icons.close_fullscreen_rounded, size: 18),
                     tooltip: 'Hide',
                   ),
-                  IconButton(
-                    onPressed: () {
-                      ref.read(voiceMutedProvider.notifier).state = !voiceMuted;
-                    },
-                    visualDensity: VisualDensity.compact,
-                    icon: Icon(
-                      voiceMuted
-                          ? Icons.volume_off_rounded
-                          : Icons.volume_up_rounded,
-                      size: 18,
-                    ),
-                    tooltip: voiceMuted ? 'Unmute guidance' : 'Mute guidance',
-                  ),
                 ],
               ),
               if (!arrived) ...[
-                const SizedBox(height: AppSpacing.sm),
-                _GuidanceBanner(state: stepTracking),
-                if (routeResult.isLoading) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  const MapAsyncMessage(
-                    icon: Icons.sync_rounded,
-                    title: 'Updating route preview...',
-                    compact: true,
-                  ),
-                ] else if (routeResult.hasError) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  MapAsyncMessage(
-                    icon: Icons.error_outline_rounded,
-                    title: 'Route preview failed',
-                    actionLabel: 'Retry',
-                    onAction: () => ref.invalidate(routeResultProvider),
-                    compact: true,
-                  ),
-                ],
                 const SizedBox(height: AppSpacing.sm),
                 Wrap(
                   spacing: AppSpacing.sm,
@@ -131,11 +92,11 @@ class MapNavigationSheet extends ConsumerWidget {
                   children: [
                     _MetricChip(
                       icon: Icons.straighten_rounded,
-                      label: _formatGridDistance(metrics.cells),
+                      label: _formatDistance(metrics.meters),
                     ),
                     _MetricChip(
                       icon: Icons.schedule_rounded,
-                      label: _formatGridEta(metrics.eta),
+                      label: _formatSeconds(metrics.seconds),
                     ),
                   ],
                 ),
@@ -202,118 +163,57 @@ class MapNavigationSheet extends ConsumerWidget {
   }
 }
 
-class _GuidanceBanner extends StatelessWidget {
-  final StepTrackingState state;
-
-  const _GuidanceBanner({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final step = state.nextStep ?? state.currentStep;
-    if (step == null) {
-      return const SizedBox.shrink();
-    }
-
-    final scheme = context.colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: scheme.secondaryContainer,
-        borderRadius: AppRadius.borderSm,
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _maneuverIcon(step.maneuver),
-            color: scheme.onSecondaryContainer,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  maneuverInstruction(step),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.textTheme.labelLarge?.copyWith(
-                    color: scheme.onSecondaryContainer,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  maneuverDistanceLabel(state.distanceToNextStep),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.textTheme.labelSmall?.copyWith(
-                    color: scheme.onSecondaryContainer.withValues(alpha: 0.78),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  IconData _maneuverIcon(StepManeuver maneuver) {
-    return switch (maneuver) {
-      StepManeuver.start => Icons.my_location_rounded,
-      StepManeuver.straight => Icons.straight_rounded,
-      StepManeuver.left => Icons.turn_left_rounded,
-      StepManeuver.right => Icons.turn_right_rounded,
-      StepManeuver.uTurn => Icons.u_turn_left_rounded,
-      StepManeuver.floorChange => Icons.stairs_rounded,
-      StepManeuver.arrive => Icons.flag_rounded,
-    };
-  }
-}
-
 class _RemainingMetrics {
-  final double cells;
-  final double eta;
+  final double meters;
+  final double seconds;
 
-  const _RemainingMetrics({required this.cells, required this.eta});
+  const _RemainingMetrics({required this.meters, required this.seconds});
 }
 
 _RemainingMetrics _remainingMetrics({
-  required AsyncValue<RouteResult?> routeResult,
+  required AsyncValue<dynamic> routeResult,
   required double progress,
   required double speed,
-  required double fallbackCells,
-  required double fallbackEta,
+  required double fallbackMeters,
+  required double fallbackSeconds,
 }) {
-  final result = routeResult.valueOrNull;
-  if (result != null) {
+  final data = routeResult.valueOrNull;
+  final distance = _readNumber(data, 'distance');
+  final estimatedTime = _readNumber(data, 'estimated_time');
+  if (distance != null || estimatedTime != null) {
     final remaining = (1 - progress).clamp(0.0, 1.0).toDouble();
     return _RemainingMetrics(
-      cells: result.distance * remaining,
-      eta: result.estimatedTime * remaining / speed,
+      meters: distance == null
+          ? fallbackMeters
+          : (distance * remaining).toDouble(),
+      seconds: estimatedTime == null
+          ? fallbackSeconds
+          : (estimatedTime * remaining / speed).toDouble(),
     );
   }
-  return _RemainingMetrics(cells: fallbackCells, eta: fallbackEta);
+  return _RemainingMetrics(meters: fallbackMeters, seconds: fallbackSeconds);
 }
 
-String _formatGridDistance(num distance) {
-  // TODO(Phase J backend:meters-per-cell): replace cell counts with real
-  // distance units after the backend publishes a meters-per-cell ratio.
-  return '${distance.toStringAsFixed(0)} cells';
+num? _readNumber(dynamic data, String key) {
+  if (data is! Map) {
+    return null;
+  }
+  final value = data[key];
+  return value is num ? value : null;
 }
 
-String _formatGridEta(num eta) {
-  final seconds = eta.round().clamp(0, 1 << 31);
+String _formatDistance(num distance) {
+  if (distance >= 1000) {
+    return '${(distance / 1000).toStringAsFixed(1)} km';
+  }
+  return '${distance.toStringAsFixed(0)} m';
+}
+
+String _formatSeconds(num seconds) {
   if (seconds < 60) {
-    return '$seconds sec';
+    return '${seconds.toStringAsFixed(0)} sec';
   }
-  final minutes = seconds / 60;
-  if (minutes < 10) {
-    return '~${minutes.toStringAsFixed(1)} min';
-  }
-  return '~${minutes.round()} min';
+  return '${(seconds / 60).toStringAsFixed(0)} min';
 }
 
 class _MetricChip extends StatelessWidget {
