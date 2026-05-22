@@ -14,36 +14,33 @@ Notification state is managed by `notification_provider.dart`.
 
 | Provider | Description |
 | :--- | :--- |
-| **`notificationRepositoryProvider`** | Exposes `NotificationRepository` to the feature. |
-| **`notificationProvider`** | Loads the notification list as `AsyncValue<List<AppNotification>>` and exposes actions to fetch, mark read, mark all read, and delete. |
+| **`notificationProvider`** | Manages the list of notifications, the unread badge count, and handles cursor-based pagination state for infinite scrolling. |
 
 ## Widget Types & Patterns
 
 The Notification module relies on a continuous scrollable list capable of handling interactive gestures.
 
 ```text
-📦 NotificationPage
+📦 NotificationListPage
 ├── 🔄 RefreshIndicator
 └── 📜 ListView.separated
-    └── 📇 NotificationCard
-        ├── 🔤 Title & Message
-        ├── 🔔 Read/Unread Icon
-        └── 🗑️ Delete IconButton
+    └── 👆 Dismissible (Swipe to delete)
+        └── 📇 NotificationTile
+            ├── 🔤 Title & Subtitle
+            ├── 🕒 Timestamp
+            └── 🔴 Unread Indicator Dot
 ```
 
-:::note[Current Implementation]
-The current UI uses an explicit delete button on each `NotificationCard`.
-There is no cursor pagination or swipe-to-delete behavior in the current code.
+:::note[Swipe-to-Delete Implementation]
+The module utilizes Flutter's native `Dismissible` widget on each `NotificationTile`, allowing users to intuitively swipe away read messages.
 :::
 
 ## State Taxonomy
 
-- **Server State**: `notificationProvider` holds the loaded list and exposes it
-  as `AsyncValue<List<AppNotification>>`.
-- **Derived UI State**: `NotificationPage` derives the unread count from the
-  loaded list.
+- **Server State (Cached)**: `notificationProvider` holds the paginated list of notifications and handles the unread badge count. It is the primary source of truth.
+- **Transient UI State**: The `Dismissible` widget manages internal swipe offsets during the swipe animation before triggering the provider.
 
-## The Execution Lifecycle (Delete Notification)
+## The Execution Lifecycle (Optimistic Deletion)
 
 import NotificationFlowDiagram from '@site/static/img/diagrams/notification-flow.svg';
 
@@ -51,34 +48,35 @@ import NotificationFlowDiagram from '@site/static/img/diagrams/notification-flow
   <NotificationFlowDiagram width="100%" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} />
 </div>
 
-Deletion currently waits for the backend request to succeed before mutating the
-local list.
+The Notification module heavily employs optimistic UI updates to ensure the interface feels snappy.
 
 ### 1. 💻 Trigger (UI Layer)
-The user taps the delete icon on a `NotificationCard`.
+The user intuitively swipes away a `NotificationTile`. The native `Dismissible` widget captures the gesture and triggers the `onDismissed` callback.
 ```dart
-await ref
-    .read(notificationProvider.notifier)
-    .deleteNotification(item.id);
+onDismissed: (direction) {
+  ref.read(notificationProvider.notifier).deleteNotification(notification.id);
+}
 ```
 
-### 2. 🌐 Execution (Repository Layer)
-The provider calls the repository first.
+### 2. ⚡ Optimism (Provider Layer)
+Before any network request is fired, the `notificationProvider` immediately filters the notification out of its local state array. The UI re-renders instantly.
 ```dart
-await _repository.deleteNotification(notificationId: id);
+// Inside NotificationNotifier
+final previousState = state;
+state = AsyncData(state.value!.where((n) => n.id != id).toList());
 ```
 
-### 3. 🔄 Reactivity (Provider Layer)
-After the repository call succeeds, the provider removes the item from its
-`AsyncValue` data.
+### 3. 🌐 Execution (Repository Layer)
+The provider then triggers the actual HTTP DELETE request in the background.
 ```dart
-state = AsyncValue.data(items.where((item) => item.id != id).toList());
+await dioClient.delete('/notification/$id');
 ```
 
-### 4. 🛡️ Error Handling (UI Layer)
-`NotificationPage` catches action errors and shows an app toast.
+### 4. 🛡️ Fallback (Provider & UI)
+If the backend throws an error (e.g., no internet connection), the provider catches the exception, restores the `previousState`, and alerts the user.
 ```dart
-} catch (error) {
-  AppToast.showError(_formatError(error));
+} catch (e) {
+  state = previousState; // Restore the UI
+  AppToast.showError('Failed to delete notification');
 }
 ```

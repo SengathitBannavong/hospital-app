@@ -14,26 +14,14 @@ To ensure 60fps rendering even on lower-end devices, the map bypasses traditiona
 
 ## State Management
 
-The module relies heavily on `map_provider.dart` to maintain granular state,
-separating map data, search state, route preview state, and navigation
-simulation state.
+The module relies heavily on `map_provider.dart` to maintain granular state, separating view coordinates from active routing logic.
 
 | Provider | Type | Description |
 | :--- | :--- | :--- |
-| `mapMetaProvider(mapId)` | `FutureProvider.family` | Fetches floor metadata such as `rows` and `cols`. |
-| `mapNodesProvider(mapId)` | `FutureProvider.family` | Fetches POIs/nodes for the selected map. |
-| `mapEdgesProvider(mapId)` | `FutureProvider.family` | Fetches graph edges and exposes their edge list. |
-| `searchKeywordProvider` | `StateProvider` | Stores the current search input. |
-| `searchResultsProvider(mapId)` | `FutureProvider.family` | Filters loaded POIs by normalized keyword. |
-| `userPositionProvider` | `StateProvider` | Tracks the "You are here" grid location. It is set from the entrance fallback, QR scan, POI action, or long-press. |
-| `locationSourceProvider` | `StateProvider` | Records how the current position was selected. |
-| `routeDestProvider` | `StateProvider` | Tracks the selected destination POI. |
-| `routeModeProvider` | `StateProvider` | Stores the selected route mode id, defaulting to `walking`. |
-| `routeResultProvider` | `FutureProvider.autoDispose` | Calls `MapRepository.previewRoute` when start, destination, and mode are available. |
-| `routeLocationsProvider` | `Provider.autoDispose` | Extracts a defensive list of grid locations from the route preview response. |
-| `navPhaseProvider` | `StateProvider` | Tracks `idle`, `navigating`, `paused`, and `arrived`. |
-| `navProgressProvider` | `StateProvider` | Tracks simulated route progress from `0.0` to `1.0`. |
-| `navigationControllerProvider` | `Provider.autoDispose` | Owns the ticker-backed navigation simulation and updates nav state providers. |
+| `currentPositionProvider` | `StateProvider` | Tracks the "You are here" pin. Updatable via QR scan or long-press. |
+| `destinationProvider` | `StateProvider` | Tracks the currently selected Point of Interest (POI). |
+| `routeModeProvider` | `StateProvider` | Maintains the selected transportation mode (Walking, Wheelchair, Stretcher). |
+| `activeNavigationProvider` | `StateNotifierProvider` | Manages the live state of a running simulation (animating dot, distance remaining, ETA). |
 
 ## Widget Types & Patterns
 
@@ -44,23 +32,21 @@ The Map module heavily relies on custom canvas painting over standard widget tre
 ├── 🏗️ Stack
 │   ├── 🖌️ CustomPaint (MapGridPainter)
 │   │   └── 🗺️ Renders Nodes, Edges, Route Path
-│   ├── 🔍 MapTopBar + MapSearchResultsPanel
-│   ├── 🔘 FloatingActionButtons (QR, legend, recenter, route)
-│   ├── 🧾 Modal bottom sheets (POI details, route options, legend)
-│   └── 🧭 MapNavigationSheet (shown while navigating)
-└── 📷 MapQrScannerPage (mobile_scanner)
+│   ├── 🔍 SearchPanel (Floating Top)
+│   ├── 🔘 FloatingActionButton (Recenter)
+│   └── 🗂️ SlidingUpPanel (Route Details Sheet)
+│       └── 🏗️ Column
+│           ├── ⏱️ ETA Display
+│           └── ⏯️ Playback Controls (Play/Pause)
+└── 📷 Scanner Overlay (mobile_scanner)
 ```
 
 ## State Taxonomy
 
 Due to the real-time requirements of navigation, state is highly granular:
-- **Local UI State**: Search expansion, route sheet collapse, map transform, route
-  reveal animation, and debug hit-test markers live in `MapPage`.
-- **Provider State**: `userPositionProvider`, `routeDestProvider`,
-  `routeModeProvider`, and the route/nav providers hold cross-widget map state.
-- **Transient Navigation State**: `NavigationController` owns the ticker and
-  updates `navPhaseProvider`, `navProgressProvider`,
-  `navMetersRemainingProvider`, and `navSecondsRemainingProvider`.
+- **Local UI State**: Minor animation tickers or sheet expansion statuses.
+- **Provider State**: `currentPositionProvider` (User location), `destinationProvider` (Target POI), and `routeModeProvider` (Walking/Wheelchair).
+- **Transient State**: `activeNavigationProvider` holds the high-frequency metrics (ETA, remaining distance) updated during simulation.
 
 ## The Execution Lifecycle (Route Preview)
 
@@ -71,41 +57,33 @@ import MapFlowDiagram from '@site/static/img/diagrams/map-flow.svg';
 </div>
 
 ### 1. 💻 Trigger (UI Layer)
-The user selects a destination POI from search, a POI detail sheet, or the route
-picker. The UI updates the route destination provider.
+The user selects a destination POI from the search sheet and taps "Preview Route". The UI updates the target provider.
 ```dart
-ref.read(routeDestProvider.notifier).state = selectedPoi;
+ref.read(destinationProvider.notifier).state = selectedPoi;
 ```
 
 ### 2. ⚙️ Orchestration (Provider Layer)
-`routeResultProvider` reacts to the start position, destination, and route mode.
+The UI triggers the repository to fetch the route data.
 ```dart
-return repository.previewRoute(
-  startLocation: start,
-  destLocation: dest.gridLocation,
-  modeId: mode,
+final routeData = await ref.read(mapRepositoryProvider).previewRoute(
+  start: currentPos, 
+  end: selectedPoi, 
+  mode: currentMode
 );
 ```
 
 ### 3. 🌐 Execution (Backend Layer)
-The API calculates the route and returns route data. The app currently parses
-the response defensively because `route/preview` may expose the path under
-different keys (`steps`, `path`, `path_locations`, `locations`, or `nodes`).
+The API calculates the A* or Dijkstra path over the cached graph, returning the sequence of nodes and a `speed_factor`.
 ```dart
-final apiResponse = AuthApiResponse<dynamic>.fromJson(
-  response.data,
-  (json) => json,
-);
+// Backend response mapped to Freezed model
+return RoutePreviewResponse.fromJson(response.data);
 ```
 
 ### 4. 🔄 Canvas Reactivity (Rendering Layer)
-`routeLocationsProvider` extracts grid locations from the preview response.
-`MapPage` passes those locations and the current navigation dot to
-`MapGridPainter`.
+The Riverpod state is mutated with the new node array. The custom canvas, which actively watches the routing state, immediately triggers a high-performance repaint, drawing the highlighted path.
 ```dart
-MapGridPainter(
-  routeLocations: routeLocations,
-  userDot: navDot,
-  navProgress: navProgress,
-)
+// Inside MapGridPainter
+if (routeNodes != null) {
+  _drawHighlightedPath(canvas, routeNodes);
+}
 ```

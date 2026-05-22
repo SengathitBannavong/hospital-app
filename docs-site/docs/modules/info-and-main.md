@@ -15,12 +15,12 @@ These two modules are the structural glue and informational backbone of the appl
 The **Info Module** contains all static content, regulatory information, and utility pages necessary for a public-facing healthcare application.
 
 ### State Management
-State is minimal and ephemeral. The current `InfoPage` is a static
-`StatelessWidget`; there are no Info-specific providers in the current code.
+State is minimal and ephemeral. Content is either entirely static or loaded via simple `FutureProvider` instances to fetch FAQ lists or Hospital Guidelines without complex mutability.
 
 ### Widget Types & Patterns
-- **Static Content Views**: Basic `Scaffold` implementations.
-- **Navigation Target**: `/info` is one branch of the main shell.
+- **Static Content Views**: Basic `Scaffold` implementations heavily utilizing `SingleChildScrollView`.
+- **Accordions/Expansion Panels**: Used extensively on the FAQ page to cleanly hide and show dense text.
+- **Rich Text Rendering**: Uses packages or HTML rendering tools to display formatted privacy policies or terms of service correctly.
 
 ---
 
@@ -36,17 +36,16 @@ State management is entirely delegated to `go_router`. The shell itself does not
 The Main Shell utilizes `go_router`'s specialized navigation branch wrapper to maintain state across tabs.
 
 ```text
-📦 MainShell
+📦 MainShell (ScaffoldWithBottomNavBar)
 ├── 📄 StatefulNavigationShell (go_router)
 │   ├── 📑 Branch (Home)
+│   ├── 📑 Branch (Map)
 │   ├── 📑 Branch (Medical)
 │   ├── 📑 Branch (Notification)
-│   ├── 📑 Branch (Info)
-│   ├── 📑 Branch (Map)
 │   └── 📑 Branch (Profile)
-└── 🧭 NavigationBar
+└── 🧭 BottomNavigationBar
     ├── 🏠 Home Icon
-    ├── 🏥 Medical Icon
+    ├── 🗺️ Map Icon
     └── ...
 ```
 

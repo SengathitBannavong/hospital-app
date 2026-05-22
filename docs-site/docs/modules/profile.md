@@ -12,8 +12,8 @@ The **Profile Module** (`lib/features/profile`) allows users to view, manage, an
 
 | Provider | Description |
 | :--- | :--- |
-| **`profileRepositoryProvider`** | Exposes `ProfileRepository` to profile state. |
-| **`profileProvider`** | Auto-disposed `StateNotifierProvider` that fetches and updates the current user's profile as `AsyncValue<UserProfile>`. |
+| **`profileProvider`** | Caches the user's fetched profile data locally. This prevents unnecessary network calls when switching between bottom navigation tabs. |
+| **`profileFormController`** | (Optional) specialized controllers utilized specifically during edit mode to track unsaved form states and validation errors. |
 
 ## Widget Types & Patterns
 
@@ -24,12 +24,12 @@ The Profile module handles dense user input forms and avatar management.
 └── 📜 SingleChildScrollView
     ├── 👤 ProfileAvatar (InkWell wrapper)
     │   └── 📷 ImagePicker Integration
-    └── 📝 ProfileForm
+    └── 📝 ProfileEditForm
         ├── 🏗️ Form (GlobalKey<FormState>)
-        │   ├── 📝 Text field (Name)
-        │   ├── 📝 Date field
-        │   └── 📝 Gender field
-        └── 🔘 Save / Cancel actions
+        │   ├── 📝 CustomTextField (Name)
+        │   ├── 📝 CustomTextField (Phone)
+        │   └── 📝 CustomTextField (Email)
+        └── 🔘 CustomPrimaryButton (Save)
 ```
 
 :::info[Hardware Integrations]
@@ -38,12 +38,8 @@ The `ProfileAvatar` seamlessly integrates with the `image_picker` package, allow
 
 ## State Taxonomy
 
-- **Server State**: `profileProvider` holds the user's demographic data fetched
-  from `/user/get_profile`.
-- **Local Page State**: `ProfilePage` tracks whether the screen is currently in
-  edit mode.
-- **Local Form State**: `ProfileForm` uses standard Flutter form state and
-  controllers before submitting changes.
+- **Server State (Cached)**: `profileProvider` holds the user's demographic data fetched from `/user/get_profile`.
+- **Local Form State**: `ProfileEditForm` utilizes standard Flutter `TextEditingController` instances and `GlobalKey<FormState>` to manage active input strings and validation errors before submission.
 
 ## The Execution Lifecycle (Editing Profile)
 
@@ -54,40 +50,32 @@ import ProfileFlowDiagram from '@site/static/img/diagrams/profile-flow.svg';
 </div>
 
 ### 1. 💻 Interaction (UI Layer)
-The user enters edit mode, fills out `ProfileForm`, and taps "Save".
+The user enters the edit view, fills out the `ProfileEditForm`, and taps "Save".
 ```dart
-ProfileForm(
-  initialProfile: profile,
-  onSave: (fullName, dob, gender) async { ... },
-)
+// Inside ProfileEditForm
+if (_formKey.currentState!.validate()) {
+  _submitProfile();
+}
 ```
 
 ### 2. 🛡️ Validation (Controller Layer)
-Client-side validation runs inside `ProfileForm` before invoking `onSave`.
+Client-side regex checking ensures data (like phone numbers) is formatted correctly before hitting the network.
 
 ### 3. 🌐 Execution (Repository Layer)
-The page calls `ProfileNotifier.updateProfile`, which delegates to the
-repository.
+The form data is packaged into a DTO and sent via the repository to the backend.
 ```dart
-await ref.read(profileProvider.notifier).updateProfile(
-  fullName: fullName,
-  dob: dob,
-  gender: gender,
-);
+// Inside ProfileRepository
+await dioClient.put('/user/set_profile', data: formData.toJson());
 ```
 
-### 4. 🔄 State Replacement (Provider Layer)
-Upon a successful response, the notifier replaces its `AsyncValue` with the
-updated profile returned by the repository.
+### 4. 🗑️ Invalidation (Provider Layer)
+Upon a successful response, instead of manually piecing the state back together, the `profileProvider` is intentionally invalidated.
 ```dart
-state = await AsyncValue.guard(() async {
-  return _repository.updateProfile(...);
-});
+ref.invalidate(profileProvider);
 ```
 
 ### 5. 🔄 Rebuild (UI Layer)
-`ProfilePage`, which watches `profileProvider`, rebuilds from the new provider
-state.
+The invalidation completely dumps the old cache and forces a fresh fetch from the server. The `ProfilePage`, which is actively watching the provider, cleanly rebuilds with the new source-of-truth data.
 ```dart
 // Inside ProfilePage
 final profile = ref.watch(profileProvider);
