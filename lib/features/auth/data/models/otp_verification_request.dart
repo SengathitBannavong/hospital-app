@@ -10,7 +10,7 @@ class OtpVerificationRequest with _$OtpVerificationRequest {
     @JsonKey(name: 'phone_number') required String phoneNumber,
     required String otp,
     @JsonKey(name: 'otp_type')
-    required String otpType, // 'login', 'signup', 'forgot_password'
+    required String otpType, // 'signup' or 'reset_password'
   }) = _OtpVerificationRequest;
 
   factory OtpVerificationRequest.fromJson(Map<String, dynamic> json) =>

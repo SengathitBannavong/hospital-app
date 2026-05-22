@@ -177,14 +177,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final phone = state.pathParameters['phone'] ?? '';
           final type = state.pathParameters['type'] ?? '';
           final extra = state.extra as Map<String, dynamic>?;
-          final pendingUser = extra?['pendingUser'] as AuthUser?;
           final password = extra?['password'] as String?;
           final optCode = extra?['otp_code'] as String?;
 
           return OtpVerificationPage(
             phoneNumber: phone,
             otpType: type,
-            pendingUser: pendingUser,
             password: password,
             otpCode: optCode,
           );
