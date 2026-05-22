@@ -10,6 +10,7 @@ class OtpCountdownButton extends StatefulWidget {
     this.buttonLabel = 'Send OTP',
     this.resendLabel = 'Resend OTP',
     this.errorMessage = 'Unable to send OTP. Please try again.',
+    this.enabled = true,
   });
 
   final Future<void> Function() onSendOtp;
@@ -17,6 +18,7 @@ class OtpCountdownButton extends StatefulWidget {
   final String buttonLabel;
   final String resendLabel;
   final String errorMessage;
+  final bool enabled;
 
   @override
   State<OtpCountdownButton> createState() => _OtpCountdownButtonState();
@@ -116,7 +118,9 @@ class _OtpCountdownButtonState extends State<OtpCountdownButton> {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(
-        onPressed: _isCountingDown || _isSending ? null : _handlePressed,
+        onPressed: _isCountingDown || _isSending || !widget.enabled
+            ? null
+            : _handlePressed,
         child: _isSending
             ? const SizedBox(
                 width: 18,

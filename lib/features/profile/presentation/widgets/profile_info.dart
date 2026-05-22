@@ -5,8 +5,16 @@ import '../../data/models/user_profile.dart';
 class ProfileInfo extends StatelessWidget {
   final UserProfile profile;
   final VoidCallback onEdit;
+  final VoidCallback? onDeleteAccount;
+  final VoidCallback? onLogout;
 
-  const ProfileInfo({super.key, required this.profile, required this.onEdit});
+  const ProfileInfo({
+    super.key,
+    required this.profile,
+    required this.onEdit,
+    this.onDeleteAccount,
+    this.onLogout,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +54,29 @@ class ProfileInfo extends StatelessWidget {
           icon: const Icon(Icons.edit_outlined),
           label: const Text('Chỉnh sửa hồ sơ'),
         ),
+        if (onDeleteAccount != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: onDeleteAccount,
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Xóa tài khoản'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              side: const BorderSide(color: Colors.red),
+            ),
+          ),
+        ],
+        if (onLogout != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: onLogout,
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Đăng xuất'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: context.colorScheme.primary,
+            ),
+          ),
+        ],
       ],
     );
   }
