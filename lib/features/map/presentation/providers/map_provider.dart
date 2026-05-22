@@ -26,8 +26,6 @@ import 'package:hospital_app/features/map/presentation/navigation/step_tracker.d
 import 'package:hospital_app/features/map/presentation/navigation/voice_service.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 
-const int _defaultRouteMapId = 1;
-
 final mapRepositoryProvider = Provider<MapRepository>((ref) {
   return MapRepository();
 });
@@ -42,6 +40,29 @@ final mapLastSyncedAtProvider = FutureProvider.family<DateTime?, int>((
 ) {
   final cache = ref.watch(mapCacheProvider);
   return cache.lastSyncedAt(mapId: mapId);
+});
+
+final selectedFloorProvider = StateProvider<int?>((ref) => null);
+
+final floorsProvider = FutureProvider<List<MapFloor>>((ref) async {
+  final repository = ref.watch(mapRepositoryProvider);
+  final cache = ref.watch(mapCacheProvider);
+  List<MapFloor> floors;
+  try {
+    floors = await repository.getFloors();
+    if (floors.isNotEmpty) {
+      await cache.saveFloors(floors);
+    }
+  } catch (_) {
+    floors = await cache.loadFloors();
+  }
+
+  final selected = ref.read(selectedFloorProvider);
+  if (floors.isNotEmpty &&
+      (selected == null || !floors.any((floor) => floor.mapId == selected))) {
+    ref.read(selectedFloorProvider.notifier).state = floors.first.mapId;
+  }
+  return floors;
 });
 
 final routingServiceProvider = Provider<RoutingService>((ref) {
@@ -152,12 +173,12 @@ final voiceServiceProvider = Provider<VoiceService>((ref) {
 });
 final activeRouteResultProvider =
     Provider.autoDispose<AsyncValue<RouteResult?>>((ref) {
-  final reroute = ref.watch(rerouteResultProvider);
-  if (reroute != null) {
-    return AsyncData(reroute);
-  }
-  return ref.watch(routeResultProvider);
-});
+      final reroute = ref.watch(rerouteResultProvider);
+      if (reroute != null) {
+        return AsyncData(reroute);
+      }
+      return ref.watch(routeResultProvider);
+    });
 final stepTrackingProvider = Provider.autoDispose<StepTrackingState>((ref) {
   final tracker = ref.watch(stepTrackerProvider);
   final position = ref.watch(positionSourceProvider);
@@ -177,68 +198,69 @@ final navigationControllerProvider = Provider.autoDispose<NavigationController>(
 
 final flowSnapshotProvider = StreamProvider.autoDispose
     .family<FlowSnapshot, int>((ref, mapId) async* {
-  final service = ref.watch(flowServiceProvider);
-  final phase = ref.watch(navPhaseProvider);
-  final interval = phase == NavPhase.navigating
-      ? const Duration(seconds: 15)
-      : const Duration(seconds: 30);
+      final service = ref.watch(flowServiceProvider);
+      final phase = ref.watch(navPhaseProvider);
+      final interval = phase == NavPhase.navigating
+          ? const Duration(seconds: 15)
+          : const Duration(seconds: 30);
 
-  yield await service.snapshot(mapId: mapId);
-  final timer = Timer.periodic(interval, (_) {
-    ref.invalidateSelf();
-  });
-  ref.onDispose(timer.cancel);
-});
+      yield await service.snapshot(mapId: mapId);
+      final timer = Timer.periodic(interval, (_) {
+        ref.invalidateSelf();
+      });
+      ref.onDispose(timer.cancel);
+    });
 
 final obstaclesProvider = StreamProvider.autoDispose
     .family<List<MapObstacle>, int>((ref, mapId) async* {
-  final repository = ref.watch(mapRepositoryProvider);
-  final cache = ref.watch(mapCacheProvider);
-  final queue = ref.watch(reportQueueProvider);
-  final phase = ref.watch(navPhaseProvider);
-  final interval = phase == NavPhase.navigating
-      ? const Duration(seconds: 15)
-      : const Duration(seconds: 30);
+      final repository = ref.watch(mapRepositoryProvider);
+      final cache = ref.watch(mapCacheProvider);
+      final queue = ref.watch(reportQueueProvider);
+      final phase = ref.watch(navPhaseProvider);
+      final interval = phase == NavPhase.navigating
+          ? const Duration(seconds: 15)
+          : const Duration(seconds: 30);
 
-  yield await _loadObstacles(
-    repository: repository,
-    cache: cache,
-    queue: queue,
-    mapId: mapId,
-  );
-  final timer = Timer.periodic(interval, (_) {
-    ref.invalidateSelf();
-  });
-  final subscription = queue.onConnectivityChanged().listen((results) {
-    if (results.contains(ConnectivityResult.none)) {
-      return;
-    }
-    unawaited(queue.flush().then((_) => ref.invalidateSelf()));
-  });
-  ref
-    ..onDispose(timer.cancel)
-    ..onDispose(subscription.cancel);
-});
+      yield await _loadObstacles(
+        repository: repository,
+        cache: cache,
+        queue: queue,
+        mapId: mapId,
+      );
+      final timer = Timer.periodic(interval, (_) {
+        ref.invalidateSelf();
+      });
+      final subscription = queue.onConnectivityChanged().listen((results) {
+        if (results.contains(ConnectivityResult.none)) {
+          return;
+        }
+        unawaited(queue.flush().then((_) => ref.invalidateSelf()));
+      });
+      ref
+        ..onDispose(timer.cancel)
+        ..onDispose(subscription.cancel);
+    });
 
 final flowEdgeStatusMapProvider = Provider.autoDispose
     .family<Map<String, EdgeStatus>, int>((ref, mapId) {
-  final snapshot = ref.watch(flowSnapshotProvider(mapId)).valueOrNull;
-  final obstacles = ref.watch(obstaclesProvider(mapId)).valueOrNull ??
-      const <MapObstacle>[];
-  final adjacency = ref.watch(adjacencyProvider(mapId));
-  if (snapshot == null && obstacles.isEmpty) {
-    return const <String, EdgeStatus>{};
-  }
-  final edgeStatuses = <String, EdgeStatus>{
-    for (final edge in snapshot?.edgeStatuses ?? const <EdgeStatus>[])
-      edgeStatusKey(edge.fromLocation, edge.toLocation): edge,
-  };
-  return mergeObstacleEdgeStatuses(
-    edgeStatuses: edgeStatuses,
-    obstacles: obstacles,
-    adjacency: adjacency,
-  );
-});
+      final snapshot = ref.watch(flowSnapshotProvider(mapId)).valueOrNull;
+      final obstacles =
+          ref.watch(obstaclesProvider(mapId)).valueOrNull ??
+          const <MapObstacle>[];
+      final adjacency = ref.watch(adjacencyProvider(mapId));
+      if (snapshot == null && obstacles.isEmpty) {
+        return const <String, EdgeStatus>{};
+      }
+      final edgeStatuses = <String, EdgeStatus>{
+        for (final edge in snapshot?.edgeStatuses ?? const <EdgeStatus>[])
+          edgeStatusKey(edge.fromLocation, edge.toLocation): edge,
+      };
+      return mergeObstacleEdgeStatuses(
+        edgeStatuses: edgeStatuses,
+        obstacles: obstacles,
+        adjacency: adjacency,
+      );
+    });
 
 Map<String, EdgeStatus> mergeObstacleEdgeStatuses({
   required Map<String, EdgeStatus> edgeStatuses,
@@ -407,15 +429,22 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
   final start = ref.watch(userPositionProvider);
   final dest = ref.watch(routeDestProvider);
   final mode = ref.watch(routeModeProvider);
+  final selectedMapId = ref.watch(selectedFloorProvider);
+  final floors = await ref.watch(floorsProvider.future);
+  final mapId = selectedMapId ?? floors.firstOrNull?.mapId;
 
-  if (start == null || dest == null) {
+  if (start == null || dest == null || mapId == null) {
     return null;
   }
 
-  final meta = await ref.watch(mapMetaProvider(_defaultRouteMapId).future);
-  await ref.watch(mapEdgesProvider(_defaultRouteMapId).future);
-  final adjacency = ref.watch(adjacencyProvider(_defaultRouteMapId));
-  final edgeStatuses = ref.watch(flowEdgeStatusMapProvider(_defaultRouteMapId));
+  final meta = await ref.watch(mapMetaProvider(mapId).future);
+  await ref.watch(mapEdgesProvider(mapId).future);
+  final adjacency = ref.watch(adjacencyProvider(mapId));
+  final edgeStatuses = ref.watch(flowEdgeStatusMapProvider(mapId));
+
+  // TODO(Phase H backend): offline cross-floor routing requires a documented
+  // stair/elevator link model between map_ids. swagger.yaml only exposes
+  // per-floor map nodes/edges today, so the local engine stays floor-scoped.
 
   return routingService.route(
     startLocation: start,

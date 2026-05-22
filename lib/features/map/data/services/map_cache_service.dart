@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
+import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 
@@ -18,6 +19,12 @@ class MapCacheService {
     final box = await _openBox();
     final syncedAt = DateTime.now().toUtc();
     await box.put(_dataKey(mapId), jsonEncode(syncFull.toJson()));
+    if (syncFull.maps.isNotEmpty) {
+      await box.put(
+        _floorsKey,
+        jsonEncode(syncFull.maps.map((floor) => floor.toJson()).toList()),
+      );
+    }
     await box.put(_lastSyncedAtDataKey(mapId), syncedAt.toIso8601String());
     await box.put(_lastSyncedAtKey, syncedAt.toIso8601String());
   }
@@ -49,6 +56,32 @@ class MapCacheService {
       return null;
     }
     return DateTime.tryParse(raw);
+  }
+
+  Future<void> saveFloors(List<MapFloor> floors) async {
+    final box = await _openBox();
+    await box.put(
+      _floorsKey,
+      jsonEncode(floors.map((floor) => floor.toJson()).toList()),
+    );
+  }
+
+  Future<List<MapFloor>> loadFloors() async {
+    final box = await _openBox();
+    final raw = box.get(_floorsKey);
+    Object? decoded;
+    if (raw is String) {
+      decoded = jsonDecode(raw);
+    } else {
+      decoded = raw;
+    }
+    if (decoded is! List) {
+      return const <MapFloor>[];
+    }
+    return decoded
+        .whereType<Map>()
+        .map((item) => MapFloor.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
   }
 
   Future<void> saveFlowSnapshot({
@@ -148,6 +181,8 @@ class MapCacheService {
   String _dataKey(int mapId) => 'map:$mapId:sync_full';
 
   String _lastSyncedAtDataKey(int mapId) => 'map:$mapId:last_synced_at';
+
+  String get _floorsKey => 'map:floors';
 
   String _flowDataKey(int mapId) => 'map:$mapId:flow_snapshot';
 

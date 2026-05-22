@@ -7,10 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
+import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/data/models/route_step.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
+import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
 import 'package:hospital_app/features/map/presentation/pages/map_qr_scanner_page.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
@@ -35,7 +38,6 @@ class MapPage extends ConsumerStatefulWidget {
 
 class _MapPageState extends ConsumerState<MapPage>
     with SingleTickerProviderStateMixin {
-  static const int _defaultMapId = 1;
   static const int _defaultRows = 33;
   static const int _defaultCols = 57;
   static const double _minMapScale = 1;
@@ -54,6 +56,8 @@ class _MapPageState extends ConsumerState<MapPage>
   bool _arrivalOrderCommitted = false;
   bool _navCollapsed = false;
   bool _rerouteInFlight = false;
+  bool _floorSwitchKeepsNavigation = false;
+  int? _promptedFloorChangeLocation;
   final Set<String> _detouredEdgeKeys = <String>{};
   final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
@@ -107,6 +111,11 @@ class _MapPageState extends ConsumerState<MapPage>
     return controller;
   }
 
+  int? _activeMapId() {
+    return ref.read(selectedFloorProvider) ??
+        ref.read(floorsProvider).valueOrNull?.firstOrNull?.mapId;
+  }
+
   void _syncTransformToLayout({
     required Size viewportSize,
     required Size gridSize,
@@ -158,24 +167,55 @@ class _MapPageState extends ConsumerState<MapPage>
 
   @override
   Widget build(BuildContext context) {
-    final metaAsync = ref.watch(mapMetaProvider(_defaultMapId));
+    final floorsAsync = ref.watch(floorsProvider);
+    final floors = floorsAsync.valueOrNull ?? const <MapFloor>[];
+    final selectedFloorId = ref.watch(selectedFloorProvider);
+    final activeMapId =
+        selectedFloorId != null &&
+            (floors.isEmpty ||
+                floors.any((floor) => floor.mapId == selectedFloorId))
+        ? selectedFloorId
+        : floors.firstOrNull?.mapId;
+    ref.listen<int?>(selectedFloorProvider, (previous, next) {
+      if (previous == null || next == null || previous == next) {
+        return;
+      }
+      if (_floorSwitchKeepsNavigation) {
+        _floorSwitchKeepsNavigation = false;
+        return;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _resetForFloorSwitch();
+        }
+      });
+    });
+
+    if (activeMapId == null) {
+      return const Scaffold(
+        backgroundColor: MapSurface.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final metaAsync = ref.watch(mapMetaProvider(activeMapId));
     final nodesLoading = ref.watch(
-      mapNodesProvider(_defaultMapId).select((a) => a.isLoading),
+      mapNodesProvider(activeMapId).select((a) => a.isLoading),
     );
     final edgesLoading = ref.watch(
-      mapEdgesProvider(_defaultMapId).select((a) => a.isLoading),
+      mapEdgesProvider(activeMapId).select((a) => a.isLoading),
     );
     final keyword = ref.watch(searchKeywordProvider);
-    final searchResultsAsync = ref.watch(searchResultsProvider(_defaultMapId));
+    final searchResultsAsync = ref.watch(searchResultsProvider(activeMapId));
     final userPosition = ref.watch(userPositionProvider);
     final userPositionPoi = ref.watch(
-      poiByCellProvider(_defaultMapId),
+      poiByCellProvider(activeMapId),
     )[userPosition];
     final dest = ref.watch(routeDestProvider);
     final routeResultAsync = ref.watch(activeRouteResultProvider);
     final nodes =
-        ref.watch(mapNodesProvider(_defaultMapId)).value ?? const <MapPoi>[];
-    final walkable = ref.watch(walkableCellsProvider(_defaultMapId));
+        ref.watch(mapNodesProvider(activeMapId)).value ?? const <MapPoi>[];
+    final walkable = ref.watch(walkableCellsProvider(activeMapId));
     final rows = metaAsync.value?.rows ?? _defaultRows;
     final cols = metaAsync.value?.cols ?? _defaultCols;
     final routeLocations = ref.watch(routeLocationsProvider);
@@ -183,14 +223,14 @@ class _MapPageState extends ConsumerState<MapPage>
     final navPhase = ref.watch(navPhaseProvider);
     final navProgress = ref.watch(navProgressProvider);
     final flowVisible = ref.watch(flowOverlayVisibleProvider);
-    final flowSnapshot = ref.watch(flowSnapshotProvider(_defaultMapId));
+    final flowSnapshot = ref.watch(flowSnapshotProvider(activeMapId));
     final flow = flowSnapshot.valueOrNull;
     final obstacles =
-        ref.watch(obstaclesProvider(_defaultMapId)).valueOrNull ??
+        ref.watch(obstaclesProvider(activeMapId)).valueOrNull ??
         const <MapObstacle>[];
     ref.watch(navigationControllerProvider);
     final defaultUserPosition = ref.watch(
-      defaultUserPositionProvider(_defaultMapId),
+      defaultUserPositionProvider(activeMapId),
     );
 
     if (userPosition == null && defaultUserPosition != null) {
@@ -223,17 +263,17 @@ class _MapPageState extends ConsumerState<MapPage>
         final route = ref.read(activeRouteResultProvider).valueOrNull;
         unawaited(ref.read(passNodeReporterProvider).reportFrom(next, route));
       })
-      ..listen(flowEdgeStatusMapProvider(_defaultMapId), (_, next) {
+      ..listen(flowEdgeStatusMapProvider(activeMapId), (_, next) {
         if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
         unawaited(_maybeReroute(next));
       })
       ..listen(stepTrackingProvider, (_, next) {
         if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
+        unawaited(_maybePromptFloorChange(next));
         unawaited(
-          ref.read(voiceServiceProvider).speakFor(
-                state: next,
-                muted: ref.read(voiceMutedProvider),
-              ),
+          ref
+              .read(voiceServiceProvider)
+              .speakFor(state: next, muted: ref.read(voiceMutedProvider)),
         );
       })
       ..listen<bool>(voiceMutedProvider, (_, muted) {
@@ -397,7 +437,7 @@ class _MapPageState extends ConsumerState<MapPage>
                                       suggestions: nodes.take(3).toList(),
                                       onSelect: _selectPoiFromSearch,
                                       onRetry: () => ref.invalidate(
-                                        searchResultsProvider(_defaultMapId),
+                                        searchResultsProvider(activeMapId),
                                       ),
                                     ),
                                   ),
@@ -445,6 +485,19 @@ class _MapPageState extends ConsumerState<MapPage>
                 message: flow.alerts.isEmpty ? null : flow.alerts.first.message,
               ),
             ),
+
+          Positioned(
+            top: mediaTop + AppSpacing.md + 56,
+            right: AppSpacing.md,
+            child: _FloorSelector(
+              floors: floors,
+              selectedMapId: activeMapId,
+              onChanged: (mapId) {
+                if (mapId == null || mapId == activeMapId) return;
+                ref.read(selectedFloorProvider.notifier).state = mapId;
+              },
+            ),
+          ),
 
           if (flowVisible)
             Positioned(
@@ -560,7 +613,9 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   void _handleTap(Offset scenePosition, int rows, int cols, double cellSize) {
-    final byCell = ref.read(poiByCellProvider(_defaultMapId));
+    final mapId = _activeMapId();
+    if (mapId == null) return;
+    final byCell = ref.read(poiByCellProvider(mapId));
     if (byCell.isEmpty) return;
     final tapCol = (scenePosition.dx / cellSize).floor();
     final tapRow = (scenePosition.dy / cellSize).floor();
@@ -609,7 +664,9 @@ class _MapPageState extends ConsumerState<MapPage>
       return;
     }
 
-    final walkable = ref.read(walkableCellsProvider(_defaultMapId));
+    final mapId = _activeMapId();
+    if (mapId == null) return;
+    final walkable = ref.read(walkableCellsProvider(mapId));
     final tappedLocation = tapRow * cols + tapCol;
     final location = walkable.contains(tappedLocation)
         ? tappedLocation
@@ -702,7 +759,10 @@ class _MapPageState extends ConsumerState<MapPage>
       reportedAt: DateTime.now().toUtc(),
     );
     final synced = await ref.read(reportQueueProvider).submitObstacle(obstacle);
-    ref.invalidate(obstaclesProvider(_defaultMapId));
+    final mapId = _activeMapId();
+    if (mapId != null) {
+      ref.invalidate(obstaclesProvider(mapId));
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -838,10 +898,10 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   Future<void> _showQrScanner() async {
+    final mapId = _activeMapId();
+    if (mapId == null) return;
     final positioned = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => const MapQrScannerPage(mapId: _defaultMapId),
-      ),
+      MaterialPageRoute(builder: (_) => MapQrScannerPage(mapId: mapId)),
     );
     if (!mounted || positioned != true) return;
     ScaffoldMessenger.of(context)
@@ -858,15 +918,20 @@ class _MapPageState extends ConsumerState<MapPage>
         return Consumer(
           builder: (context, ref, _) {
             final userPosition = ref.watch(userPositionProvider);
-            final userPositionPoi = ref.watch(
-              poiByCellProvider(_defaultMapId),
-            )[userPosition];
+            final mapId =
+                ref.watch(selectedFloorProvider) ??
+                ref.watch(floorsProvider).valueOrNull?.firstOrNull?.mapId;
+            final userPositionPoi = mapId == null
+                ? null
+                : ref.watch(poiByCellProvider(mapId))[userPosition];
             final dest = ref.watch(routeDestProvider);
             final mode = ref.watch(routeModeProvider);
             final routeResult = ref.watch(activeRouteResultProvider);
             final routeLocations = ref.watch(routeLocationsProvider);
             final nodes =
-                ref.watch(mapNodesProvider(_defaultMapId)).value ??
+                (mapId == null
+                    ? const <MapPoi>[]
+                    : ref.watch(mapNodesProvider(mapId)).value) ??
                 const <MapPoi>[];
             return SafeArea(
               top: false,
@@ -900,7 +965,9 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   Future<void> _showRoutePoiPicker(List<MapPoi> pois) async {
-    final normalized = ref.read(normalizedPoiNamesProvider(_defaultMapId));
+    final mapId = _activeMapId();
+    if (mapId == null) return;
+    final normalized = ref.read(normalizedPoiNamesProvider(mapId));
     final selected = await showModalBottomSheet<MapPoi>(
       context: context,
       isScrollControlled: true,
@@ -937,6 +1004,72 @@ class _MapPageState extends ConsumerState<MapPage>
     ref.read(rerouteResultProvider.notifier).state = null;
   }
 
+  void _resetForFloorSwitch() {
+    ref.read(navigationControllerProvider).stop();
+    _arrivalOrderCommitted = false;
+    _promptedFloorChangeLocation = null;
+    _resetRerouteState();
+    ref.read(userPositionProvider.notifier).state = null;
+    ref.read(navCurrentLocationProvider.notifier).state = null;
+    ref.read(routeDestProvider.notifier).state = null;
+    ref.read(locationSourceProvider.notifier).state =
+        LocationSource.entranceDefault;
+    ref.invalidate(routeResultProvider);
+    _routeAnim.value = 0;
+    setState(() {});
+  }
+
+  Future<void> _maybePromptFloorChange(StepTrackingState state) async {
+    final step = state.currentStep;
+    if (step == null ||
+        step.maneuver != StepManeuver.floorChange ||
+        step.location == _promptedFloorChangeLocation ||
+        _floorSwitchKeepsNavigation) {
+      return;
+    }
+
+    final dest = ref.read(routeDestProvider);
+    final activeMapId = _activeMapId();
+    if (dest == null || activeMapId == null || dest.mapId == activeMapId) {
+      return;
+    }
+
+    _promptedFloorChangeLocation = step.location;
+    final floors = ref.read(floorsProvider).valueOrNull ?? const <MapFloor>[];
+    final target = floors
+        .where((floor) => floor.mapId == dest.mapId)
+        .firstOrNull;
+    final targetName = target?.mapName ?? 'floor ${dest.mapId}';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Change floor'),
+          content: Text('Take stairs/elevator to $targetName.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Not yet'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('I am there'),
+            ),
+          ],
+        );
+      },
+    );
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    _floorSwitchKeepsNavigation = true;
+    ref.read(selectedFloorProvider.notifier).state = dest.mapId;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('Showing $targetName')));
+  }
+
   Future<void> _maybeReroute(Map<String, EdgeStatus> edgeStatuses) async {
     if (_rerouteInFlight || edgeStatuses.isEmpty) {
       return;
@@ -944,7 +1077,9 @@ class _MapPageState extends ConsumerState<MapPage>
 
     final route = ref.read(activeRouteResultProvider).valueOrNull;
     final position = ref.read(positionSourceProvider);
-    final decision = ref.read(rerouteWatcherProvider).evaluate(
+    final decision = ref
+        .read(rerouteWatcherProvider)
+        .evaluate(
           routeResult: route,
           position: position,
           edgeStatuses: edgeStatuses,
@@ -967,11 +1102,18 @@ class _MapPageState extends ConsumerState<MapPage>
         return;
       }
 
-      final meta = await ref.read(mapMetaProvider(_defaultMapId).future);
-      await ref.read(mapEdgesProvider(_defaultMapId).future);
-      final adjacency = ref.read(adjacencyProvider(_defaultMapId));
+      final mapId = _activeMapId();
+      if (mapId == null) {
+        return;
+      }
+
+      final meta = await ref.read(mapMetaProvider(mapId).future);
+      await ref.read(mapEdgesProvider(mapId).future);
+      final adjacency = ref.read(adjacencyProvider(mapId));
       final mode = ref.read(routeModeProvider);
-      final reroute = await ref.read(routingServiceProvider).reroute(
+      final reroute = await ref
+          .read(routingServiceProvider)
+          .reroute(
             currentLocation: currentLocation,
             destLocation: dest.gridLocation,
             modeId: mode,
@@ -1302,6 +1444,54 @@ class _MapFab extends StatelessWidget {
   }
 }
 
+class _FloorSelector extends StatelessWidget {
+  final List<MapFloor> floors;
+  final int selectedMapId;
+  final ValueChanged<int?> onChanged;
+
+  const _FloorSelector({
+    required this.floors,
+    required this.selectedMapId,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (floors.length < 2) {
+      return const SizedBox.shrink();
+    }
+    final scheme = context.colorScheme;
+    return Material(
+      color: scheme.surface,
+      elevation: 2,
+      shadowColor: scheme.shadow,
+      borderRadius: AppRadius.borderFull,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<int>(
+            value: selectedMapId,
+            borderRadius: AppRadius.borderMd,
+            icon: const Icon(Icons.expand_more_rounded),
+            items: [
+              for (final floor in floors)
+                DropdownMenuItem<int>(
+                  value: floor.mapId,
+                  child: Text(
+                    floor.mapName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            onChanged: onChanged,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FlowAlertBanner extends StatelessWidget {
   final bool isStale;
   final DateTime updatedAt;
@@ -1330,9 +1520,7 @@ class _FlowAlertBanner extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              isStale
-                  ? Icons.cloud_off_rounded
-                  : Icons.warning_amber_rounded,
+              isStale ? Icons.cloud_off_rounded : Icons.warning_amber_rounded,
               size: 18,
               color: isStale
                   ? scheme.onTertiaryContainer
