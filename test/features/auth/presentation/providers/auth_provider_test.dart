@@ -13,7 +13,7 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-          const MethodChannel('com.it4788.flutter_secure_storage'),
+          const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
           (call) async => null,
         );
   });
