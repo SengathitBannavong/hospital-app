@@ -33,17 +33,25 @@ class RoutingService {
     required String modeId,
     required Map<int, List<int>> adjacency,
     required int cols,
-    Map<String, EdgeStatus> edgeStatuses = const <String, EdgeStatus>{},
+    Map<String, EdgeStatus> edgeStatuses =
+        const <String, EdgeStatus>{},
     Set<int> poiCells = const <int>{},
+    Map<int, double> bottleneckWeights =
+        const <int, double>{},
   }) async {
-    if (await _hasNetwork()) {
+    // ── 1. Engine (crowd-aware) — primary authority ──
+    if (adjacency.isNotEmpty) {
       try {
-        final preview = await _repository.previewRoute(
+        final result = _engine.route(
           startLocation: startLocation,
           destLocation: destLocation,
           modeId: modeId,
+          adjacency: adjacency,
+          cols: cols,
+          edgeStatuses: edgeStatuses,
+          poiCells: poiCells,
+          bottleneckWeights: bottleneckWeights,
         );
-        final result = _mapper.fromPreviewJson(preview);
         if (result.path.isNotEmpty) {
           await _cache.saveRoute(
             mapId: mapId,
@@ -53,16 +61,19 @@ class RoutingService {
             result: result,
           );
           debugPrint(
-            '[route] ONLINE+SAVED $startLocation->$destLocation ($modeId)',
+            '[route] ENGINE(crowd-aware) '
+            '$startLocation->$destLocation '
+            '($modeId)',
           );
           return result;
         }
       } catch (_) {
-        // The local engine is the required fallback whenever online preview
-        // cannot be reached or parsed by the repository layer.
+        // Engine could not produce a route;
+        // fall through to cache / preview.
       }
     }
 
+    // ── 2. Cache ──
     final cached = await _cache.loadRoute(
       mapId: mapId,
       startLocation: startLocation,
@@ -70,21 +81,50 @@ class RoutingService {
       modeId: modeId,
     );
     if (cached != null && cached.path.isNotEmpty) {
-      debugPrint('[route] CACHE HIT $startLocation->$destLocation ($modeId)');
+      debugPrint(
+        '[route] CACHE HIT '
+        '$startLocation->$destLocation '
+        '($modeId)',
+      );
       return cached;
     }
 
-    debugPrint(
-      '[route] ENGINE FALLBACK $startLocation->$destLocation ($modeId)',
-    );
-    return _engine.route(
-      startLocation: startLocation,
-      destLocation: destLocation,
-      modeId: modeId,
-      adjacency: adjacency,
-      cols: cols,
-      edgeStatuses: edgeStatuses,
-      poiCells: poiCells,
+    // ── 3. Preview fallback (online, crowd-blind) ──
+    if (await _hasNetwork()) {
+      try {
+        final preview =
+            await _repository.previewRoute(
+          startLocation: startLocation,
+          destLocation: destLocation,
+          modeId: modeId,
+        );
+        final result =
+            _mapper.fromPreviewJson(preview);
+        if (result.path.isNotEmpty) {
+          await _cache.saveRoute(
+            mapId: mapId,
+            startLocation: startLocation,
+            destLocation: destLocation,
+            modeId: modeId,
+            result: result,
+          );
+          debugPrint(
+            '[route] PREVIEW FALLBACK '
+            '(crowd-blind) '
+            '$startLocation->$destLocation '
+            '($modeId)',
+          );
+          return result;
+        }
+      } catch (_) {
+        // Preview unavailable — no more
+        // fallbacks.
+      }
+    }
+
+    throw Exception(
+      'No route found for '
+      '$startLocation->$destLocation.',
     );
   }
 
@@ -98,16 +138,22 @@ class RoutingService {
     required Map<String, EdgeStatus> edgeStatuses,
     String? routeId,
     Set<int> poiCells = const <int>{},
+    Map<int, double> bottleneckWeights =
+        const <int, double>{},
   }) async {
-    // TODO(Phase J backend:route-id): wire online route/recalculate once the
-    // active route flow provides a stable route_id from route/order.
-    if (routeId != null && await _hasNetwork()) {
+    // ── 1. Engine (crowd-aware) — primary ──
+    if (adjacency.isNotEmpty) {
       try {
-        final preview = await _repository.recalculateRoute(
-          routeId: routeId,
-          currentLocation: currentLocation,
+        final result = _engine.route(
+          startLocation: currentLocation,
+          destLocation: destLocation,
+          modeId: modeId,
+          adjacency: adjacency,
+          cols: cols,
+          edgeStatuses: edgeStatuses,
+          poiCells: poiCells,
+          bottleneckWeights: bottleneckWeights,
         );
-        final result = _mapper.fromPreviewJson(preview);
         if (result.path.isNotEmpty) {
           await _cache.saveRoute(
             mapId: mapId,
@@ -117,15 +163,18 @@ class RoutingService {
             result: result,
           );
           debugPrint(
-            '[reroute] ONLINE+SAVED $currentLocation->$destLocation ($modeId)',
+            '[reroute] ENGINE(crowd-aware) '
+            '$currentLocation->'
+            '$destLocation ($modeId)',
           );
           return result;
         }
       } catch (_) {
-        // Fall through to local reroute; offline/local correctness is required.
+        // Fall through to cache / preview.
       }
     }
 
+    // ── 2. Cache ──
     final cached = await _cache.loadRoute(
       mapId: mapId,
       startLocation: currentLocation,
@@ -134,22 +183,50 @@ class RoutingService {
     );
     if (cached != null && cached.path.isNotEmpty) {
       debugPrint(
-        '[reroute] CACHE HIT $currentLocation->$destLocation ($modeId)',
+        '[reroute] CACHE HIT '
+        '$currentLocation->'
+        '$destLocation ($modeId)',
       );
       return cached;
     }
 
-    debugPrint(
-      '[reroute] ENGINE FALLBACK $currentLocation->$destLocation ($modeId)',
-    );
-    return _engine.route(
-      startLocation: currentLocation,
-      destLocation: destLocation,
-      modeId: modeId,
-      adjacency: adjacency,
-      cols: cols,
-      edgeStatuses: edgeStatuses,
-      poiCells: poiCells,
+    // ── 3. Preview fallback (crowd-blind) ──
+    // TODO(Phase J backend:route-id): wire online
+    // route/recalculate once the active route flow
+    // provides a stable route_id from route/order.
+    if (routeId != null && await _hasNetwork()) {
+      try {
+        final preview =
+            await _repository.recalculateRoute(
+          routeId: routeId,
+          currentLocation: currentLocation,
+        );
+        final result =
+            _mapper.fromPreviewJson(preview);
+        if (result.path.isNotEmpty) {
+          await _cache.saveRoute(
+            mapId: mapId,
+            startLocation: currentLocation,
+            destLocation: destLocation,
+            modeId: modeId,
+            result: result,
+          );
+          debugPrint(
+            '[reroute] PREVIEW FALLBACK '
+            '(crowd-blind) '
+            '$currentLocation->'
+            '$destLocation ($modeId)',
+          );
+          return result;
+        }
+      } catch (_) {
+        // No more fallbacks.
+      }
+    }
+
+    throw Exception(
+      'No reroute found for '
+      '$currentLocation->$destLocation.',
     );
   }
 

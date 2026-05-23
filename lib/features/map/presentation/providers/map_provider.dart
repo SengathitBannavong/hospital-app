@@ -117,6 +117,33 @@ final bottlenecksProvider = FutureProvider.autoDispose
       }
     });
 
+/// Normalized bottleneck weights (0..1) for the current
+/// floor.  Cells outside the floor grid are dropped.
+final bottleneckWeightsProvider = FutureProvider
+    .autoDispose
+    .family<Map<int, double>, int>((ref, mapId) async {
+  final cells =
+      await ref.watch(bottlenecksProvider(mapId).future);
+  if (cells.isEmpty) return const <int, double>{};
+
+  final meta =
+      await ref.watch(mapMetaProvider(mapId).future);
+  final maxCell = meta.rows * meta.cols;
+
+  double maxDensity = 0;
+  for (final c in cells) {
+    if (c.density > maxDensity) maxDensity = c.density;
+  }
+  if (maxDensity <= 0) return const <int, double>{};
+
+  final result = <int, double>{};
+  for (final c in cells) {
+    if (c.location >= maxCell) continue; // off-floor
+    result[c.location] = c.density / maxDensity;
+  }
+  return result;
+});
+
 final forecastProvider = FutureProvider.family<List<FlowCell>, int>((
   ref,
   mapId,
@@ -417,21 +444,38 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
     return null;
   }
 
-  final meta = await ref.watch(mapMetaProvider(mapId).future);
+  // NOTE: do NOT ref.invalidate(flowSnapshotProvider/bottlenecksProvider) here.
+  // Invalidating a provider that is then watched in the same build creates an
+  // infinite rebuild loop (invalidate -> re-emit -> rebuild -> invalidate ...),
+  // which recomputes the route and re-fetches bottlenecks continuously.
+  // autoDispose already refetches these when the route panel re-subscribes;
+  // freshen them imperatively at the destination-selection action if needed.
+  // Regression guard: route_result_loop_test.dart.
+  final meta =
+      await ref.watch(mapMetaProvider(mapId).future);
   final adjacency = ref.watch(adjacencyProvider(mapId));
-  final flowSnapshot = ref.watch(flowSnapshotProvider(mapId)).valueOrNull;
+  final flowSnapshot =
+      ref.watch(flowSnapshotProvider(mapId)).valueOrNull;
   final obstacles =
       ref.watch(mapObstaclesProvider(mapId)).valueOrNull ??
       const <MapObstacle>[];
   final edgeStatuses = mergeObstacleEdgeStatuses(
     edgeStatuses: {
-      for (final edge in flowSnapshot?.edgeStatuses ?? const <EdgeStatus>[])
-        edgeStatusKey(edge.fromLocation, edge.toLocation): edge,
+      for (final edge
+          in flowSnapshot?.edgeStatuses ??
+              const <EdgeStatus>[])
+        edgeStatusKey(
+          edge.fromLocation,
+          edge.toLocation,
+        ): edge,
     },
     obstacles: obstacles,
     adjacency: adjacency,
   );
-  final poiCells = ref.watch(poiByCellProvider(mapId)).keys.toSet();
+  final poiCells =
+      ref.watch(poiByCellProvider(mapId)).keys.toSet();
+  final bottleneckWeights = await ref
+      .watch(bottleneckWeightsProvider(mapId).future);
 
   return service.route(
     mapId: mapId,
@@ -442,6 +486,7 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
     cols: meta.cols,
     edgeStatuses: edgeStatuses,
     poiCells: poiCells,
+    bottleneckWeights: bottleneckWeights,
   );
 });
 

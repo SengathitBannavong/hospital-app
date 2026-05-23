@@ -948,6 +948,17 @@ class _MapPageState extends ConsumerState<MapPage>
     ref.read(routeDestProvider.notifier).state = poi;
     if (start == poi.gridLocation) {
       ref.read(routeDestProvider.notifier).state = null;
+    } else {
+      // Freshen crowd data once, here, for this new route. This must NOT live
+      // inside routeResultProvider's build: invalidating providers it also
+      // watches there causes an infinite rebuild loop (see
+      // route_result_loop_test.dart).
+      final mapId = _activeMapId();
+      if (mapId != null) {
+        ref
+          ..invalidate(flowSnapshotProvider(mapId))
+          ..invalidate(bottlenecksProvider(mapId));
+      }
     }
     setState(() {});
   }

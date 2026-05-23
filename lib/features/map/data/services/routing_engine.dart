@@ -5,6 +5,12 @@ import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/data/models/route_step.dart';
 import 'package:hospital_app/features/map/data/services/route_modes.dart';
 
+/// Soft penalty multiplier applied to cells flagged as
+/// bottlenecks.  Higher values make the engine try harder to
+/// route around crowded areas while still allowing passage
+/// when no alternative exists.
+const double kBottleneckPenalty = 3.0;
+
 class RoutingEngine {
   RouteResult route({
     required int startLocation,
@@ -14,6 +20,8 @@ class RoutingEngine {
     required int cols,
     Map<String, EdgeStatus> edgeStatuses = const <String, EdgeStatus>{},
     Set<int> poiCells = const <int>{},
+    Map<int, double> bottleneckWeights =
+        const <int, double>{},
   }) {
     var path = _shortestPath(
       startLocation: startLocation,
@@ -23,6 +31,7 @@ class RoutingEngine {
       cols: cols,
       edgeStatuses: edgeStatuses,
       poiCells: poiCells,
+      bottleneckWeights: bottleneckWeights,
     );
 
     // Fallback: if blocking POI pass-through isolates the
@@ -35,6 +44,7 @@ class RoutingEngine {
         adjacency: adjacency,
         cols: cols,
         edgeStatuses: edgeStatuses,
+        bottleneckWeights: bottleneckWeights,
       );
     }
 
@@ -62,6 +72,8 @@ class RoutingEngine {
     required int cols,
     required Map<String, EdgeStatus> edgeStatuses,
     Set<int> poiCells = const <int>{},
+    Map<int, double> bottleneckWeights =
+        const <int, double>{},
   }) {
     if (startLocation == destLocation) {
       return [startLocation];
@@ -100,6 +112,8 @@ class RoutingEngine {
           cols: cols,
           modeId: modeId,
           congestion: edgeStatus?.congestion ?? 0,
+          bottleneck:
+              bottleneckWeights[next] ?? 0,
         );
         final nextCost = current.priority + cost;
         if (nextCost >= (costs[next] ?? double.infinity)) {
@@ -131,11 +145,13 @@ class RoutingEngine {
     required int cols,
     required String modeId,
     required double congestion,
+    double bottleneck = 0,
   }) {
-    final penalty = congestion.clamp(0, 1).toDouble();
+    final cong = congestion.clamp(0, 1).toDouble();
+    final btl = bottleneck.clamp(0, 1).toDouble();
     return _cellDistance(from, to, cols) *
         modeCostMultiplier(modeId) *
-        (1 + penalty);
+        (1 + cong + kBottleneckPenalty * btl);
   }
 
   double _pathDistance(List<int> path, int cols) {

@@ -195,5 +195,91 @@ void main() {
 
       expect(result.path, [0, 1, 2]);
     });
+
+    test('detours around bottleneck cell when '
+        'alternative exists', () {
+      // Grid (3 cols):
+      //   0 - 1 - 2
+      //   |       |
+      //   3       4
+      // Cell 1 has bottleneck weight 1.0. The engine
+      // should prefer 0→3→4→2 (longer but cheaper).
+      final result = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 2,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1, 3],
+          1: [0, 2],
+          2: [1, 4],
+          3: [0, 4],
+          4: [3, 2],
+        },
+        cols: 3,
+        bottleneckWeights: {1: 1.0},
+      );
+
+      expect(
+        result.path,
+        isNot(contains(1)),
+        reason: 'should avoid bottleneck cell 1',
+      );
+      expect(result.path.first, 0);
+      expect(result.path.last, 2);
+    });
+
+    test('passes through bottleneck when it is '
+        'the only path', () {
+      // Only path is 0→1→2, bottleneck on 1.
+      // Soft penalty — path is still returned.
+      final result = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 2,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1],
+          1: [0, 2],
+          2: [1],
+        },
+        cols: 3,
+        bottleneckWeights: {1: 1.0},
+      );
+
+      expect(result.path, [0, 1, 2]);
+    });
+
+    test('empty bottleneckWeights produces the same '
+        'route as without', () {
+      final baseline = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 2,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1, 3],
+          1: [0, 2],
+          2: [1, 4],
+          3: [0, 4],
+          4: [3, 2],
+        },
+        cols: 3,
+      );
+
+      final withEmpty = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 2,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1, 3],
+          1: [0, 2],
+          2: [1, 4],
+          3: [0, 4],
+          4: [3, 2],
+        },
+        cols: 3,
+        bottleneckWeights: const <int, double>{},
+      );
+
+      expect(withEmpty.path, baseline.path);
+    });
   });
 }

@@ -47,6 +47,8 @@ void main() {
         connectivity: FakeConnectivity([ConnectivityResult.wifi]),
       );
 
+      // Empty adjacency → engine fails → preview
+      // fallback is exercised.
       final result = await service.route(
         mapId: 1,
         startLocation: 10,
@@ -152,6 +154,77 @@ void main() {
       // Should fall back to the engine and calculate path correctly
       expect(result.path, [200, 201]);
     });
+
+    test(
+      'Online + bottlenecks: engine (crowd-aware) is '
+      'used, not preview',
+      () async {
+        // The preview would return the straight
+        // path 0→1→2.  Cell 1 has a bottleneck.
+        // With a valid adjacency that offers an
+        // alternative, the engine should avoid cell 1.
+        final fakeRepo = FakeMapRepository(
+          onPreviewRoute: () async => {
+            'steps': [
+              {
+                'step_order': 1,
+                'grid_location': 0,
+              },
+              {
+                'step_order': 2,
+                'grid_location': 1,
+              },
+              {
+                'step_order': 3,
+                'grid_location': 2,
+              },
+            ],
+            'distance': 2.0,
+            'estimated_time': 1.0,
+            'mode_id': 'walking',
+            'speed_factor': 1.0,
+          },
+        );
+
+        final service = RoutingService(
+          repository: fakeRepo,
+          engine: RoutingEngine(),
+          cache: testCache,
+          connectivity: FakeConnectivity(
+            [ConnectivityResult.wifi],
+          ),
+        );
+
+        final adjacency = {
+          0: [1, 3],
+          1: [0, 2],
+          2: [1, 4],
+          3: [0, 4],
+          4: [3, 2],
+        };
+
+        final result = await service.route(
+          mapId: 1,
+          startLocation: 0,
+          destLocation: 2,
+          modeId: 'walking',
+          adjacency: adjacency,
+          cols: 3,
+          bottleneckWeights: {1: 1.0},
+        );
+
+        // Engine avoids cell 1 (bottleneck).
+        expect(
+          result.path,
+          isNot(contains(1)),
+          reason:
+              'crowd-aware engine should avoid '
+              'bottleneck cell 1',
+        );
+        expect(result.path.first, 0);
+        expect(result.path.last, 2);
+      },
+    );
   });
 }
 

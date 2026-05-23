@@ -68,3 +68,9 @@ nullable aliases for route id, destination, mode, map id, and timestamp.
 Needed to unblock: exact route history entry schema and field names.
 
 Code seam: `TODO(Phase J backend:route-history-fields)`.
+
+## Crowd-Aware Routing (Client Authority)
+
+Crowd-aware routing is implemented **client-side** because the backend router is
+immutable and crowd-blind. If the backend ever adds flow-weighted routing or an
+`avoid_cells` param, revisit whether online should defer to it.
