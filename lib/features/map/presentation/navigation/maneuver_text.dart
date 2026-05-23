@@ -1,4 +1,5 @@
 import 'package:hospital_app/features/map/data/models/route_step.dart';
+import 'package:hospital_app/features/map/presentation/utils/distance_format.dart';
 
 String maneuverInstruction(RouteStep step) {
   final instruction = step.instruction;
@@ -20,7 +21,7 @@ String maneuverDistanceLabel(double distanceCells) {
   if (distanceCells <= 0) {
     return 'Now';
   }
-  return 'In ${distanceCells.toStringAsFixed(0)} cells';
+  return 'In ${formatDistanceFromCells(distanceCells)}';
 }
 
 String spokenManeuverText(RouteStep step, double distanceCells) {
@@ -28,5 +29,5 @@ String spokenManeuverText(RouteStep step, double distanceCells) {
   if (distanceCells <= 0) {
     return maneuverInstruction(step);
   }
-  return 'In ${distanceCells.toStringAsFixed(0)} cells, $instruction';
+  return 'In ${spokenDistanceFromCells(distanceCells)}, $instruction';
 }

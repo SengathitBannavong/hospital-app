@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
+import 'package:hospital_app/features/map/presentation/utils/distance_format.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_async_message.dart';
 
 class MapRouteStatus extends StatelessWidget {
@@ -85,24 +86,14 @@ class _RouteSummary extends StatelessWidget {
         ),
         _MetricChip(
           icon: Icons.straighten_rounded,
-          label: _formatGridDistance(data.distance),
+          label: formatDistanceFromCells(data.distance),
         ),
         _MetricChip(
           icon: Icons.schedule_rounded,
-          label: _formatGridEta(data.estimatedTime),
+          label: _formatEta(data.estimatedTime),
         ),
       ],
     );
-  }
-
-  String _formatGridDistance(num distance) {
-    // TODO(Phase J backend:meters-per-cell): replace cell counts with real
-    // distance units after the backend publishes a meters-per-cell ratio.
-    return '${distance.toStringAsFixed(0)} cells';
-  }
-
-  String _formatGridEta(num eta) {
-    return _formatEta(eta);
   }
 }
 
