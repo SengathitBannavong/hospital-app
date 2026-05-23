@@ -5,16 +5,24 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
+import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
+import 'package:hospital_app/features/map/presentation/pages/map_qr_scanner_page.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_grid_painter.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_legend_sheet.dart';
+import 'package:hospital_app/features/map/presentation/widgets/map_navigation_sheet.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_poi_metadata_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_route_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_search_results_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_top_bar.dart';
+
+// debug
+// import 'package:hospital_app/features/map/presentation/widgets/map_debug_grid_painter.dart';
 
 class MapPage extends ConsumerStatefulWidget {
   const MapPage({super.key});
@@ -22,8 +30,6 @@ class MapPage extends ConsumerStatefulWidget {
   @override
   ConsumerState<MapPage> createState() => _MapPageState();
 }
-
-enum _RoutePickTarget { start, destination }
 
 class _MapPageState extends ConsumerState<MapPage>
     with SingleTickerProviderStateMixin {
@@ -43,6 +49,8 @@ class _MapPageState extends ConsumerState<MapPage>
   double _lastMinScale = 0;
   int _lastRouteSignature = 0;
   bool _searchExpanded = true;
+  bool _arrivalOrderCommitted = false;
+  bool _navCollapsed = false;
   final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
   Offset? _debugPoiCenter;
@@ -155,7 +163,10 @@ class _MapPageState extends ConsumerState<MapPage>
     );
     final keyword = ref.watch(searchKeywordProvider);
     final searchResultsAsync = ref.watch(searchResultsProvider(_defaultMapId));
-    final start = ref.watch(routeStartProvider);
+    final userPosition = ref.watch(userPositionProvider);
+    final userPositionPoi = ref.watch(
+      poiByCellProvider(_defaultMapId),
+    )[userPosition];
     final dest = ref.watch(routeDestProvider);
     final routeResultAsync = ref.watch(routeResultProvider);
     final nodes =
@@ -164,15 +175,50 @@ class _MapPageState extends ConsumerState<MapPage>
     final rows = metaAsync.value?.rows ?? _defaultRows;
     final cols = metaAsync.value?.cols ?? _defaultCols;
     final routeLocations = ref.watch(routeLocationsProvider);
+    final navDot = ref.watch(navDotProvider);
+    final navPhase = ref.watch(navPhaseProvider);
+    final navProgress = ref.watch(navProgressProvider);
+    ref.watch(navigationControllerProvider);
+    final defaultUserPosition = ref.watch(
+      defaultUserPositionProvider(_defaultMapId),
+    );
 
-    _maybeAnimateRoute(routeLocations);
+    if (userPosition == null && defaultUserPosition != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || ref.read(userPositionProvider) != null) return;
+        ref.read(userPositionProvider.notifier).state = defaultUserPosition;
+      });
+    }
+
+    ref
+      ..listen<NavPhase>(navPhaseProvider, (_, next) {
+        if (next == NavPhase.navigating) {
+          _routeAnim.value = 1;
+        } else if (next == NavPhase.arrived) {
+          _handleNavigationArrived();
+        }
+      })
+      ..listen<double>(navProgressProvider, (_, _) {
+        if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
+        _followNavigationDot(rows: rows, cols: cols);
+      });
+
+    if (navPhase == NavPhase.navigating && _routeAnim.value != 1) {
+      _routeAnim.value = 1;
+    } else if (navPhase != NavPhase.navigating) {
+      _maybeAnimateRoute(routeLocations);
+    }
 
     final loading = metaAsync.isLoading || nodesLoading || edgesLoading;
     final searching = keyword.trim().isNotEmpty;
     final mediaTop = MediaQuery.of(context).padding.top;
     final mediaBottom = MediaQuery.of(context).padding.bottom;
 
-    final hasRoute = start != null || dest != null;
+    final hasRoute = dest != null;
+    final showNavigationSheet =
+        navPhase == NavPhase.navigating ||
+        navPhase == NavPhase.paused ||
+        navPhase == NavPhase.arrived;
 
     return Scaffold(
       backgroundColor: MapSurface.background,
@@ -216,6 +262,12 @@ class _MapPageState extends ConsumerState<MapPage>
                     behavior: HitTestBehavior.opaque,
                     onTapDown: (details) =>
                         _handleTap(details.localPosition, rows, cols, cellSize),
+                    onLongPressStart: (details) => _handleLongPressStart(
+                      details.localPosition,
+                      rows,
+                      cols,
+                      cellSize,
+                    ),
                     child: SizedBox(
                       width: gridWidth,
                       height: gridHeight,
@@ -237,11 +289,19 @@ class _MapPageState extends ConsumerState<MapPage>
                                 pois: nodes,
                                 routeLocations: routeLocations,
                                 routeProgress: _routeAnim.value,
+                                userDot: navDot,
+                                navProgress: navProgress,
                                 visibleRect: visibleRect,
                                 debugTap: _debugTapScene,
                                 debugPoiCenter: _debugPoiCenter,
                                 showDebug: _showDebugHitTest,
                               ),
+                              // foregroundPainter: MapDebugGridPainter(
+                              //   rows: rows,
+                              //   cols: cols,
+                              //   visibleRect: visibleRect,
+                              //   // labelCells: true,
+                              // ),
                             );
                           },
                         ),
@@ -293,8 +353,7 @@ class _MapPageState extends ConsumerState<MapPage>
                                       results: searchResultsAsync,
                                       query: keyword.trim(),
                                       suggestions: nodes.take(3).toList(),
-                                      onSelect: (poi) =>
-                                          _selectPoiFromSearch(poi, start),
+                                      onSelect: _selectPoiFromSearch,
                                       onRetry: () => ref.invalidate(
                                         searchResultsProvider(_defaultMapId),
                                       ),
@@ -323,12 +382,11 @@ class _MapPageState extends ConsumerState<MapPage>
               top: mediaTop + AppSpacing.md + 52,
               left: AppSpacing.md,
               child: _RoutePill(
-                start: start,
+                startName: userPositionPoi?.poiName ?? 'You are here',
                 dest: dest,
                 onTap: _showRoutePanel,
                 onClear: _clearRoute,
-                onDone:
-                    (start != null && dest != null && routeResultAsync.hasValue)
+                onDone: (userPosition != null && routeResultAsync.hasValue)
                     ? _completeRoute
                     : null,
               ),
@@ -341,6 +399,12 @@ class _MapPageState extends ConsumerState<MapPage>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                _MapFab(
+                  icon: Icons.qr_code_scanner_rounded,
+                  tooltip: 'Scan QR code',
+                  onPressed: _showQrScanner,
+                ),
+                const SizedBox(height: AppSpacing.sm),
                 _MapFab(
                   icon: Icons.map_outlined,
                   tooltip: 'Map legend',
@@ -356,21 +420,68 @@ class _MapPageState extends ConsumerState<MapPage>
             ),
           ),
 
-          // Bottom-right: route plan FAB
-          Positioned(
-            right: AppSpacing.md,
-            bottom: mediaBottom + AppSpacing.md,
-            child: FloatingActionButton.extended(
-              heroTag: 'map-route-fab',
-              onPressed: _showRoutePanel,
-              icon: Icon(
-                hasRoute
-                    ? Icons.edit_location_alt_rounded
-                    : Icons.alt_route_rounded,
+          if (showNavigationSheet && dest != null)
+            // Compact card anchored bottom-right so the map stays visible.
+            // Collapses to a small button when the user wants it hidden.
+            Positioned(
+              right: AppSpacing.md,
+              bottom: mediaBottom + AppSpacing.md,
+              child: _navCollapsed
+                  ? _MapFab(
+                      icon: Icons.navigation_rounded,
+                      tooltip: 'Show navigation',
+                      onPressed: () => setState(() => _navCollapsed = false),
+                    )
+                  : MapNavigationSheet(
+                      destinationName: dest.poiName,
+                      onDone: _handleNavigationDone,
+                      onStop: _stopNavigation,
+                      onCollapse: () => setState(() => _navCollapsed = true),
+                    ),
+            )
+          else if (dest != null &&
+              userPosition != null &&
+              routeResultAsync.hasValue)
+            // Route is ready: one-tap Start, with a small Route options button
+            // above it for changing the mode or clearing.
+            Positioned(
+              right: AppSpacing.md,
+              bottom: mediaBottom + AppSpacing.md,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _MapFab(
+                    icon: Icons.tune_rounded,
+                    tooltip: 'Route options',
+                    onPressed: _showRoutePanel,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  FloatingActionButton.extended(
+                    heroTag: 'map-start-fab',
+                    onPressed: _startNavigation,
+                    icon: const Icon(Icons.navigation_rounded),
+                    label: const Text('Start'),
+                  ),
+                ],
               ),
-              label: Text(hasRoute ? 'Route' : 'Plan route'),
+            )
+          else
+            // Bottom-right: route plan FAB
+            Positioned(
+              right: AppSpacing.md,
+              bottom: mediaBottom + AppSpacing.md,
+              child: FloatingActionButton.extended(
+                heroTag: 'map-route-fab',
+                onPressed: _showRoutePanel,
+                icon: Icon(
+                  hasRoute
+                      ? Icons.edit_location_alt_rounded
+                      : Icons.alt_route_rounded,
+                ),
+                label: Text(hasRoute ? 'Route' : 'Plan route'),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -414,6 +525,77 @@ class _MapPageState extends ConsumerState<MapPage>
     _showPoiSheet(nearest);
   }
 
+  void _handleLongPressStart(
+    Offset scenePosition,
+    int rows,
+    int cols,
+    double cellSize,
+  ) {
+    final tapCol = (scenePosition.dx / cellSize).floor();
+    final tapRow = (scenePosition.dy / cellSize).floor();
+    if (tapRow < 0 || tapRow >= rows || tapCol < 0 || tapCol >= cols) {
+      return;
+    }
+
+    final walkable = ref.read(walkableCellsProvider(_defaultMapId));
+    final tappedLocation = tapRow * cols + tapCol;
+    final location = walkable.contains(tappedLocation)
+        ? tappedLocation
+        : _nearestWalkableInNeighborhood(
+            scenePosition,
+            tapRow,
+            tapCol,
+            rows,
+            cols,
+            cellSize,
+            walkable,
+          );
+    if (location == null) return;
+
+    ref.read(navigationControllerProvider).stop();
+    ref.read(userPositionProvider.notifier).state = location;
+    ref.read(locationSourceProvider.notifier).state =
+        LocationSource.simulatedPin;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('You are here')));
+  }
+
+  int? _nearestWalkableInNeighborhood(
+    Offset scenePosition,
+    int tapRow,
+    int tapCol,
+    int rows,
+    int cols,
+    double cellSize,
+    Set<int> walkable,
+  ) {
+    int? nearest;
+    double bestDistanceSq = double.infinity;
+    for (var dr = -1; dr <= 1; dr++) {
+      final row = tapRow + dr;
+      if (row < 0 || row >= rows) continue;
+      for (var dc = -1; dc <= 1; dc++) {
+        final col = tapCol + dc;
+        if (col < 0 || col >= cols) continue;
+        final location = row * cols + col;
+        if (!walkable.contains(location)) continue;
+        final center = Offset(
+          col * cellSize + cellSize / 2,
+          row * cellSize + cellSize / 2,
+        );
+        final dx = center.dx - scenePosition.dx;
+        final dy = center.dy - scenePosition.dy;
+        final distSq = dx * dx + dy * dy;
+        if (distSq < bestDistanceSq) {
+          bestDistanceSq = distSq;
+          nearest = location;
+        }
+      }
+    }
+    return nearest;
+  }
+
   Future<void> _showPoiSheet(MapPoi poi) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -425,14 +607,16 @@ class _MapPageState extends ConsumerState<MapPage>
           child: MapPoiMetadataPanel(
             poi: poi,
             onClose: () => Navigator.of(sheetContext).maybePop(),
-            onSetStart: () {
-              Navigator.of(sheetContext).maybePop();
-              _setRouteStart(poi);
-            },
             onSetDestination: () {
               Navigator.of(sheetContext).maybePop();
               _setRouteDestination(poi);
             },
+            onSetCurrentLocation: poi.isLandmark
+                ? () {
+                    Navigator.of(sheetContext).maybePop();
+                    _setCurrentLocationFromPoi(poi);
+                  }
+                : null,
           ),
         );
       },
@@ -451,24 +635,32 @@ class _MapPageState extends ConsumerState<MapPage>
     return Rect.fromLTRB(left, top, right, bottom);
   }
 
-  void _selectPoiFromSearch(MapPoi poi, MapPoi? start) {
-    if (start == null) {
-      _setRouteStart(poi);
-    } else {
-      _setRouteDestination(poi);
-    }
+  void _setCurrentLocationFromPoi(MapPoi poi) {
+    ref.read(navigationControllerProvider).stop();
+    ref.read(userPositionProvider.notifier).state = poi.gridLocation;
+    ref.read(locationSourceProvider.notifier).state = LocationSource.manual;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text("You are here · ${poi.poiName}")));
+  }
+
+  void _selectPoiFromSearch(MapPoi poi) {
+    _setRouteDestination(poi);
     _searchController.clear();
     _setSearchKeyword('', immediate: true);
   }
 
   void _clearRoute() {
-    ref.read(routeStartProvider.notifier).state = null;
+    ref.read(navigationControllerProvider).stop();
+    _arrivalOrderCommitted = false;
     ref.read(routeDestProvider.notifier).state = null;
     setState(() {});
   }
 
   void _completeRoute() {
-    ref.read(routeStartProvider.notifier).state = null;
+    ref.read(navigationControllerProvider).stop();
+    _arrivalOrderCommitted = false;
     ref.read(routeDestProvider.notifier).state = null;
     ref.invalidate(routeResultProvider);
     setState(() {});
@@ -489,6 +681,18 @@ class _MapPageState extends ConsumerState<MapPage>
     );
   }
 
+  Future<void> _showQrScanner() async {
+    final positioned = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const MapQrScannerPage(mapId: _defaultMapId),
+      ),
+    );
+    if (!mounted || positioned != true) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('You are here')));
+  }
+
   Future<void> _showRoutePanel() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -497,7 +701,10 @@ class _MapPageState extends ConsumerState<MapPage>
       builder: (sheetContext) {
         return Consumer(
           builder: (context, ref, _) {
-            final start = ref.watch(routeStartProvider);
+            final userPosition = ref.watch(userPositionProvider);
+            final userPositionPoi = ref.watch(
+              poiByCellProvider(_defaultMapId),
+            )[userPosition];
             final dest = ref.watch(routeDestProvider);
             final mode = ref.watch(routeModeProvider);
             final routeResult = ref.watch(routeResultProvider);
@@ -508,7 +715,8 @@ class _MapPageState extends ConsumerState<MapPage>
             return SafeArea(
               top: false,
               child: MapRoutePanel(
-                start: start,
+                userPosition: userPosition,
+                userPositionName: userPositionPoi?.poiName,
                 dest: dest,
                 mode: mode,
                 routeResult: routeResult,
@@ -517,12 +725,16 @@ class _MapPageState extends ConsumerState<MapPage>
                   _clearRoute();
                   Navigator.of(sheetContext).maybePop();
                 },
-                onModeChanged: (v) =>
-                    ref.read(routeModeProvider.notifier).state = v,
-                onPickStart: () =>
-                    _showRoutePoiPicker(_RoutePickTarget.start, nodes),
-                onPickDestination: () =>
-                    _showRoutePoiPicker(_RoutePickTarget.destination, nodes),
+                onModeChanged: (v) => _setRouteMode(v),
+                onPickDestination: () => _showRoutePoiPicker(nodes),
+                onStartNavigation:
+                    userPosition != null && dest != null && routeResult.hasValue
+                    ? () {
+                        if (_startNavigation()) {
+                          Navigator.of(sheetContext).maybePop();
+                        }
+                      }
+                    : null,
               ),
             );
           },
@@ -531,46 +743,165 @@ class _MapPageState extends ConsumerState<MapPage>
     );
   }
 
-  Future<void> _showRoutePoiPicker(
-    _RoutePickTarget target,
-    List<MapPoi> pois,
-  ) async {
+  Future<void> _showRoutePoiPicker(List<MapPoi> pois) async {
     final normalized = ref.read(normalizedPoiNamesProvider(_defaultMapId));
     final selected = await showModalBottomSheet<MapPoi>(
       context: context,
       isScrollControlled: true,
       builder: (context) => _RoutePoiPickerSheet(
-        title: target == _RoutePickTarget.start
-            ? 'Pick a start point'
-            : 'Pick a destination',
+        title: 'Pick a destination',
         pois: pois,
         normalizedNames: normalized,
       ),
     );
     if (!mounted || selected == null) return;
-    if (target == _RoutePickTarget.start) {
-      _setRouteStart(selected);
-    } else {
-      _setRouteDestination(selected);
-    }
+    _setRouteDestination(selected);
   }
 
-  void _setRouteStart(MapPoi poi) {
-    final dest = ref.read(routeDestProvider);
-    ref.read(routeStartProvider.notifier).state = poi;
-    if (dest?.gridLocation == poi.gridLocation) {
+  void _setRouteDestination(MapPoi poi) {
+    ref.read(navigationControllerProvider).stop();
+    final start = ref.read(userPositionProvider);
+    ref.read(routeDestProvider.notifier).state = poi;
+    if (start == poi.gridLocation) {
       ref.read(routeDestProvider.notifier).state = null;
     }
     setState(() {});
   }
 
-  void _setRouteDestination(MapPoi poi) {
-    final start = ref.read(routeStartProvider);
-    ref.read(routeDestProvider.notifier).state = poi;
-    if (start?.gridLocation == poi.gridLocation) {
-      ref.read(routeStartProvider.notifier).state = null;
+  void _setRouteMode(String mode) {
+    ref.read(navigationControllerProvider).stop();
+    ref.read(routeModeProvider.notifier).state = mode;
+  }
+
+  bool _startNavigation() {
+    _arrivalOrderCommitted = false;
+    _navCollapsed = false;
+    _routeAnim.value = 1;
+    final started = ref.read(navigationControllerProvider).start();
+    if (!started) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Route preview has no path yet')),
+        );
     }
+    return started;
+  }
+
+  void _stopNavigation() {
+    ref.read(navigationControllerProvider).stop();
+  }
+
+  void _handleNavigationDone() {
+    // The user has walked the route, so their new position is the destination.
+    final dest = ref.read(routeDestProvider);
+    ref.read(navigationControllerProvider).stop();
+    _arrivalOrderCommitted = false;
+    if (dest != null) {
+      ref.read(userPositionProvider.notifier).state = dest.gridLocation;
+      ref.read(locationSourceProvider.notifier).state = LocationSource.manual;
+    }
+    ref.read(routeDestProvider.notifier).state = null;
+    ref.invalidate(routeResultProvider);
     setState(() {});
+  }
+
+  Future<void> _handleNavigationArrived() async {
+    if (_arrivalOrderCommitted) return;
+    _arrivalOrderCommitted = true;
+    final start = ref.read(userPositionProvider);
+    final dest = ref.read(routeDestProvider);
+    final mode = ref.read(routeModeProvider);
+    if (start == null || dest == null) return;
+
+    try {
+      await ref
+          .read(mapRepositoryProvider)
+          .orderRoute(
+            startLocation: start,
+            destLocation: dest.gridLocation,
+            modeId: mode,
+          );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Arrival log failed')));
+    }
+  }
+
+  void _followNavigationDot({required int rows, required int cols}) {
+    final controller = _transformController;
+    final dot = ref.read(navDotProvider);
+    if (!mounted ||
+        controller == null ||
+        dot == null ||
+        _lastViewportSize == Size.zero ||
+        _lastGridSize == Size.zero) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final currentController = _transformController;
+      if (currentController == null) return;
+
+      final sceneCenter = _dotSceneCenter(dot, rows, cols, _lastGridSize);
+      final transform = currentController.value;
+      final scale = transform.getMaxScaleOnAxis().clamp(
+        _minMapScale,
+        _maxMapScale,
+      );
+      final tx = transform.storage[12];
+      final ty = transform.storage[13];
+      final viewportPoint = Offset(
+        sceneCenter.dx * scale + tx,
+        sceneCenter.dy * scale + ty,
+      );
+      final centralRect = Rect.fromLTRB(
+        _lastViewportSize.width * 0.2,
+        _lastViewportSize.height * 0.2,
+        _lastViewportSize.width * 0.8,
+        _lastViewportSize.height * 0.8,
+      );
+      if (centralRect.contains(viewportPoint)) return;
+
+      final nextTx = _clampTranslate(
+        _lastViewportSize.width / 2 - sceneCenter.dx * scale,
+        _lastViewportSize.width,
+        _lastGridSize.width * scale,
+      );
+      final nextTy = _clampTranslate(
+        _lastViewportSize.height / 2 - sceneCenter.dy * scale,
+        _lastViewportSize.height,
+        _lastGridSize.height * scale,
+      );
+      currentController.value = Matrix4.identity()
+        ..translateByDouble(nextTx, nextTy, 0, 1)
+        ..scaleByDouble(scale.toDouble(), scale.toDouble(), 1, 1);
+    });
+  }
+
+  Offset _dotSceneCenter(NavDot dot, int rows, int cols, Size gridSize) {
+    final cellWidth = gridSize.width / cols;
+    final cellHeight = gridSize.height / rows;
+    final from = _cellCenter(dot.fromLocation, cols, cellWidth, cellHeight);
+    final to = _cellCenter(dot.toLocation, cols, cellWidth, cellHeight);
+    return Offset.lerp(from, to, dot.t.clamp(0.0, 1.0).toDouble()) ?? from;
+  }
+
+  Offset _cellCenter(
+    int location,
+    int cols,
+    double cellWidth,
+    double cellHeight,
+  ) {
+    final row = location ~/ cols;
+    final col = location % cols;
+    return Offset(
+      col * cellWidth + cellWidth / 2,
+      row * cellHeight + cellHeight / 2,
+    );
   }
 
   Offset _poiCenter(MapPoi poi, double cellWidth, double cellHeight) {
@@ -591,14 +922,14 @@ class _MapPageState extends ConsumerState<MapPage>
 }
 
 class _RoutePill extends StatelessWidget {
-  final MapPoi? start;
+  final String startName;
   final MapPoi? dest;
   final VoidCallback? onTap;
   final VoidCallback? onClear;
   final VoidCallback? onDone;
 
   const _RoutePill({
-    required this.start,
+    required this.startName,
     required this.dest,
     required this.onTap,
     required this.onClear,
@@ -607,9 +938,8 @@ class _RoutePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (start == null && dest == null) return const SizedBox.shrink();
+    if (dest == null) return const SizedBox.shrink();
     final scheme = context.colorScheme;
-    final startName = start?.poiName ?? 'Pick start';
     final destName = dest?.poiName ?? 'Pick destination';
 
     return Semantics(

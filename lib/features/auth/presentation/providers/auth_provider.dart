@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/network/token_repository.dart';
 import 'package:hospital_app/features/auth/data/models/otp_response.dart';
+import 'package:hospital_app/features/auth/data/models/version_check_response.dart';
 import '../../data/auth_repository.dart';
 import '../../data/models/auth_user.dart';
 
@@ -16,7 +17,7 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
 
   AuthNotifier(this._repository) : super(null);
 
-  // Step 1 of multi-step login: verify credentials but don't log in yet
+  // Verifies phone/password without mutating auth state.
   Future<AuthUser> verifyCredentials(
     String phoneNumber,
     String password,
@@ -27,7 +28,7 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     );
   }
 
-  // To be called after OTP verification success to finalize login
+  // Direct phone/password login. Swagger does not require OTP for login.
   Future<void> login(String phoneNumber, String password) async {
     final user = await _repository.login(
       phoneNumber: phoneNumber,
@@ -36,8 +37,7 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     await saveTokenAndSetUser(user);
   }
 
-  // To be called when we already have the AuthUser
-  // (e.g. from verifyCredentials then OTP)
+  // To be called when we already have the AuthUser.
   Future<void> saveTokenAndSetUser(AuthUser user) async {
     await TokenRepository.saveToken(user.token);
     state = user;
@@ -65,7 +65,7 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     }
   }
 
-  // For OTP verification success that leads to login
+  // For flows that already have a complete AuthUser.
   void setUser(AuthUser user) {
     state = user;
   }
@@ -88,7 +88,7 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     );
   }
 
-  // Verify OTP for signup, forgot_password, or login flows
+  // Verify OTP for signup or reset-password flows.
   Future<void> verifyOtp({
     required String phoneNumber,
     required String otp,
@@ -130,4 +130,53 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
       newPassword: newPassword,
     );
   }
+
+  // Check app version against backend
+  Future<VersionCheckResponse> checkVersion({
+    required String platform,
+    required String appVersion,
+  }) async {
+    return await _repository.checkVersion(
+      platform: platform,
+      appVersion: appVersion,
+    );
+  }
+
+  // Delete user account (requires authentication)
+  Future<void> deleteAccount({required String password}) async {
+    await _repository.deleteAccount(password: password);
+    // After successful deletion, logout
+    await logout();
+  }
+
+  // Resend OTP verification code
+  Future<void> resendOtp({required String phoneNumber, String? otpType}) async {
+    return await _repository.resendOtp(
+      phoneNumber: phoneNumber,
+      otpType: otpType,
+    );
+  }
 }
+
+// Version check state provider
+final versionCheckProvider =
+    FutureProvider.family<VersionCheckResponse, (String, String)>((
+      ref,
+      params,
+    ) async {
+      final repository = ref.watch(authRepositoryProvider);
+      final (platform, appVersion) = params;
+      return repository.checkVersion(
+        platform: platform,
+        appVersion: appVersion,
+      );
+    });
+
+// Account deletion state provider
+final deleteAccountProvider = FutureProvider.family<void, String>((
+  ref,
+  password,
+) async {
+  final authNotifier = ref.read(authStateProvider.notifier);
+  return authNotifier.deleteAccount(password: password);
+});

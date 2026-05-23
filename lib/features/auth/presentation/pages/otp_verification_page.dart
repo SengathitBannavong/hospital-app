@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
-import 'package:hospital_app/features/auth/data/models/auth_user.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/otp_pin_input.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/otp_countdown_button.dart';
@@ -12,7 +11,6 @@ import 'package:hospital_app/features/auth/presentation/widgets/otp_countdown_bu
 class OtpVerificationPage extends ConsumerStatefulWidget {
   final String phoneNumber;
   final String otpType;
-  final AuthUser? pendingUser;
   final String? password;
   final String? otpCode;
 
@@ -20,7 +18,6 @@ class OtpVerificationPage extends ConsumerStatefulWidget {
     super.key,
     required this.phoneNumber,
     required this.otpType,
-    this.pendingUser,
     this.password,
     this.otpCode,
   });
@@ -51,31 +48,18 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
     setState(() => _isVerifying = true);
 
     try {
-      // 1. Verify OTP with Backend
-      await ref
-          .read(authStateProvider.notifier)
-          .verifyOtp(
-            phoneNumber: widget.phoneNumber,
-            otp: otp,
-            otpType: widget.otpType,
-          );
-
-      if (!mounted) return;
-
-      // 2. Handle different OTP types
       switch (widget.otpType) {
-        case 'login':
-          // Login flow: Already have pending user
-          if (widget.pendingUser != null) {
-            await ref
-                .read(authStateProvider.notifier)
-                .saveTokenAndSetUser(widget.pendingUser!);
-          }
-          AppToast.showSuccess('Xác thực thành công!');
-          if (mounted) context.go('/');
-          break;
-
         case 'signup':
+          await ref
+              .read(authStateProvider.notifier)
+              .verifyOtp(
+                phoneNumber: widget.phoneNumber,
+                otp: otp,
+                otpType: 'signup',
+              );
+
+          if (!mounted) return;
+
           // Signup flow: Have password, need to auto-login
           if (widget.password != null) {
             await ref
@@ -87,16 +71,25 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
           break;
 
         case 'forgot_password':
-          // Forgot password flow: Navigate to reset password page
-          AppToast.showSuccess('Xác thực thành công!');
+          // Do not call verify_otp here. The reset_password endpoint accepts
+          // the OTP and may treat a prior verification as consuming it.
+          AppToast.showSuccess('Tiếp tục đặt lại mật khẩu.');
           if (mounted) {
             context.push('/reset-password/${widget.phoneNumber}/$otp');
           }
           break;
 
         default:
+          await ref
+              .read(authStateProvider.notifier)
+              .verifyOtp(
+                phoneNumber: widget.phoneNumber,
+                otp: otp,
+                otpType: widget.otpType,
+              );
+          if (!mounted) return;
           AppToast.showSuccess('Xác thực thành công!');
-          if (mounted) context.go('/');
+          context.go('/');
       }
     } catch (error) {
       if (!mounted) return;
@@ -124,7 +117,6 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
 
     // Determine title and description based on otp_type
     final (title, description) = switch (widget.otpType) {
-      'login' => ('Xác thực đăng nhập', 'Nhập mã OTP để xác thực đăng nhập'),
       'signup' => ('Xác thực đăng ký', 'Nhập mã OTP để hoàn thành đăng ký'),
       'forgot_password' => (
         'Xác thực lấy lại mật khẩu',
@@ -201,18 +193,20 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                 ),
               ),
               SizedBox(height: isSmallScreen ? AppSpacing.xl : AppSpacing.xxl),
-              FadeSlideTransition(
-                delay: const Duration(milliseconds: 200),
-                child: Text(
-                  'Mã được gửi là ${widget.otpCode ?? 'NULL'}',
-                  textAlign: TextAlign.center,
-                  style: context.textTheme.bodySmall?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
-                    fontSize: isSmallScreen ? 11 : 15,
+              if (widget.otpCode != null) ...[
+                FadeSlideTransition(
+                  delay: const Duration(milliseconds: 200),
+                  child: Text(
+                    'Mã được gửi là ${widget.otpCode}',
+                    textAlign: TextAlign.center,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: context.colorScheme.onSurfaceVariant,
+                      fontSize: isSmallScreen ? 11 : 15,
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: isSmallScreen ? AppSpacing.md : AppSpacing.lg),
+                SizedBox(height: isSmallScreen ? AppSpacing.md : AppSpacing.lg),
+              ],
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 300),
                 child: Card(
@@ -236,6 +230,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                           onSendOtp: _resendOtp,
                           initialCountdown: 60,
                           buttonLabel: 'Gửi lại mã',
+                          enabled: widget.otpType != 'signup',
                         ),
                         SizedBox(
                           height: isSmallScreen ? AppSpacing.lg : AppSpacing.xl,
