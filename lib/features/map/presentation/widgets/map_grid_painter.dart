@@ -175,6 +175,36 @@ class MapGridPainter extends CustomPainter {
     canvas.drawCircle(center, baseRadius, _userDotStrokePaint);
   }
 
+  void _paintFlowOverlay(
+    Canvas canvas,
+    double cellWidth,
+    double cellHeight,
+    int rowStart,
+    int rowEnd,
+    int colStart,
+    int colEnd,
+  ) {
+    final paint = Paint();
+    for (final cell in flowCells) {
+      final row = cell.location ~/ cols;
+      final col = cell.location % cols;
+      if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
+      if (row < rowStart || row > rowEnd || col < colStart || col > colEnd) {
+        continue;
+      }
+      final density = cell.density.clamp(0.0, 1.0).toDouble();
+      paint.color = Color.lerp(
+        const Color(0x3343A047),
+        const Color(0x99E53935),
+        density,
+      )!;
+      canvas.drawRect(
+        Rect.fromLTWH(col * cellWidth, row * cellHeight, cellWidth, cellHeight),
+        paint,
+      );
+    }
+  }
+
   void _paintRoute(
     Canvas canvas,
     double cellWidth,

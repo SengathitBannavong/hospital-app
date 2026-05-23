@@ -5,9 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
+import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
+import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/data/models/route_history.dart';
+import 'package:hospital_app/features/map/data/models/route_history_entry.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/pages/map_qr_scanner_page.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
@@ -51,6 +55,7 @@ class _MapPageState extends ConsumerState<MapPage>
   bool _searchExpanded = true;
   bool _arrivalOrderCommitted = false;
   bool _navCollapsed = false;
+  bool _floorSwitchKeepsNavigation = false;
   final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
   Offset? _debugPoiCenter;
@@ -106,6 +111,16 @@ class _MapPageState extends ConsumerState<MapPage>
   int? _activeMapId() {
     return ref.read(selectedFloorProvider) ??
         ref.read(floorsProvider).valueOrNull?.firstOrNull?.mapId;
+  }
+
+  int get _defaultMapId => _activeMapId() ?? 1;
+
+  void _resetForFloorSwitch() {
+    ref.read(navigationControllerProvider).stop();
+    ref.read(routeDestProvider.notifier).state = null;
+    _arrivalOrderCommitted = false;
+    _lastRouteSignature = 0;
+    _routeAnim.value = 0;
   }
 
   void _syncTransformToLayout({
@@ -205,6 +220,17 @@ class _MapPageState extends ConsumerState<MapPage>
     )[userPosition];
     final dest = ref.watch(routeDestProvider);
     final routeResultAsync = ref.watch(activeRouteResultProvider);
+    final flowSnapshot = ref.watch(flowSnapshotProvider(activeMapId));
+    final flow = flowSnapshot.valueOrNull;
+    final isOnline = ref.watch(mapConnectivityProvider).valueOrNull;
+    final lastSyncedAt = ref
+        .watch(mapLastSyncedAtProvider(activeMapId))
+        .valueOrNull;
+    final inlineNotice = ref.watch(mapInlineNoticeProvider);
+    final locationSource = ref.watch(locationSourceProvider);
+    final obstacles =
+        ref.watch(mapObstaclesProvider(activeMapId)).valueOrNull ?? const [];
+    final flowVisible = ref.watch(flowOverlayVisibleProvider);
     final nodes =
         ref.watch(mapNodesProvider(activeMapId)).value ?? const <MapPoi>[];
     final walkable = ref.watch(walkableCellsProvider(activeMapId));
@@ -227,16 +253,33 @@ class _MapPageState extends ConsumerState<MapPage>
     }
 
     ref
-      ..listen<NavPhase>(navPhaseProvider, (_, next) {
+      ..listen<NavPhase>(navPhaseProvider, (previous, next) {
         if (next == NavPhase.navigating) {
           _routeAnim.value = 1;
+          // Persist the active route on a fresh start (not on resume) so the
+          // in-progress trip survives a mid-trip connection drop / restart.
+          if (previous != NavPhase.paused) {
+            final route = ref.read(routeResultProvider).valueOrNull;
+            if (route != null && route.path.isNotEmpty) {
+              ref.read(mapCacheProvider).saveActiveRoute(route);
+            }
+          }
         } else if (next == NavPhase.arrived) {
           _handleNavigationArrived();
+        } else if (next == NavPhase.idle) {
+          ref.read(mapCacheProvider).clearActiveRoute();
         }
       })
       ..listen<double>(navProgressProvider, (_, _) {
         if (ref.read(navPhaseProvider) != NavPhase.navigating) return;
         _followNavigationDot(rows: rows, cols: cols);
+      })
+      ..listen<AsyncValue<bool>>(mapConnectivityProvider, (previous, next) {
+        final wasOnline = previous?.valueOrNull;
+        final isOnline = next.valueOrNull;
+        if (wasOnline == false && isOnline == true) {
+          _refreshMapDataOnReconnect();
+        }
       });
 
     if (navPhase == NavPhase.navigating && _routeAnim.value != 1) {
@@ -425,25 +468,21 @@ class _MapPageState extends ConsumerState<MapPage>
                 dest: dest,
                 onTap: _showRoutePanel,
                 onClear: _clearRoute,
-                onDone: (userPosition != null && routeResultAsync.hasValue)
-                    ? _completeRoute
-                    : null,
               ),
             ),
 
-          if ((flowSnapshot.isLoading && flow == null) ||
-              (flowSnapshot.hasError && flow == null) ||
-              (flow != null && (flow.alerts.isNotEmpty || flow.isStale)))
-            Positioned(
-              top: mediaTop + AppSpacing.md + 104,
-              left: AppSpacing.md,
-              right: AppSpacing.md,
-              child: _FlowAlertBanner(
-                snapshot: flowSnapshot,
-                onRetry: () =>
-                    ref.invalidate(flowSnapshotProvider(activeMapId)),
-              ),
+          Positioned(
+            top: mediaTop + AppSpacing.md + (hasRoute ? 104 : 52),
+            left: AppSpacing.md,
+            child: _MapStatusCluster(
+              snapshot: flowSnapshot,
+              isOnline: isOnline,
+              lastSyncedAt: lastSyncedAt,
+              locationSource: locationSource,
+              notice: inlineNotice,
+              onRetry: () => ref.invalidate(flowSnapshotProvider(activeMapId)),
             ),
+          ),
 
           Positioned(
             top: mediaTop + AppSpacing.md + 56,
@@ -518,7 +557,6 @@ class _MapPageState extends ConsumerState<MapPage>
                     )
                   : MapNavigationSheet(
                       destinationName: dest.poiName,
-                      onDone: _handleNavigationDone,
                       onStop: _stopNavigation,
                       onCollapse: () => setState(() => _navCollapsed = true),
                     ),
@@ -642,9 +680,7 @@ class _MapPageState extends ConsumerState<MapPage>
     ref.read(userPositionProvider.notifier).state = location;
     ref.read(locationSourceProvider.notifier).state =
         LocationSource.simulatedPin;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('You are here')));
+    ref.read(mapInlineNoticeProvider.notifier).state = 'Position set manually';
   }
 
   int? _nearestWalkableInNeighborhood(
@@ -725,10 +761,8 @@ class _MapPageState extends ConsumerState<MapPage>
     ref.read(navigationControllerProvider).stop();
     ref.read(userPositionProvider.notifier).state = poi.gridLocation;
     ref.read(locationSourceProvider.notifier).state = LocationSource.manual;
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text("You are here · ${poi.poiName}")));
+    ref.read(mapInlineNoticeProvider.notifier).state =
+        'Position set: ${poi.poiName}';
   }
 
   void _selectPoiFromSearch(MapPoi poi) {
@@ -752,6 +786,22 @@ class _MapPageState extends ConsumerState<MapPage>
     setState(() {});
   }
 
+  void _refreshMapDataOnReconnect() {
+    if (ref.read(navPhaseProvider) == NavPhase.navigating) {
+      return;
+    }
+    final id = _defaultMapId;
+    ref
+      ..invalidate(mapMetaProvider(id))
+      ..invalidate(mapNodesProvider(id))
+      ..invalidate(mapEdgesProvider(id))
+      ..invalidate(flowSnapshotProvider(id))
+      ..invalidate(mapObstaclesProvider(id))
+      ..invalidate(mapLastSyncedAtProvider(id))
+      ..invalidate(routeResultProvider);
+    ref.read(mapInlineNoticeProvider.notifier).state = 'Map synced';
+  }
+
   void _recenter() {
     final controller = _transformController;
     if (controller == null) return;
@@ -769,14 +819,10 @@ class _MapPageState extends ConsumerState<MapPage>
 
   Future<void> _showQrScanner() async {
     final positioned = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => const MapQrScannerPage(mapId: _defaultMapId),
-      ),
+      MaterialPageRoute(builder: (_) => MapQrScannerPage(mapId: _defaultMapId)),
     );
     if (!mounted || positioned != true) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('You are here')));
+    ref.read(mapInlineNoticeProvider.notifier).state = 'Position set by QR';
   }
 
   Future<void> _showRoutePanel() async {
@@ -807,6 +853,7 @@ class _MapPageState extends ConsumerState<MapPage>
                 mode: mode,
                 routeResult: routeResult,
                 routeLocations: routeLocations,
+                onRetry: () => ref.invalidate(routeResultProvider),
                 onClear: () {
                   _clearRoute();
                   Navigator.of(sheetContext).maybePop();
@@ -865,28 +912,22 @@ class _MapPageState extends ConsumerState<MapPage>
     _routeAnim.value = 1;
     final started = ref.read(navigationControllerProvider).start();
     if (!started) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('Route preview has no path yet')),
-        );
+      ref.read(mapInlineNoticeProvider.notifier).state =
+          'Route preview has no path';
     }
     return started;
   }
 
   void _stopNavigation() {
+    final current =
+        ref.read(navCurrentLocationProvider) ??
+        ref.read(navigationControllerProvider).currentLocationApprox;
     ref.read(navigationControllerProvider).stop();
-  }
-
-  void _handleNavigationDone() {
-    // The user has walked the route, so their new position is the destination.
-    final dest = ref.read(routeDestProvider);
-    ref.read(navigationControllerProvider).stop();
-    _arrivalOrderCommitted = false;
-    if (dest != null) {
-      ref.read(userPositionProvider.notifier).state = dest.gridLocation;
+    if (current != null) {
+      ref.read(userPositionProvider.notifier).state = current;
       ref.read(locationSourceProvider.notifier).state = LocationSource.manual;
     }
+    _arrivalOrderCommitted = false;
     ref.read(routeDestProvider.notifier).state = null;
     ref.invalidate(routeResultProvider);
     setState(() {});
@@ -910,10 +951,22 @@ class _MapPageState extends ConsumerState<MapPage>
           );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Arrival log failed')));
+      ref.read(mapInlineNoticeProvider.notifier).state =
+          'Arrival log not synced';
     }
+
+    // Commit position to destination on arrival.
+    ref.read(userPositionProvider.notifier).state = dest.gridLocation;
+    ref.read(locationSourceProvider.notifier).state = LocationSource.manual;
+
+    // Auto-dismiss the arrived card after a brief pause.
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      if (ref.read(navPhaseProvider) != NavPhase.arrived) {
+        return;
+      }
+      _completeRoute();
+    });
   }
 
   void _followNavigationDot({required int rows, required int cols}) {
@@ -1012,14 +1065,12 @@ class _RoutePill extends StatelessWidget {
   final MapPoi? dest;
   final VoidCallback? onTap;
   final VoidCallback? onClear;
-  final VoidCallback? onDone;
 
   const _RoutePill({
     required this.startName,
     required this.dest,
     required this.onTap,
     required this.onClear,
-    required this.onDone,
   });
 
   @override
@@ -1088,18 +1139,7 @@ class _RoutePill extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.xs),
-                if (onDone != null)
-                  IconButton(
-                    iconSize: 18,
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onDone,
-                    icon: Icon(
-                      Icons.check_circle_rounded,
-                      color: scheme.primary,
-                    ),
-                    tooltip: 'Finish route',
-                  )
-                else if (onClear != null)
+                if (onClear != null)
                   IconButton(
                     iconSize: 18,
                     visualDensity: VisualDensity.compact,
@@ -1200,6 +1240,7 @@ class _FloorSelector extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _RouteHistorySheet extends StatelessWidget {
   final AsyncValue<RouteHistory> history;
   final VoidCallback onRetry;
@@ -1339,11 +1380,22 @@ class _RouteHistorySheet extends StatelessWidget {
   }
 }
 
-class _FlowAlertBanner extends StatelessWidget {
+class _MapStatusCluster extends StatelessWidget {
   final AsyncValue<FlowSnapshot> snapshot;
+  final bool? isOnline;
+  final DateTime? lastSyncedAt;
+  final LocationSource locationSource;
+  final String? notice;
   final VoidCallback onRetry;
 
-  const _FlowAlertBanner({required this.snapshot, required this.onRetry});
+  const _MapStatusCluster({
+    required this.snapshot,
+    required this.isOnline,
+    required this.lastSyncedAt,
+    required this.locationSource,
+    required this.notice,
+    required this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1352,78 +1404,239 @@ class _FlowAlertBanner extends StatelessWidget {
     final isLoading = snapshot.isLoading && flow == null;
     final isError = snapshot.hasError && flow == null;
     final isStale = flow?.isStale ?? false;
-    final message = flow?.alerts.isEmpty ?? true
-        ? null
-        : flow?.alerts.first.message;
-    final updatedAt = flow?.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-    final text = message ?? 'Offline flow snapshot';
-    final content = isLoading
-        ? const MapAsyncMessage(
-            icon: Icons.sync_rounded,
-            title: 'Loading flow snapshot...',
-            compact: true,
-          )
-        : isError
-        ? MapAsyncMessage(
-            icon: Icons.error_outline_rounded,
-            title: 'Flow snapshot unavailable',
-            actionLabel: 'Retry',
-            onAction: onRetry,
-            compact: true,
-          )
-        : Row(
+    final hasAlert = flow?.alerts.isNotEmpty ?? false;
+    final online = isOnline;
+
+    final network = _statusForNetwork(
+      scheme: scheme,
+      online: online,
+      isStale: isStale,
+    );
+    final data = _statusForData(
+      scheme: scheme,
+      online: online,
+      isLoading: isLoading,
+      isError: isError,
+      hasAlert: hasAlert,
+      isStale: isStale,
+      lastSyncedAt: lastSyncedAt,
+    );
+    final position = _statusForPosition(
+      scheme: scheme,
+      locationSource: locationSource,
+    );
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 300),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
             children: [
-              Icon(
-                isStale ? Icons.cloud_off_rounded : Icons.warning_amber_rounded,
-                size: 18,
-                color: isStale
-                    ? scheme.onTertiaryContainer
-                    : scheme.onErrorContainer,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  isStale ? '$text · ${_formatUpdatedAt(updatedAt)}' : text,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.textTheme.labelMedium?.copyWith(
-                    color: isStale
-                        ? scheme.onTertiaryContainer
-                        : scheme.onErrorContainer,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              _StatusPill(data: network),
+              _StatusPill(data: data, onTap: isError ? onRetry : null),
+              _StatusPill(data: position),
             ],
-          );
-    return Material(
-      color: isLoading
-          ? scheme.surface
-          : isStale
-          ? scheme.tertiaryContainer
-          : scheme.errorContainer,
-      elevation: 2,
-      shadowColor: scheme.shadow,
-      borderRadius: AppRadius.borderMd,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        child: content,
+          ),
+          if (notice != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            _StatusPill(
+              data: _PillData(
+                icon: Icons.info_outline_rounded,
+                label: notice!,
+                background: scheme.surfaceContainerHigh,
+                foreground: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  String _formatUpdatedAt(DateTime value) {
-    if (value.millisecondsSinceEpoch == 0) {
-      return 'no cached time';
+  _PillData _statusForNetwork({
+    required ColorScheme scheme,
+    required bool? online,
+    required bool isStale,
+  }) {
+    if (online == false || (online == null && isStale)) {
+      return _PillData(
+        icon: Icons.cloud_off_rounded,
+        label: 'Offline',
+        background: scheme.tertiaryContainer,
+        foreground: scheme.onTertiaryContainer,
+      );
     }
-    final local = value.toLocal();
-    final hour = local.hour.toString().padLeft(2, '0');
-    final minute = local.minute.toString().padLeft(2, '0');
-    return 'updated $hour:$minute';
+    if (online == null) {
+      return _PillData(
+        icon: Icons.sync_rounded,
+        label: 'Checking',
+        background: scheme.surfaceContainerHigh,
+        foreground: scheme.onSurfaceVariant,
+      );
+    }
+    return _PillData(
+      icon: Icons.cloud_done_rounded,
+      label: 'Online',
+      background: scheme.surfaceContainerHigh,
+      foreground: scheme.onSurfaceVariant,
+    );
   }
+
+  _PillData _statusForData({
+    required ColorScheme scheme,
+    required bool? online,
+    required bool isLoading,
+    required bool isError,
+    required bool hasAlert,
+    required bool isStale,
+    required DateTime? lastSyncedAt,
+  }) {
+    final syncLabel = _formatSyncAge(lastSyncedAt);
+    if (isError) {
+      return _PillData(
+        icon: Icons.error_outline_rounded,
+        label: 'Sync error',
+        background: scheme.errorContainer,
+        foreground: scheme.onErrorContainer,
+      );
+    }
+    if (online == false || isStale) {
+      return _PillData(
+        icon: Icons.storage_rounded,
+        label: syncLabel == null ? 'Cache data' : 'Cache $syncLabel',
+        background: scheme.tertiaryContainer,
+        foreground: scheme.onTertiaryContainer,
+      );
+    }
+    if (hasAlert) {
+      return _PillData(
+        icon: Icons.warning_amber_rounded,
+        label: 'Flow alert',
+        background: scheme.errorContainer,
+        foreground: scheme.onErrorContainer,
+      );
+    }
+    if (isLoading) {
+      return _PillData(
+        icon: Icons.sync_rounded,
+        label: 'Syncing',
+        background: scheme.surfaceContainerHigh,
+        foreground: scheme.onSurfaceVariant,
+      );
+    }
+    return _PillData(
+      icon: Icons.check_circle_outline_rounded,
+      label: syncLabel == null ? 'Data live' : 'Live $syncLabel',
+      background: scheme.surfaceContainerHigh,
+      foreground: scheme.onSurfaceVariant,
+    );
+  }
+
+  _PillData _statusForPosition({
+    required ColorScheme scheme,
+    required LocationSource locationSource,
+  }) {
+    final label = switch (locationSource) {
+      LocationSource.qr => 'Position QR',
+      LocationSource.manual => 'Position local',
+      LocationSource.simulatedPin => 'Position pin',
+      LocationSource.entranceDefault => 'Position default',
+    };
+    return _PillData(
+      icon: Icons.my_location_rounded,
+      label: label,
+      background: scheme.surfaceContainerHigh,
+      foreground: scheme.onSurfaceVariant,
+    );
+  }
+
+  String? _formatSyncAge(DateTime? value) {
+    if (value == null) {
+      return null;
+    }
+    final delta = DateTime.now().difference(value.toLocal());
+    if (delta.inMinutes < 1) {
+      return 'now';
+    }
+    if (delta.inHours < 1) {
+      return '${delta.inMinutes}m';
+    }
+    if (delta.inDays < 1) {
+      return '${delta.inHours}h';
+    }
+    return '${delta.inDays}d';
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  final _PillData data;
+  final VoidCallback? onTap;
+
+  const _StatusPill({required this.data, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: 0.4,
+      child: Material(
+        color: data.background,
+        elevation: 2,
+        shadowColor: context.colorScheme.shadow,
+        borderRadius: AppRadius.borderXl,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.borderXl,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(data.icon, size: 16, color: data.foreground),
+                const SizedBox(width: AppSpacing.xs),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 220),
+                  child: Text(
+                    data.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.labelSmall?.copyWith(
+                      color: data.foreground,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (onTap != null) ...[
+                  const SizedBox(width: AppSpacing.xs),
+                  Icon(Icons.refresh_rounded, size: 14, color: data.foreground),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PillData {
+  final IconData icon;
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  const _PillData({
+    required this.icon,
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
 }
 
 class _FlowLegend extends StatelessWidget {
