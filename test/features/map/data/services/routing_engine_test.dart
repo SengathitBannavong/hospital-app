@@ -114,5 +114,89 @@ void main() {
       expect(rightTurn.steps[2].maneuver, StepManeuver.right);
       expect(leftTurn.steps[2].maneuver, StepManeuver.left);
     });
+
+    test('avoids POI cells as pass-through intermediates', () {
+      // Grid (3 cols):
+      //   0 - 1 - 2
+      //   |       |
+      //   3       4
+      // Node 1 is a POI. Direct path 0→1→2 should detour via 3→...→4.
+      final result = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 2,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1, 3],
+          1: [0, 2],
+          2: [1, 4],
+          3: [0, 4],
+          4: [3, 2],
+        },
+        cols: 3,
+        poiCells: {1},
+      );
+
+      expect(result.path, isNot(contains(1)));
+      expect(result.path.first, 0);
+      expect(result.path.last, 2);
+    });
+
+    test('routes to and from a POI cell as endpoint', () {
+      // POI as destination — should still be reachable.
+      final toDest = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 1,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1],
+          1: [0, 2],
+          2: [1],
+        },
+        cols: 3,
+        poiCells: {1},
+      );
+
+      expect(toDest.path, [0, 1]);
+
+      // POI as start — should not be blocked.
+      final fromStart = RoutingEngine().route(
+        startLocation: 1,
+        destLocation: 2,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1],
+          1: [0, 2],
+          2: [1],
+        },
+        cols: 3,
+        poiCells: {1},
+      );
+
+      expect(fromStart.path, [1, 2]);
+    });
+
+    test(
+      'falls back to unrestricted path when POI blocking '
+      'isolates the destination',
+      () {
+        // Only path is 0→1→2 and node 1 is a POI. With
+        // POI restriction the path is empty, so the engine
+        // should fall back to unrestricted routing.
+        final result = RoutingEngine().route(
+          startLocation: 0,
+          destLocation: 2,
+          modeId: 'walking',
+          adjacency: const {
+            0: [1],
+            1: [0, 2],
+            2: [1],
+          },
+          cols: 3,
+          poiCells: {1},
+        );
+
+        expect(result.path, [0, 1, 2]);
+      },
+    );
   });
 }

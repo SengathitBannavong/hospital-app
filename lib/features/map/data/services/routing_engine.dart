@@ -13,18 +13,35 @@ class RoutingEngine {
     required Map<int, List<int>> adjacency,
     required int cols,
     Map<String, EdgeStatus> edgeStatuses = const <String, EdgeStatus>{},
+    Set<int> poiCells = const <int>{},
   }) {
-    final path = _shortestPath(
+    var path = _shortestPath(
       startLocation: startLocation,
       destLocation: destLocation,
       modeId: modeId,
       adjacency: adjacency,
       cols: cols,
       edgeStatuses: edgeStatuses,
+      poiCells: poiCells,
     );
 
+    // Fallback: if blocking POI pass-through isolates the
+    // destination, retry without the restriction.
+    if (path.isEmpty && poiCells.isNotEmpty) {
+      path = _shortestPath(
+        startLocation: startLocation,
+        destLocation: destLocation,
+        modeId: modeId,
+        adjacency: adjacency,
+        cols: cols,
+        edgeStatuses: edgeStatuses,
+      );
+    }
+
     if (path.isEmpty) {
-      throw Exception('No offline route found for the selected points.');
+      throw Exception(
+        'No offline route found for the selected points.',
+      );
     }
 
     final distance = _pathDistance(path, cols);
@@ -33,7 +50,8 @@ class RoutingEngine {
       path: path,
       steps: _buildSteps(path, cols),
       distance: distance,
-      estimatedTime: speedFactor <= 0 ? 0 : distance / speedFactor,
+      estimatedTime:
+          speedFactor <= 0 ? 0 : distance / speedFactor,
       modeId: modeId,
       speedFactor: speedFactor,
     );
@@ -46,6 +64,7 @@ class RoutingEngine {
     required Map<int, List<int>> adjacency,
     required int cols,
     required Map<String, EdgeStatus> edgeStatuses,
+    Set<int> poiCells = const <int>{},
   }) {
     if (startLocation == destLocation) {
       return [startLocation];
@@ -67,8 +86,16 @@ class RoutingEngine {
         break;
       }
 
-      for (final next in adjacency[current.location] ?? const <int>[]) {
-        final edgeStatus = edgeStatuses[_edgeKey(current.location, next)];
+      for (final next in adjacency[current.location] ??
+          const <int>[]) {
+        // Skip POI cells as intermediate pass-through nodes;
+        // they may still be the destination.
+        if (poiCells.contains(next) &&
+            next != destLocation) {
+          continue;
+        }
+        final edgeStatus =
+            edgeStatuses[_edgeKey(current.location, next)];
         if (edgeStatus?.blocked ?? false) {
           continue;
         }
