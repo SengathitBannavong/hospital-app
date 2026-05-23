@@ -73,54 +73,55 @@ void main() {
   test(
     'MapCacheService round-trips granular slices (meta, nodes, edges)',
     () async {
-    final dir = await Directory.systemTemp.createTemp('granular-cache-test-');
-    Hive.init(dir.path);
-    addTearDown(() async {
-      await Hive.close();
-      await dir.delete(recursive: true);
-    });
+      final dir = await Directory.systemTemp.createTemp('granular-cache-test-');
+      Hive.init(dir.path);
+      addTearDown(() async {
+        await Hive.close();
+        await dir.delete(recursive: true);
+      });
 
-    final service = MapCacheService();
-    const meta = MapFloor(mapId: 4, mapName: 'Floor 4', rows: 40, cols: 40);
-    const nodes = [
-      MapPoi(
-        poiId: 10,
-        mapId: 4,
-        poiCode: 'A',
-        poiName: 'Room A',
-        poiType: 'room',
-        gridRow: 10,
-        gridCol: 10,
-        gridLocation: 100,
-        isLandmark: false,
-        isAccessible: true,
-        wheelchairAccessible: false,
-      ),
-    ];
-    const edges = [
-      MapEdge(
-        fromRow: 10,
-        fromCol: 10,
-        fromLocation: 100,
-        toRow: 10,
-        toCol: 11,
-        toLocation: 101,
-      ),
-    ];
+      final service = MapCacheService();
+      const meta = MapFloor(mapId: 4, mapName: 'Floor 4', rows: 40, cols: 40);
+      const nodes = [
+        MapPoi(
+          poiId: 10,
+          mapId: 4,
+          poiCode: 'A',
+          poiName: 'Room A',
+          poiType: 'room',
+          gridRow: 10,
+          gridCol: 10,
+          gridLocation: 100,
+          isLandmark: false,
+          isAccessible: true,
+          wheelchairAccessible: false,
+        ),
+      ];
+      const edges = [
+        MapEdge(
+          fromRow: 10,
+          fromCol: 10,
+          fromLocation: 100,
+          toRow: 10,
+          toCol: 11,
+          toLocation: 101,
+        ),
+      ];
 
-    await service.saveMeta(mapId: 4, meta: meta);
-    await service.saveNodes(mapId: 4, nodes: nodes);
-    await service.saveEdges(mapId: 4, edges: edges);
+      await service.saveMeta(mapId: 4, meta: meta);
+      await service.saveNodes(mapId: 4, nodes: nodes);
+      await service.saveEdges(mapId: 4, edges: edges);
 
-    final loadedMeta = await service.loadMeta(mapId: 4);
-    final loadedNodes = await service.loadNodes(mapId: 4);
-    final loadedEdges = await service.loadEdges(mapId: 4);
+      final loadedMeta = await service.loadMeta(mapId: 4);
+      final loadedNodes = await service.loadNodes(mapId: 4);
+      final loadedEdges = await service.loadEdges(mapId: 4);
 
-    expect(loadedMeta, isNotNull);
-    expect(loadedMeta!.mapName, 'Floor 4');
-    expect(loadedNodes.single.poiName, 'Room A');
-    expect(loadedEdges.single.fromLocation, 100);
-  });
+      expect(loadedMeta, isNotNull);
+      expect(loadedMeta!.mapName, 'Floor 4');
+      expect(loadedNodes.single.poiName, 'Room A');
+      expect(loadedEdges.single.fromLocation, 100);
+    },
+  );
 
   test('MapCacheService round-trips the active route and clears it', () async {
     final dir = await Directory.systemTemp.createTemp('active-route-test-');

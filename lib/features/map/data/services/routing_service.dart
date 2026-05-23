@@ -33,8 +33,7 @@ class RoutingService {
     required String modeId,
     required Map<int, List<int>> adjacency,
     required int cols,
-    Map<String, EdgeStatus> edgeStatuses =
-        const <String, EdgeStatus>{},
+    Map<String, EdgeStatus> edgeStatuses = const <String, EdgeStatus>{},
     Set<int> poiCells = const <int>{},
   }) async {
     if (await _hasNetwork()) {

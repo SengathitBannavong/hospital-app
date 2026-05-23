@@ -91,7 +91,8 @@ class RouteResultMapper {
       steps.add(
         RouteStep(
           location: location,
-          maneuver: _readManeuver(record['maneuver']) ??
+          maneuver:
+              _readManeuver(record['maneuver']) ??
               _defaultManeuver(i, records.length),
           instruction: _readString(record['instruction']),
           distance: _readDouble(record['distance']) ?? 0,

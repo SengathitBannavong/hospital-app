@@ -14,7 +14,17 @@ class FlowService {
 
   Future<FlowSnapshot> snapshot({required int mapId}) async {
     try {
-      final cells = await _repository.getFlowHeatmap();
+      var cells = await _repository.getFlowHeatmap();
+      if (cells.isNotEmpty) {
+        final maxDensity = cells
+            .map((c) => c.density)
+            .fold<double>(0, (prev, val) => val > prev ? val : prev);
+        if (maxDensity > 0) {
+          cells = cells
+              .map((c) => c.copyWith(density: c.density / maxDensity))
+              .toList();
+        }
+      }
       final edgeStatuses = await _repository.getFlowEdgeStatus();
       final alerts = await _repository.getFlowAlerts();
       final snapshot = FlowSnapshot(

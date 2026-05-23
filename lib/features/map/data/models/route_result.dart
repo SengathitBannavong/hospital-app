@@ -11,12 +11,9 @@ class RouteResult with _$RouteResult {
     required List<int> path,
     required List<RouteStep> steps,
     required double distance,
-    @JsonKey(name: 'estimated_time')
-    required double estimatedTime,
-    @JsonKey(name: 'mode_id')
-    required String modeId,
-    @JsonKey(name: 'speed_factor')
-    required double speedFactor,
+    @JsonKey(name: 'estimated_time') required double estimatedTime,
+    @JsonKey(name: 'mode_id') required String modeId,
+    @JsonKey(name: 'speed_factor') required double speedFactor,
   }) = _RouteResult;
 
   factory RouteResult.fromJson(Map<String, dynamic> json) =>

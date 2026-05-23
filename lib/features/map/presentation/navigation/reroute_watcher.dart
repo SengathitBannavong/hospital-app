@@ -63,8 +63,7 @@ class RerouteWatcher {
       if (status == null) {
         continue;
       }
-      if (status.blocked ||
-          status.congestion >= kRerouteCongestionThreshold) {
+      if (status.blocked || status.congestion >= kRerouteCongestionThreshold) {
         return RerouteDecision.reroute(
           fromLocation: from,
           toLocation: to,
@@ -77,11 +76,11 @@ class RerouteWatcher {
   }
 
   int _remainingStartIndex(List<int> path, PositionSource position) {
-    final progressIndex = (position.progress.clamp(0.0, 1.0) *
-            (path.length - 1))
-        .floor()
-        .clamp(0, path.length - 2)
-        .toInt();
+    final progressIndex =
+        (position.progress.clamp(0.0, 1.0) * (path.length - 1))
+            .floor()
+            .clamp(0, path.length - 2)
+            .toInt();
     final currentLocation = position.currentLocation;
     if (currentLocation == null) {
       return progressIndex;

@@ -75,11 +75,7 @@ void main() {
       const cachedRoute = RouteResult(
         path: [100, 101, 102],
         steps: [
-          RouteStep(
-            location: 100,
-            maneuver: StepManeuver.start,
-            distance: 1.0,
-          ),
+          RouteStep(location: 100, maneuver: StepManeuver.start, distance: 1.0),
           RouteStep(
             location: 102,
             maneuver: StepManeuver.arrive,

@@ -56,6 +56,7 @@ class _MapPageState extends ConsumerState<MapPage>
   bool _arrivalOrderCommitted = false;
   bool _navCollapsed = false;
   bool _floorSwitchKeepsNavigation = false;
+  bool _showAnalyticsPanel = false;
   final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
   Offset? _debugPoiCenter;
@@ -231,6 +232,14 @@ class _MapPageState extends ConsumerState<MapPage>
     final obstacles =
         ref.watch(mapObstaclesProvider(activeMapId)).valueOrNull ?? const [];
     final flowVisible = ref.watch(flowOverlayVisibleProvider);
+    final edgeStatusVisible = ref.watch(edgeStatusVisibleProvider);
+    final bottlenecksVisible = ref.watch(bottlenecksVisibleProvider);
+    final forecastVisible = ref.watch(forecastVisibleProvider);
+    final forecastHours = ref.watch(forecastHoursProvider);
+    final bottlenecksAsync = ref.watch(bottlenecksProvider(activeMapId));
+    final bottlenecks = bottlenecksAsync.valueOrNull ?? const [];
+    final forecastAsync = ref.watch(forecastProvider(activeMapId));
+    final forecast = forecastAsync.valueOrNull ?? const [];
     final nodes =
         ref.watch(mapNodesProvider(activeMapId)).value ?? const <MapPoi>[];
     final walkable = ref.watch(walkableCellsProvider(activeMapId));
@@ -366,9 +375,15 @@ class _MapPageState extends ConsumerState<MapPage>
                                 cols: cols,
                                 walkableLocations: walkable,
                                 pois: nodes,
-                                flowCells: flow?.cells ?? const [],
+                                flowCells: forecastVisible
+                                    ? forecast
+                                    : (flow?.cells ?? const []),
+                                edgeStatuses: flow?.edgeStatuses ?? const [],
                                 obstacles: obstacles,
-                                showFlowOverlay: flowVisible,
+                                showFlowOverlay: forecastVisible || flowVisible,
+                                showEdgeStatus: edgeStatusVisible,
+                                bottlenecks: bottlenecks,
+                                showBottlenecks: bottlenecksVisible,
                                 routeLocations: routeLocations,
                                 routeProgress: _routeAnim.value,
                                 userDot: navDot,
@@ -497,11 +512,45 @@ class _MapPageState extends ConsumerState<MapPage>
             ),
           ),
 
-          if (flowVisible)
+          if (_showAnalyticsPanel)
+            Positioned(
+              left: AppSpacing.md,
+              bottom: mediaBottom + 252,
+              child: _FlowAnalyticsPanel(
+                isStale: flow?.isStale ?? false,
+                heatmapActive: flowVisible,
+                edgeStatusActive: edgeStatusVisible,
+                bottlenecksActive: bottlenecksVisible,
+                forecastActive: forecastVisible,
+                forecastHours: forecastHours,
+                noLiveHeatmapData: flow == null || flow.cells.isEmpty,
+                noLiveBottlenecksData: bottlenecks.isEmpty,
+                noLiveForecastData: forecast.isEmpty,
+                onHeatmapChanged: (active) {
+                  ref.read(flowOverlayVisibleProvider.notifier).state = active;
+                },
+                onEdgeStatusChanged: (active) {
+                  ref.read(edgeStatusVisibleProvider.notifier).state = active;
+                },
+                onBottlenecksChanged: (active) {
+                  ref.read(bottlenecksVisibleProvider.notifier).state = active;
+                },
+                onForecastChanged: (active) {
+                  ref.read(forecastVisibleProvider.notifier).state = active;
+                },
+                onForecastHoursChanged: (hours) {
+                  ref.read(forecastHoursProvider.notifier).state = hours;
+                },
+              ),
+            )
+          else if (flowVisible)
             Positioned(
               left: AppSpacing.md,
               bottom: mediaBottom + 204,
-              child: _FlowLegend(isStale: flow?.isStale ?? false),
+              child: _FlowLegend(
+                isStale: flow?.isStale ?? false,
+                noData: flow == null || flow.cells.isEmpty,
+              ),
             ),
 
           // Bottom-left FAB cluster: legend + recenter
@@ -524,13 +573,15 @@ class _MapPageState extends ConsumerState<MapPage>
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 _MapFab(
-                  icon: flowVisible
-                      ? Icons.thermostat_rounded
-                      : Icons.thermostat_outlined,
-                  tooltip: flowVisible ? 'Hide flow heatmap' : 'Show heatmap',
+                  icon: _showAnalyticsPanel
+                      ? Icons.analytics_rounded
+                      : Icons.analytics_outlined,
+                  tooltip: 'Flow Analytics Options',
+                  active: _showAnalyticsPanel,
                   onPressed: () {
-                    ref.read(flowOverlayVisibleProvider.notifier).state =
-                        !flowVisible;
+                    setState(() {
+                      _showAnalyticsPanel = !_showAnalyticsPanel;
+                    });
                   },
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -1160,11 +1211,13 @@ class _MapFab extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
+  final bool active;
 
   const _MapFab({
     required this.icon,
     required this.tooltip,
     required this.onPressed,
+    this.active = false,
   });
 
   @override
@@ -1174,7 +1227,7 @@ class _MapFab extends StatelessWidget {
       button: true,
       label: tooltip,
       child: Material(
-        color: scheme.surface,
+        color: active ? scheme.primaryContainer : scheme.surface,
         elevation: 2,
         shadowColor: scheme.shadow,
         shape: const CircleBorder(),
@@ -1184,7 +1237,11 @@ class _MapFab extends StatelessWidget {
           child: SizedBox(
             width: 44,
             height: 44,
-            child: Icon(icon, size: 22, color: scheme.onSurface),
+            child: Icon(
+              icon,
+              size: 22,
+              color: active ? scheme.primary : scheme.onSurface,
+            ),
           ),
         ),
       ),
@@ -1641,8 +1698,9 @@ class _PillData {
 
 class _FlowLegend extends StatelessWidget {
   final bool isStale;
+  final bool noData;
 
-  const _FlowLegend({required this.isStale});
+  const _FlowLegend({required this.isStale, this.noData = false});
 
   @override
   Widget build(BuildContext context) {
@@ -1665,18 +1723,37 @@ class _FlowLegend extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const _LegendSwatch(color: Color(0xFFFFD166)),
-                const SizedBox(width: 4),
-                Text('0', style: context.textTheme.labelSmall),
-                const SizedBox(width: AppSpacing.sm),
-                const _LegendSwatch(color: Color(0xFFE63946)),
-                const SizedBox(width: 4),
-                Text('1 density', style: context.textTheme.labelSmall),
-              ],
-            ),
+            if (noData)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 14,
+                    color: scheme.error,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'No live flow data',
+                    style: context.textTheme.labelSmall?.copyWith(
+                      color: scheme.error,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _LegendSwatch(color: Color(0xFFFFD166)),
+                  const SizedBox(width: 4),
+                  Text('0', style: context.textTheme.labelSmall),
+                  const SizedBox(width: AppSpacing.sm),
+                  const _LegendSwatch(color: Color(0xFFE63946)),
+                  const SizedBox(width: 4),
+                  Text('1 density', style: context.textTheme.labelSmall),
+                ],
+              ),
           ],
         ),
       ),
@@ -1697,6 +1774,286 @@ class _LegendSwatch extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(4),
+      ),
+    );
+  }
+}
+
+class _FlowAnalyticsPanel extends StatelessWidget {
+  final bool isStale;
+  final bool heatmapActive;
+  final bool edgeStatusActive;
+  final bool bottlenecksActive;
+  final bool forecastActive;
+  final int forecastHours;
+  final bool noLiveHeatmapData;
+  final bool noLiveBottlenecksData;
+  final bool noLiveForecastData;
+  final ValueChanged<bool> onHeatmapChanged;
+  final ValueChanged<bool> onEdgeStatusChanged;
+  final ValueChanged<bool> onBottlenecksChanged;
+  final ValueChanged<bool> onForecastChanged;
+  final ValueChanged<int> onForecastHoursChanged;
+
+  const _FlowAnalyticsPanel({
+    required this.isStale,
+    required this.heatmapActive,
+    required this.edgeStatusActive,
+    required this.bottlenecksActive,
+    required this.forecastActive,
+    required this.forecastHours,
+    required this.noLiveHeatmapData,
+    required this.noLiveBottlenecksData,
+    required this.noLiveForecastData,
+    required this.onHeatmapChanged,
+    required this.onEdgeStatusChanged,
+    required this.onBottlenecksChanged,
+    required this.onForecastChanged,
+    required this.onForecastHoursChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Material(
+      color: scheme.surface,
+      elevation: 3,
+      shadowColor: scheme.shadow,
+      borderRadius: AppRadius.borderMd,
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isStale ? 'Flow Analytics · stale' : 'Flow Analytics',
+                  style: context.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: scheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: AppSpacing.md),
+
+            // 1. Heatmap / Density
+            _AnalyticsRow(
+              title: 'Density Heatmap',
+              active: heatmapActive,
+              onChanged: onHeatmapChanged,
+            ),
+            if (heatmapActive) ...[
+              const SizedBox(height: AppSpacing.xs),
+              if (noLiveHeatmapData)
+                Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 12,
+                      color: scheme.error,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'No live flow data',
+                      style: context.textTheme.labelSmall?.copyWith(
+                        color: scheme.error,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    const _LegendSwatch(color: Color(0xFFFFD166)),
+                    const SizedBox(width: 4),
+                    Text('0', style: context.textTheme.labelSmall),
+                    const SizedBox(width: AppSpacing.sm),
+                    const _LegendSwatch(color: Color(0xFFE63946)),
+                    const SizedBox(width: 4),
+                    Text('1 density', style: context.textTheme.labelSmall),
+                  ],
+                ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+
+            // 2. Edge status / congestion
+            _AnalyticsRow(
+              title: 'Corridor Status',
+              active: edgeStatusActive,
+              onChanged: onEdgeStatusChanged,
+            ),
+            if (edgeStatusActive) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                children: [
+                  Container(
+                    width: 14,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xCCE53935),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text('Blocked', style: context.textTheme.labelSmall),
+                  const SizedBox(width: AppSpacing.sm),
+                  Container(
+                    width: 14,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xCCFF5722),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text('Congested', style: context.textTheme.labelSmall),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+
+            // 3. Bottlenecks
+            _AnalyticsRow(
+              title: 'Top-N Bottlenecks',
+              active: bottlenecksActive,
+              onChanged: onBottlenecksChanged,
+            ),
+            if (bottlenecksActive) ...[
+              const SizedBox(height: AppSpacing.xs),
+              if (noLiveBottlenecksData)
+                Text(
+                  'No bottlenecks detected',
+                  style: context.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                )
+              else
+                Row(
+                  children: [
+                    Container(
+                      width: 14,
+                      height: 14,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD32F2F),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '1',
+                        style: context.textTheme.labelSmall?.copyWith(
+                          color: const Color(0xFFFAFCFE),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Ranked hotspots',
+                      style: context.textTheme.labelSmall,
+                    ),
+                  ],
+                ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+
+            // 4. Forecast
+            _AnalyticsRow(
+              title: 'Flow Forecast',
+              active: forecastActive,
+              onChanged: onForecastChanged,
+            ),
+            if (forecastActive) ...[
+              const SizedBox(height: AppSpacing.xs),
+              if (noLiveForecastData) ...[
+                Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_off_rounded,
+                      size: 12,
+                      color: scheme.error,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Forecast unavailable',
+                      style: context.textTheme.labelSmall?.copyWith(
+                        color: scheme.error,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+              ],
+              Text(
+                'Offset: $forecastHours hr${forecastHours > 1 ? 's' : ''}',
+                style: context.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SliderTheme(
+                data: SliderThemeData(
+                  trackHeight: 3.0,
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6.0,
+                  ),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 12.0,
+                  ),
+                  activeTrackColor: scheme.primary,
+                  inactiveTrackColor: scheme.primaryContainer.withValues(
+                    alpha: 0.24,
+                  ),
+                  thumbColor: scheme.primary,
+                ),
+                child: Slider(
+                  value: forecastHours.toDouble(),
+                  min: 1.0,
+                  max: 12.0,
+                  divisions: 11,
+                  onChanged: (val) => onForecastHoursChanged(val.toInt()),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnalyticsRow extends StatelessWidget {
+  final String title;
+  final bool active;
+  final ValueChanged<bool> onChanged;
+
+  const _AnalyticsRow({
+    required this.title,
+    required this.active,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: context.textTheme.bodyMedium),
+          Transform.scale(
+            scale: 0.75,
+            child: Switch(
+              value: active,
+              onChanged: onChanged,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
       ),
     );
   }

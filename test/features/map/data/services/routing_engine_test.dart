@@ -175,28 +175,25 @@ void main() {
       expect(fromStart.path, [1, 2]);
     });
 
-    test(
-      'falls back to unrestricted path when POI blocking '
-      'isolates the destination',
-      () {
-        // Only path is 0→1→2 and node 1 is a POI. With
-        // POI restriction the path is empty, so the engine
-        // should fall back to unrestricted routing.
-        final result = RoutingEngine().route(
-          startLocation: 0,
-          destLocation: 2,
-          modeId: 'walking',
-          adjacency: const {
-            0: [1],
-            1: [0, 2],
-            2: [1],
-          },
-          cols: 3,
-          poiCells: {1},
-        );
+    test('falls back to unrestricted path when POI blocking '
+        'isolates the destination', () {
+      // Only path is 0→1→2 and node 1 is a POI. With
+      // POI restriction the path is empty, so the engine
+      // should fall back to unrestricted routing.
+      final result = RoutingEngine().route(
+        startLocation: 0,
+        destLocation: 2,
+        modeId: 'walking',
+        adjacency: const {
+          0: [1],
+          1: [0, 2],
+          2: [1],
+        },
+        cols: 3,
+        poiCells: {1},
+      );
 
-        expect(result.path, [0, 1, 2]);
-      },
-    );
+      expect(result.path, [0, 1, 2]);
+    });
   });
 }

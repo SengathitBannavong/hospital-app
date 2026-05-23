@@ -2,6 +2,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
+import 'package:hospital_app/features/map/data/models/flow_cell.dart';
 import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
@@ -93,6 +94,45 @@ final mapConnectivityProvider = StreamProvider<bool>((ref) async* {
 final mapInlineNoticeProvider = StateProvider<String?>((ref) => null);
 
 final flowOverlayVisibleProvider = StateProvider<bool>((ref) => false);
+
+final edgeStatusVisibleProvider = StateProvider<bool>((ref) => false);
+
+final bottlenecksVisibleProvider = StateProvider<bool>((ref) => false);
+
+final forecastVisibleProvider = StateProvider<bool>((ref) => false);
+
+final forecastHoursProvider = StateProvider<int>((ref) => 2);
+
+final bottlenecksProvider = FutureProvider.autoDispose
+    .family<List<FlowCell>, int>((ref, mapId) async {
+      final repository = ref.watch(mapRepositoryProvider);
+      final isOnline = ref.watch(mapConnectivityProvider).valueOrNull ?? false;
+      if (!isOnline) {
+        return const <FlowCell>[];
+      }
+      try {
+        return await repository.getFlowBottlenecks();
+      } catch (_) {
+        return const <FlowCell>[];
+      }
+    });
+
+final forecastProvider = FutureProvider.family<List<FlowCell>, int>((
+  ref,
+  mapId,
+) async {
+  final repository = ref.watch(mapRepositoryProvider);
+  final hours = ref.watch(forecastHoursProvider);
+  final isOnline = ref.watch(mapConnectivityProvider).valueOrNull ?? false;
+  if (!isOnline) {
+    return const <FlowCell>[];
+  }
+  try {
+    return await repository.getFlowForecast(hours: hours);
+  } catch (_) {
+    return const <FlowCell>[];
+  }
+});
 
 final flowSnapshotProvider = FutureProvider.family<FlowSnapshot, int>((
   ref,
@@ -358,7 +398,8 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
   // recompute (e.g. a connection drop or a flow/obstacle refresh) can't swap the
   // drawn path out from under the moving dot. Cleared when navigation ends.
   final navPhase = ref.watch(navPhaseProvider);
-  final navActive = navPhase == NavPhase.navigating ||
+  final navActive =
+      navPhase == NavPhase.navigating ||
       navPhase == NavPhase.paused ||
       navPhase == NavPhase.arrived;
   if (navActive) {
@@ -390,8 +431,7 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
     obstacles: obstacles,
     adjacency: adjacency,
   );
-  final poiCells =
-      ref.watch(poiByCellProvider(mapId)).keys.toSet();
+  final poiCells = ref.watch(poiByCellProvider(mapId)).keys.toSet();
 
   return service.route(
     mapId: mapId,

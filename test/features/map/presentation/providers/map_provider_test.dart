@@ -323,16 +323,10 @@ void _addNormalizedHarness() {
       final fakeRepo = FakeMapRepository(
         onGetMeta: () async => meta,
         onGetNodes: () async => nodes,
-        onGetEdges: () async => MapEdgesResponse(
-          edges: edges,
-          mapId: 99,
-          total: edges.length,
-        ),
-        onSyncFull: () async => const MapSyncFull(
-          maps: [],
-          pois: [],
-          edges: [],
-        ),
+        onGetEdges: () async =>
+            MapEdgesResponse(edges: edges, mapId: 99, total: edges.length),
+        onSyncFull: () async =>
+            const MapSyncFull(maps: [], pois: [], edges: []),
       );
 
       final container = ProviderContainer(
@@ -445,11 +439,8 @@ void _addNormalizedHarness() {
 
         // 2. Call syncFull with empty stub response
         final fakeRepo = FakeMapRepository(
-          onSyncFull: () async => const MapSyncFull(
-            maps: [],
-            pois: [],
-            edges: [],
-          ),
+          onSyncFull: () async =>
+              const MapSyncFull(maps: [], pois: [], edges: []),
         );
 
         final container = ProviderContainer(

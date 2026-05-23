@@ -224,15 +224,9 @@ class MapCacheService {
         .toList();
   }
 
-  Future<void> saveMeta({
-    required int mapId,
-    required MapFloor meta,
-  }) async {
+  Future<void> saveMeta({required int mapId, required MapFloor meta}) async {
     final box = await _openBox();
-    await box.put(
-      _metaKey(mapId),
-      jsonEncode(meta.toJson()),
-    );
+    await box.put(_metaKey(mapId), jsonEncode(meta.toJson()));
   }
 
   Future<MapFloor?> loadMeta({required int mapId}) async {
@@ -257,10 +251,7 @@ class MapCacheService {
   Future<void> saveActiveRoute(RouteResult result) async {
     final box = await _openBox();
     await box.put(_activeRouteKey, jsonEncode(result.toJson()));
-    await box.put(
-      _activeRouteAtKey,
-      DateTime.now().toUtc().toIso8601String(),
-    );
+    await box.put(_activeRouteAtKey, DateTime.now().toUtc().toIso8601String());
   }
 
   Future<RouteResult?> loadActiveRoute({
@@ -369,11 +360,6 @@ class MapCacheService {
 
   String get _activeRouteAtKey => 'route:active:at';
 
-  String _routeKey(
-    int mapId,
-    int start,
-    int dest,
-    String mode,
-  ) =>
+  String _routeKey(int mapId, int start, int dest, String mode) =>
       'route:$mapId:$start:$dest:$mode';
 }

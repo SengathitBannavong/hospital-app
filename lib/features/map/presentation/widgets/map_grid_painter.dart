@@ -2,6 +2,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
 import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
@@ -44,8 +45,12 @@ class MapGridPainter extends CustomPainter {
   final Set<int> walkableLocations;
   final List<MapPoi> pois;
   final List<FlowCell> flowCells;
+  final List<EdgeStatus> edgeStatuses;
   final List<MapObstacle> obstacles;
   final bool showFlowOverlay;
+  final bool showEdgeStatus;
+  final List<FlowCell> bottlenecks;
+  final bool showBottlenecks;
   final List<int> routeLocations;
   final double routeProgress;
   final NavDot? userDot;
@@ -61,8 +66,12 @@ class MapGridPainter extends CustomPainter {
     required this.walkableLocations,
     required this.pois,
     this.flowCells = const <FlowCell>[],
+    this.edgeStatuses = const <EdgeStatus>[],
     this.obstacles = const <MapObstacle>[],
     this.showFlowOverlay = false,
+    this.showEdgeStatus = false,
+    this.bottlenecks = const <FlowCell>[],
+    this.showBottlenecks = false,
     required this.routeLocations,
     this.routeProgress = 1.0,
     this.userDot,
@@ -130,6 +139,18 @@ class MapGridPainter extends CustomPainter {
       );
     }
 
+    if (showEdgeStatus && edgeStatuses.isNotEmpty) {
+      _paintEdgeStatus(
+        canvas,
+        cellWidth,
+        cellHeight,
+        rowStart,
+        rowEnd,
+        colStart,
+        colEnd,
+      );
+    }
+
     final radius = math.min(cellWidth, cellHeight) * 0.35;
 
     for (final poi in pois) {
@@ -143,6 +164,18 @@ class MapGridPainter extends CustomPainter {
       final center = _poiCenter(poi, cellWidth, cellHeight);
       final paint = _poiPaints[poi.poiType] ?? _poiFallbackPaint;
       canvas.drawCircle(center, radius, paint);
+    }
+
+    if (showBottlenecks && bottlenecks.isNotEmpty) {
+      _paintBottlenecks(
+        canvas,
+        cellWidth,
+        cellHeight,
+        rowStart,
+        rowEnd,
+        colStart,
+        colEnd,
+      );
     }
 
     if (userDot != null) {
@@ -373,14 +406,140 @@ class MapGridPainter extends CustomPainter {
         poi.gridCol < cols;
   }
 
+  void _paintEdgeStatus(
+    Canvas canvas,
+    double cellWidth,
+    double cellHeight,
+    int rowStart,
+    int rowEnd,
+    int colStart,
+    int colEnd,
+  ) {
+    final paint = Paint()
+      ..strokeWidth = math.min(cellWidth, cellHeight) * 0.28
+      ..strokeCap = StrokeCap.round;
+
+    for (final status in edgeStatuses) {
+      final fromRow = status.fromLocation ~/ cols;
+      final fromCol = status.fromLocation % cols;
+      final toRow = status.toLocation ~/ cols;
+      final toCol = status.toLocation % cols;
+
+      if (fromRow < 0 || fromRow >= rows || fromCol < 0 || fromCol >= cols) {
+        continue;
+      }
+      if (toRow < 0 || toRow >= rows || toCol < 0 || toCol >= cols) {
+        continue;
+      }
+
+      final isFromVisible =
+          fromRow >= rowStart &&
+          fromRow <= rowEnd &&
+          fromCol >= colStart &&
+          fromCol <= colEnd;
+      final isToVisible =
+          toRow >= rowStart &&
+          toRow <= rowEnd &&
+          toCol >= colStart &&
+          toCol <= colEnd;
+      if (!isFromVisible && !isToVisible) {
+        continue;
+      }
+
+      final fromCenter = _cellCenter(
+        status.fromLocation,
+        cellWidth,
+        cellHeight,
+      );
+      final toCenter = _cellCenter(status.toLocation, cellWidth, cellHeight);
+
+      if (status.blocked) {
+        paint.color = const Color(0xCCE53935);
+      } else {
+        paint.color = Color.lerp(
+          const Color(0x22FFB74D),
+          const Color(0xCCFF5722),
+          status.congestion.clamp(0.0, 1.0).toDouble(),
+        )!;
+      }
+
+      canvas.drawLine(fromCenter, toCenter, paint);
+    }
+  }
+
+  void _paintBottlenecks(
+    Canvas canvas,
+    double cellWidth,
+    double cellHeight,
+    int rowStart,
+    int rowEnd,
+    int colStart,
+    int colEnd,
+  ) {
+    final textPainter = TextPainter(textDirection: TextDirection.ltr);
+
+    for (var i = 0; i < bottlenecks.length; i++) {
+      final cell = bottlenecks[i];
+      final row = cell.location ~/ cols;
+      final col = cell.location % cols;
+
+      if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
+      if (row < rowStart || row > rowEnd || col < colStart || col > colEnd) {
+        continue;
+      }
+
+      final center = _cellCenter(cell.location, cellWidth, cellHeight);
+      final radius = math.min(cellWidth, cellHeight) * 0.38;
+
+      final pinPaint = Paint()
+        ..color = const Color(0xFFD32F2F)
+        ..style = PaintingStyle.fill;
+
+      final borderPaint = Paint()
+        ..color = const Color(0xFFFAFCFE)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      final shadowPaint = Paint()
+        ..color = Colors.black.withValues(alpha: 0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0);
+
+      canvas.drawCircle(center + const Offset(0, 1.5), radius, shadowPaint);
+      canvas.drawCircle(center, radius, pinPaint);
+      canvas.drawCircle(center, radius, borderPaint);
+
+      final textSpan = TextSpan(
+        text: '${i + 1}',
+        style: TextStyle(
+          color: const Color(0xFFFAFCFE),
+          fontSize: radius * 1.1,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+
+      textPainter.text = textSpan;
+      textPainter.layout();
+
+      final textOffset = Offset(
+        center.dx - textPainter.width / 2,
+        center.dy - textPainter.height / 2,
+      );
+      textPainter.paint(canvas, textOffset);
+    }
+  }
+
   @override
   bool shouldRepaint(covariant MapGridPainter oldDelegate) {
     return !identical(oldDelegate.pois, pois) ||
         !identical(oldDelegate.walkableLocations, walkableLocations) ||
         !identical(oldDelegate.flowCells, flowCells) ||
+        !identical(oldDelegate.edgeStatuses, edgeStatuses) ||
         !identical(oldDelegate.obstacles, obstacles) ||
         !identical(oldDelegate.routeLocations, routeLocations) ||
+        !identical(oldDelegate.bottlenecks, bottlenecks) ||
         oldDelegate.showFlowOverlay != showFlowOverlay ||
+        oldDelegate.showEdgeStatus != showEdgeStatus ||
+        oldDelegate.showBottlenecks != showBottlenecks ||
         oldDelegate.routeProgress != routeProgress ||
         oldDelegate.userDot != userDot ||
         oldDelegate.navProgress != navProgress ||

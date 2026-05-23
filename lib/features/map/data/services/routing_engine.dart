@@ -39,9 +39,7 @@ class RoutingEngine {
     }
 
     if (path.isEmpty) {
-      throw Exception(
-        'No offline route found for the selected points.',
-      );
+      throw Exception('No offline route found for the selected points.');
     }
 
     final distance = _pathDistance(path, cols);
@@ -50,8 +48,7 @@ class RoutingEngine {
       path: path,
       steps: _buildSteps(path, cols),
       distance: distance,
-      estimatedTime:
-          speedFactor <= 0 ? 0 : distance / speedFactor,
+      estimatedTime: speedFactor <= 0 ? 0 : distance / speedFactor,
       modeId: modeId,
       speedFactor: speedFactor,
     );
@@ -86,16 +83,13 @@ class RoutingEngine {
         break;
       }
 
-      for (final next in adjacency[current.location] ??
-          const <int>[]) {
+      for (final next in adjacency[current.location] ?? const <int>[]) {
         // Skip POI cells as intermediate pass-through nodes;
         // they may still be the destination.
-        if (poiCells.contains(next) &&
-            next != destLocation) {
+        if (poiCells.contains(next) && next != destLocation) {
           continue;
         }
-        final edgeStatus =
-            edgeStatuses[_edgeKey(current.location, next)];
+        final edgeStatus = edgeStatuses[_edgeKey(current.location, next)];
         if (edgeStatus?.blocked ?? false) {
           continue;
         }
@@ -139,7 +133,8 @@ class RoutingEngine {
     required double congestion,
   }) {
     final penalty = congestion.clamp(0, 1).toDouble();
-    return _cellDistance(from, to, cols) * modeCostMultiplier(modeId) *
+    return _cellDistance(from, to, cols) *
+        modeCostMultiplier(modeId) *
         (1 + penalty);
   }
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
@@ -854,5 +855,10 @@ class MapRepository {
       return result;
     }
     return const <String, String>{};
+  }
+
+  @visibleForTesting
+  List<FlowAlert> parseFlowAlertsForTesting(dynamic json) {
+    return _parseFlowAlerts(json);
   }
 }
