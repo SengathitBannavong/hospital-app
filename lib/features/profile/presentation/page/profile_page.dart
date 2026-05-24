@@ -108,12 +108,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       appBar: AppBar(
         title: Text(_isEditing ? 'Chỉnh sửa hồ sơ' : 'Hồ sơ người dùng'),
         actions: [
-          if (!_isEditing)
+          if (!_isEditing) ...[
             IconButton(
               icon: const Icon(Icons.refresh_rounded),
               onPressed: () =>
                   ref.read(profileProvider.notifier).fetchProfile(),
             ),
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: 'Cài đặt',
+              onPressed: () => context.push('/settings'),
+            ),
+          ],
         ],
       ),
       body: profileState.when(

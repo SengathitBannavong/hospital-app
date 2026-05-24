@@ -15,6 +15,7 @@ Admin-only web, traffic-control, and algorithm-engine features are intentionally
 - [x] Notification endpoints/repositories/pages are wired into the app shell.
 - [ ] SOS endpoints/repositories/pages are not wired into the app shell yet.
 - [x] Static info pages are visible in the current route tree (`/info`).
+- [x] Settings page exists at `/settings`, accessible via gear icon in Profile page AppBar: theme switcher, notification toggles, change-password shortcut, logout, and app info.
 - [ ] Several patient/public Swagger-backed features are not wired into the mobile app yet: voice support, active route guidance, asset booking, staff request, chat/FAQ, utilities, and feedback.
 - [ ] Demo flow and final QA checklist still need execution.
 
@@ -176,6 +177,8 @@ Scope: features available in `swagger.yaml` for patient/public/mobile use, exclu
 - [ ] Patient traffic awareness and reporting are missing even though public Flow APIs exist for density, heatmap, alerts, ping location, and obstacle reports.
 - [ ] User settings page is not wired for language/theme/notification preferences even though `user/get_settings` and `user/set_settings` exist in Swagger.
 
+
+
 ## Chat 8: Polish + Demo Prep
 
 Scope: loading states, animations, error handling, demo script execution.
@@ -194,16 +197,41 @@ Scope: loading states, animations, error handling, demo script execution.
 - [ ] Manually verify profile flow: fetch profile, edit fields, update avatar if supported.
 - [ ] Prepare seeded test account and backend URL/config for demo.
 - [ ] Prepare short demo script with expected screens and fallback plan if backend is unavailable.
+## Chat 9: Settings Module
+
+Scope: user settings page covering account, appearance, notifications, and app information.
+
+
+
+
+- [x] "Change password" button — navigates to `/change-password` (page already exists).
+- [x] "Logout" button — shows a confirmation AlertDialog, then calls `authStateProvider.notifier.logout()`.
+- [x] Theme selection is shown with `SegmentedButton<ThemeMode>` with 3 options: Light / System / Dark.
+- [x] `ThemeController.setThemeMode(ThemeMode)` was added to `lib/core/theme/theme_controller.dart` to support direct selection (in addition to the existing `toggleTheme()`).
+- [x] Theme state updates in real time through `ListenableBuilder` — `themeController` is a global `ChangeNotifier`.
+- [ ] Theme selection is not persisted across restarts yet (SharedPreferences or Hive needed).
+- [x] Toggle "Enable notifications" — turns all notifications on/off (in-memory state).
+- [x] Toggle "Appointment reminders" — automatically disabled when global notifications are turned off.
+- [ ] Not wired to the `user/get_settings` / `user/set_settings` APIs.
+- [ ] Not wired to the device push token (`user/set_devtoken`).
+- [x] "Help & Support" — navigates to `/info` (FAQ page already exists).
+- [x] "About app" — opens `showAboutDialog` with the app name, version, and a short description.
+- [x] "Version" — shows static `1.0.0`.
+- [ ] Not wired to the real version from `sys/check_version`.
+
+
 
 ## Suggested Next Build Order
 
-1. Finish Chat 5 notification UI/API wiring.
-2. Finish Chat 6 SOS and static info pages.
-3. Turn Home into the patient dashboard: replace demo cards/actions with real task, notification, utility, route, SOS, and asset entry points.
-4. Add patient utility pages backed by Swagger: FAQ, contact/about, pharmacy, canteen, parking, Wi-Fi, weather, and feedback.
-5. Add device/asset flow: stations, available wheelchairs, booking, release, health, track, report broken, and staff request.
-6. Add active route guidance: order active route, steps, next step, ETA, pass-node, recalculate, cancel, share, and rate.
-7. Add floor switching to the map module.
-8. Replace Home appointment placeholder with real appointment data or remove it from demo scope.
-9. Add focused tests for new Home, notification, SOS, utilities, assets, route guidance, auth, and medical state.
-10. Run full format/analyze/test and execute the demo script.
+1. Persist Settings: wire SharedPreferences/Hive cho chủ đề và toggle thông báo trong Settings page.
+2. Wire Settings thông báo tới API `user/get_settings` / `user/set_settings` và `user/set_devtoken`.
+3. Finish Chat 5 notification UI/API wiring (unread badge, pagination, push token).
+4. Finish Chat 6 SOS and static info pages.
+5. Turn Home into the patient dashboard: replace demo cards/actions with real task, notification, utility, route, SOS, and asset entry points.
+6. Add patient utility pages backed by Swagger: FAQ, contact/about, pharmacy, canteen, parking, Wi-Fi, weather, and feedback.
+7. Add device/asset flow: stations, available wheelchairs, booking, release, health, track, report broken, and staff request.
+8. Add active route guidance: order active route, steps, next step, ETA, pass-node, recalculate, cancel, share, and rate.
+9. Add floor switching to the map module.
+10. Replace Home appointment placeholder with real appointment data or remove it from demo scope.
+11. Add focused tests for new Home, notification, SOS, utilities, assets, route guidance, auth, and medical state.
+12. Run full format/analyze/test and execute the demo script.

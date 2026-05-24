@@ -92,6 +92,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final quickActionColumns = width < 600 ? 4 : 6;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -137,20 +140,44 @@ class _HomePageState extends ConsumerState<HomePage> {
                 child: Card(
                   child: Padding(
                     padding: AppSpacing.cardPaddingLarge,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Text(
-                          'Chào mừng bạn!',
-                          style: context.textTheme.headlineSmall?.copyWith(
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color:
+                                context.colorScheme.primary.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.favorite_rounded,
+                            size: 20,
                             color: context.colorScheme.primary,
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          'Sức khỏe của bạn là ưu tiên hàng đầu của chúng tôi. '
-                          'Hệ thống đang hoạt động ổn định.',
-                          style: context.textTheme.bodyMedium,
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Chào mừng bạn!',
+                                style: context.textTheme.titleLarge?.copyWith(
+                                  color: context.colorScheme.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                'Sức khỏe của bạn là ưu tiên hàng đầu của chúng tôi. '
+                                'Hệ thống đang hoạt động ổn định.',
+                                style: context.textTheme.bodyMedium?.copyWith(
+                                  color: context.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -247,31 +274,44 @@ class _HomePageState extends ConsumerState<HomePage> {
 
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 500),
-                child: Wrap(
-                  spacing: AppSpacing.md,
-                  runSpacing: AppSpacing.md,
-                  children: [
-                    _QuickActionCard(
-                      title: 'Bản đồ',
-                      icon: Icons.map_rounded,
-                      onTap: () => context.go('/map'),
-                    ),
-                    _QuickActionCard(
-                      title: 'Y tế',
-                      icon: Icons.local_hospital_rounded,
-                      onTap: () => context.go('/medical'),
-                    ),
-                    _QuickActionCard(
-                      title: 'Hồ sơ',
-                      icon: Icons.person_rounded,
-                      onTap: () => context.go('/profile'),
-                    ),
-                    _QuickActionCard(
-                      title: 'FAQ',
-                      icon: Icons.help_outline_rounded,
-                      onTap: () => context.go('/faq'),
-                    ),
-                  ],
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: quickActionColumns,
+                    mainAxisSpacing: AppSpacing.md,
+                    crossAxisSpacing: AppSpacing.md,
+                    mainAxisExtent: width < 600 ? 88 : 96,
+                  ),
+                  itemCount: 4,
+                  itemBuilder: (context, index) {
+                    switch (index) {
+                      case 0:
+                        return _QuickActionCard(
+                          title: 'Bản đồ',
+                          icon: Icons.map_rounded,
+                          onTap: () => context.go('/map'),
+                        );
+                      case 1:
+                        return _QuickActionCard(
+                          title: 'Y tế',
+                          icon: Icons.local_hospital_rounded,
+                          onTap: () => context.go('/medical'),
+                        );
+                      case 2:
+                        return _QuickActionCard(
+                          title: 'Hồ sơ',
+                          icon: Icons.person_rounded,
+                          onTap: () => context.go('/profile'),
+                        );
+                      default:
+                        return _QuickActionCard(
+                          title: 'FAQ',
+                          icon: Icons.help_outline_rounded,
+                          onTap: () => context.go('/faq'),
+                        );
+                    }
+                  },
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -336,25 +376,45 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 150,
-      child: Card(
-        child: InkWell(
-          borderRadius: AppRadius.borderLg,
-          onTap: onTap,
-          child: Padding(
-            padding: AppSpacing.cardPadding,
-            child: Column(
-              children: [
-                Icon(icon, size: 32, color: context.colorScheme.primary),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  title,
-                  style: context.textTheme.labelLarge,
-                  textAlign: TextAlign.center,
+    return Card(
+      child: InkWell(
+        borderRadius: AppRadius.borderLg,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.sm,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: context.colorScheme.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
                 ),
-              ],
-            ),
+                child: Icon(
+                  icon,
+                  size: 16,
+                  color: context.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              SizedBox(
+                height: 16,
+                child: Center(
+                  child: Text(
+                    title,
+                    style: context.textTheme.labelMedium,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
