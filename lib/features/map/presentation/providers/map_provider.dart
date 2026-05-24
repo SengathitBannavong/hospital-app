@@ -17,7 +17,6 @@ import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 import 'package:hospital_app/features/map/data/services/flow_service.dart';
 import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
-import 'package:hospital_app/features/map/data/services/map_perf_debug.dart';
 import 'package:hospital_app/features/map/data/services/report_queue.dart';
 import 'package:hospital_app/features/map/data/services/routing_engine.dart';
 import 'package:hospital_app/features/map/data/services/routing_service.dart';
@@ -215,16 +214,11 @@ final mapNodesProvider = FutureProvider.family<List<MapPoi>, int>((
   ref,
   mapId,
 ) async {
-  final sw = Stopwatch()..start();
   final repository = ref.watch(mapRepositoryProvider);
   final cache = ref.read(mapCacheProvider);
   try {
     final nodes = await repository.getNodes(mapId: mapId);
     await cache.saveNodes(mapId: mapId, nodes: nodes);
-    perfLog(
-      'mapNodesProvider mapId=$mapId resolved '
-      'count=${nodes.length} took=${sw.elapsedMilliseconds}ms',
-    );
     return nodes;
   } catch (_) {
     final cached = await cache.loadNodes(mapId: mapId);
@@ -243,16 +237,11 @@ final mapEdgesProvider = FutureProvider.family<List<MapEdge>, int>((
   ref,
   mapId,
 ) async {
-  final sw = Stopwatch()..start();
   final repository = ref.watch(mapRepositoryProvider);
   final cache = ref.read(mapCacheProvider);
 
   final cached = await cache.loadEdges(mapId: mapId);
   if (cached.isNotEmpty) {
-    perfLog(
-      'mapEdgesProvider mapId=$mapId resolved=CACHE '
-      'count=${cached.length} took=${sw.elapsedMilliseconds}ms',
-    );
     return cached;
   }
 
@@ -270,10 +259,6 @@ final mapEdgesProvider = FutureProvider.family<List<MapEdge>, int>((
         await cache.saveEdges(mapId: mapId, edges: response.edges);
       }
     }
-    perfLog(
-      'mapEdgesProvider mapId=$mapId resolved=NETWORK '
-      'count=${response.edges.length} took=${sw.elapsedMilliseconds}ms',
-    );
     return response.edges;
   } catch (_) {
     final syncFull = await _cachedOrOnlineSyncFull(ref, mapId);
@@ -344,7 +329,6 @@ final poiByCellProvider = Provider.family<Map<int, MapPoi>, int>((ref, mapId) {
 
 // Walkable cell set derived from edges. Stable identity until edges change.
 final walkableCellsProvider = Provider.family<Set<int>, int>((ref, mapId) {
-  final sw = Stopwatch()..start();
   final edges = ref.watch(mapEdgesProvider(mapId)).value ?? const <MapEdge>[];
   final result = <int>{};
   for (final edge in edges) {
@@ -352,10 +336,6 @@ final walkableCellsProvider = Provider.family<Set<int>, int>((ref, mapId) {
       ..add(edge.fromLocation)
       ..add(edge.toLocation);
   }
-  perfLog(
-    'walkableCellsProvider mapId=$mapId edges=${edges.length} '
-    'cells=${result.length} build=${sw.elapsedMilliseconds}ms',
-  );
   return result;
 });
 
@@ -391,17 +371,12 @@ final adjacencyProvider = Provider.family<Map<int, List<int>>, int>((
   ref,
   mapId,
 ) {
-  final sw = Stopwatch()..start();
   final edges = ref.watch(mapEdgesProvider(mapId)).value ?? const <MapEdge>[];
   final result = <int, List<int>>{};
   for (final edge in edges) {
     result.putIfAbsent(edge.fromLocation, () => <int>[]).add(edge.toLocation);
     result.putIfAbsent(edge.toLocation, () => <int>[]).add(edge.fromLocation);
   }
-  perfLog(
-    'adjacencyProvider mapId=$mapId edges=${edges.length} '
-    'nodes=${result.length} build=${sw.elapsedMilliseconds}ms',
-  );
   return result;
 });
 

@@ -16,7 +16,6 @@ import 'models/map_sync_full.dart';
 import 'models/route_clear_history.dart';
 import 'models/route_history.dart';
 import 'models/route_mode.dart';
-import 'services/map_perf_debug.dart';
 
 enum _MapHttpMethod { get, post, delete }
 
@@ -30,10 +29,7 @@ class MapRepository {
     Map<String, dynamic>? queryParameters,
     Object? data,
     bool requireData = false,
-    void Function(int netMs)? onResponse,
-    void Function(int netMs, int elapsedMs, T? data)? onDecoded,
   }) async {
-    final sw = Stopwatch()..start();
     try {
       final response = switch (method) {
         _MapHttpMethod.get => await ApiClient.instance.get(
@@ -51,11 +47,8 @@ class MapRepository {
           queryParameters: queryParameters,
         ),
       };
-      final netMs = sw.elapsedMilliseconds;
-      onResponse?.call(netMs);
 
       final apiResponse = AuthApiResponse<T>.fromJson(response.data, fromJson);
-      onDecoded?.call(netMs, sw.elapsedMilliseconds, apiResponse.data);
 
       if (apiResponse.code == ApiResponseCodes.success) {
         if (requireData && apiResponse.data == null) {
@@ -89,13 +82,6 @@ class MapRepository {
       fromJson: (json) => (json as List<dynamic>)
           .map((item) => MapPoi.fromJson(item as Map<String, dynamic>))
           .toList(),
-      onDecoded: (netMs, elapsedMs, data) {
-        perfLog(
-          'getNodes mapId=$mapId net=${netMs}ms '
-          'parse=${elapsedMs - netMs}ms '
-          'count=${data?.length ?? 0}',
-        );
-      },
     );
     return nodes ?? [];
   }
@@ -108,13 +94,6 @@ class MapRepository {
       fromJson: (json) =>
           MapEdgesResponse.fromJson(json as Map<String, dynamic>),
       requireData: true,
-      onDecoded: (netMs, elapsedMs, data) {
-        perfLog(
-          'getEdges mapId=$mapId net=${netMs}ms '
-          'parse=${elapsedMs - netMs}ms '
-          'count=${data?.edges.length ?? 0}',
-        );
-      },
     ))!;
   }
 
@@ -125,7 +104,6 @@ class MapRepository {
       queryParameters: {'map_id': mapId},
       fromJson: (json) => MapFloor.fromJson(json as Map<String, dynamic>),
       requireData: true,
-      onResponse: (netMs) => perfLog('getMeta mapId=$mapId net=${netMs}ms'),
     ))!;
   }
 

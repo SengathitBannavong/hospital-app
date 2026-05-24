@@ -16,7 +16,6 @@ import 'package:hospital_app/features/map/data/models/route_history_entry.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/pages/map_qr_scanner_page.dart';
-import 'package:hospital_app/features/map/data/services/map_perf_debug.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
@@ -126,16 +125,10 @@ class _MapPageState extends ConsumerState<MapPage>
 
   void _scheduleWalkableLayerLoad() {
     _walkableLayerTimer?.cancel();
-    perfLog(
-      'walkableLayer scheduled '
-      '(delay=${_walkableLayerDelay.inMilliseconds}ms)',
-    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _loadWalkableLayer) return;
-      perfLog('walkableLayer first frame painted -> starting delay timer');
       _walkableLayerTimer = Timer(_walkableLayerDelay, () {
         if (!mounted || _loadWalkableLayer) return;
-        perfLog('walkableLayer timer fired -> watching mapEdgesProvider now');
         setState(() => _loadWalkableLayer = true);
       });
     });
@@ -340,7 +333,7 @@ class _MapPageState extends ConsumerState<MapPage>
         final wasOnline = previous?.valueOrNull;
         final isOnline = next.valueOrNull;
         if (wasOnline == false && isOnline == true) {
-          unawaited(_refreshMapDataOnReconnect());
+          _refreshMapDataOnReconnect();
         }
       });
 
@@ -1042,20 +1035,17 @@ class _MapPageState extends ConsumerState<MapPage>
     setState(() {});
   }
 
-  Future<void> _refreshMapDataOnReconnect() async {
+  void _refreshMapDataOnReconnect() {
     if (ref.read(navPhaseProvider) == NavPhase.navigating) {
       return;
     }
     final id = _defaultMapId;
-    // Clear the in-memory + on-disk edge cache first; otherwise invalidating
-    // mapEdgesProvider is a no-op because loadEdges short-circuits on the cache
-    // and edge geometry never refreshes until the next app launch.
-    await ref.read(mapCacheProvider).forgetEdges(mapId: id);
-    if (!mounted) return;
+    // Edges are static building geometry behind a slow endpoint, so they are
+    // intentionally NOT refreshed here — they stay served from cache until the
+    // next app launch. Refresh only the dynamic data.
     ref
       ..invalidate(mapMetaProvider(id))
       ..invalidate(mapNodesProvider(id))
-      ..invalidate(mapEdgesProvider(id))
       ..invalidate(flowSnapshotProvider(id))
       ..invalidate(mapObstaclesProvider(id))
       ..invalidate(mapLastSyncedAtProvider(id))

@@ -9,7 +9,6 @@ import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
-import 'package:hospital_app/features/map/data/services/map_perf_debug.dart';
 
 class MapCacheService {
   static const _boxName = 'map_sync_full_cache';
@@ -22,16 +21,6 @@ class MapCacheService {
   void rememberEdges({required int mapId, required List<MapEdge> edges}) {
     if (edges.isEmpty) return;
     _edgeMemoryCache[mapId] = edges;
-  }
-
-  /// Drops cached edges for [mapId] from both the in-memory and on-disk caches
-  /// so the next load re-fetches from the network. Without this, the in-memory
-  /// cache short-circuits `invalidate(mapEdgesProvider)` and serves stale edges
-  /// for the rest of the session (the reconnect refresh becomes a no-op).
-  Future<void> forgetEdges({required int mapId}) async {
-    _edgeMemoryCache.remove(mapId);
-    final box = await _openBox();
-    await box.delete(_edgesKey(mapId));
   }
 
   Future<void> saveSyncFull({
@@ -217,54 +206,33 @@ class MapCacheService {
     required int mapId,
     required List<MapEdge> edges,
   }) async {
-    final sw = Stopwatch()..start();
     rememberEdges(mapId: mapId, edges: edges);
     final box = await _openBox();
-    final useIsolate = edges.length > _edgeParseIsolateThreshold;
-    final payload = useIsolate
+    final payload = edges.length > _edgeParseIsolateThreshold
         ? await compute(_serializeEdgesPayload, edges)
         : _serializeEdgesPayload(edges);
     await box.put(_edgesKey(mapId), payload);
-    perfLog(
-      'cache.saveEdges mapId=$mapId count=${edges.length} '
-      'isolate=$useIsolate took=${sw.elapsedMilliseconds}ms',
-    );
   }
 
   Future<List<MapEdge>> loadEdges({required int mapId}) async {
-    final sw = Stopwatch()..start();
     final memory = _edgeMemoryCache[mapId];
     if (memory != null && memory.isNotEmpty) {
-      perfLog(
-        'cache.loadEdges mapId=$mapId path=MEMORY count=${memory.length} '
-        'took=${sw.elapsedMilliseconds}ms',
-      );
       return memory;
     }
 
     final box = await _openBox();
     final raw = box.get(_edgesKey(mapId));
-    final boxGetMs = sw.elapsedMilliseconds;
     List<MapEdge> edges;
-    String path;
     if (raw is String && raw.length > _edgeParseIsolateThreshold) {
-      path = 'DISK-isolate(str)';
       edges = await compute(_parseEdgesPayload, raw);
     } else if (raw is List && raw.length > _edgeParseIsolateThreshold) {
-      path = 'DISK-isolate(list)';
       edges = await compute(_parseEdgesPayload, raw);
     } else {
-      path = raw == null ? 'EMPTY' : 'DISK-sync';
       edges = _parseEdgesPayload(raw);
     }
     if (edges.isNotEmpty) {
       rememberEdges(mapId: mapId, edges: edges);
     }
-    perfLog(
-      'cache.loadEdges mapId=$mapId path=$path count=${edges.length} '
-      'boxGet=${boxGetMs}ms parse=${sw.elapsedMilliseconds - boxGetMs}ms '
-      'total=${sw.elapsedMilliseconds}ms',
-    );
     return edges;
   }
 
