@@ -18,228 +18,174 @@ import 'models/route_history.dart';
 import 'models/route_mode.dart';
 import 'services/map_perf_debug.dart';
 
-class MapRepository {
-  Future<List<MapFloor>> getFloors() async {
-    try {
-      final response = await ApiClient.instance.get(ApiEndpoints.getFloors);
+enum _MapHttpMethod { get, post, delete }
 
-      final apiResponse = AuthApiResponse<List<MapFloor>>.fromJson(
-        response.data,
-        (json) => (json as List<dynamic>)
-            .map((item) => MapFloor.fromJson(item as Map<String, dynamic>))
-            .toList(),
-      );
+typedef _MapResponseDecoder<T> = T Function(dynamic json);
+
+class MapRepository {
+  Future<T?> _request<T>({
+    required _MapHttpMethod method,
+    required String endpoint,
+    required _MapResponseDecoder<T> fromJson,
+    Map<String, dynamic>? queryParameters,
+    Object? data,
+    bool requireData = false,
+    void Function(int netMs)? onResponse,
+    void Function(int netMs, int elapsedMs, T? data)? onDecoded,
+  }) async {
+    final sw = Stopwatch()..start();
+    try {
+      final response = switch (method) {
+        _MapHttpMethod.get => await ApiClient.instance.get(
+          endpoint,
+          queryParameters: queryParameters,
+        ),
+        _MapHttpMethod.post => await ApiClient.instance.post(
+          endpoint,
+          data: data,
+          queryParameters: queryParameters,
+        ),
+        _MapHttpMethod.delete => await ApiClient.instance.delete(
+          endpoint,
+          data: data,
+          queryParameters: queryParameters,
+        ),
+      };
+      final netMs = sw.elapsedMilliseconds;
+      onResponse?.call(netMs);
+
+      final apiResponse = AuthApiResponse<T>.fromJson(response.data, fromJson);
+      onDecoded?.call(netMs, sw.elapsedMilliseconds, apiResponse.data);
 
       if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? [];
+        if (requireData && apiResponse.data == null) {
+          throw Exception(apiResponse.message);
+        }
+        return apiResponse.data;
       }
 
       throw Exception(apiResponse.message);
     } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
+  }
+
+  Future<List<MapFloor>> getFloors() async {
+    final floors = await _request<List<MapFloor>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.getFloors,
+      fromJson: (json) => (json as List<dynamic>)
+          .map((item) => MapFloor.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+    return floors ?? [];
   }
 
   Future<List<MapPoi>> getNodes({required int mapId}) async {
-    final sw = Stopwatch()..start();
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.getNodes,
-        queryParameters: {'map_id': mapId},
-      );
-      final netMs = sw.elapsedMilliseconds;
-
-      final apiResponse = AuthApiResponse<List<MapPoi>>.fromJson(
-        response.data,
-        (json) => (json as List<dynamic>)
-            .map((item) => MapPoi.fromJson(item as Map<String, dynamic>))
-            .toList(),
-      );
-      perfLog(
-        'getNodes mapId=$mapId net=${netMs}ms '
-        'parse=${sw.elapsedMilliseconds - netMs}ms '
-        'count=${apiResponse.data?.length ?? 0}',
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? [];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final nodes = await _request<List<MapPoi>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.getNodes,
+      queryParameters: {'map_id': mapId},
+      fromJson: (json) => (json as List<dynamic>)
+          .map((item) => MapPoi.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      onDecoded: (netMs, elapsedMs, data) {
+        perfLog(
+          'getNodes mapId=$mapId net=${netMs}ms '
+          'parse=${elapsedMs - netMs}ms '
+          'count=${data?.length ?? 0}',
+        );
+      },
+    );
+    return nodes ?? [];
   }
 
   Future<MapEdgesResponse> getEdges({required int mapId}) async {
-    final sw = Stopwatch()..start();
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.getEdges,
-        queryParameters: {'map_id': mapId},
-      );
-      final netMs = sw.elapsedMilliseconds;
-
-      final apiResponse = AuthApiResponse<MapEdgesResponse>.fromJson(
-        response.data,
-        (json) => MapEdgesResponse.fromJson(json as Map<String, dynamic>),
-      );
-      perfLog(
-        'getEdges mapId=$mapId net=${netMs}ms '
-        'parse=${sw.elapsedMilliseconds - netMs}ms '
-        'count=${apiResponse.data?.edges.length ?? 0}',
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success &&
-          apiResponse.data != null) {
-        return apiResponse.data!;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return (await _request<MapEdgesResponse>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.getEdges,
+      queryParameters: {'map_id': mapId},
+      fromJson: (json) =>
+          MapEdgesResponse.fromJson(json as Map<String, dynamic>),
+      requireData: true,
+      onDecoded: (netMs, elapsedMs, data) {
+        perfLog(
+          'getEdges mapId=$mapId net=${netMs}ms '
+          'parse=${elapsedMs - netMs}ms '
+          'count=${data?.edges.length ?? 0}',
+        );
+      },
+    ))!;
   }
 
   Future<MapFloor> getMeta({required int mapId}) async {
-    final sw = Stopwatch()..start();
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.getMeta,
-        queryParameters: {'map_id': mapId},
-      );
-      perfLog('getMeta mapId=$mapId net=${sw.elapsedMilliseconds}ms');
-
-      final apiResponse = AuthApiResponse<MapFloor>.fromJson(
-        response.data,
-        (json) => MapFloor.fromJson(json as Map<String, dynamic>),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success &&
-          apiResponse.data != null) {
-        return apiResponse.data!;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return (await _request<MapFloor>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.getMeta,
+      queryParameters: {'map_id': mapId},
+      fromJson: (json) => MapFloor.fromJson(json as Map<String, dynamic>),
+      requireData: true,
+      onResponse: (netMs) => perfLog('getMeta mapId=$mapId net=${netMs}ms'),
+    ))!;
   }
 
   Future<List<MapDepartment>> getDepartments() async {
-    try {
-      final response = await ApiClient.instance.get(ApiEndpoints.getDepts);
-
-      final apiResponse = AuthApiResponse<List<MapDepartment>>.fromJson(
-        response.data,
-        (json) => (json as List<dynamic>)
-            .map((item) => MapDepartment.fromJson(item as Map<String, dynamic>))
-            .toList(),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? [];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final departments = await _request<List<MapDepartment>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.getDepts,
+      fromJson: (json) => (json as List<dynamic>)
+          .map((item) => MapDepartment.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+    return departments ?? [];
   }
 
   Future<List<MapPoi>> searchLocation({
     required String keyword,
     required int mapId,
   }) async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.searchLocation,
-        queryParameters: {'keyword': keyword, 'map_id': mapId},
-      );
-
-      final apiResponse = AuthApiResponse<List<MapPoi>>.fromJson(
-        response.data,
-        (json) => (json as List<dynamic>)
-            .map((item) => MapPoi.fromJson(item as Map<String, dynamic>))
-            .toList(),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? [];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final pois = await _request<List<MapPoi>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.searchLocation,
+      queryParameters: {'keyword': keyword, 'map_id': mapId},
+      fromJson: (json) => (json as List<dynamic>)
+          .map((item) => MapPoi.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+    return pois ?? [];
   }
 
   Future<List<MapPoi>> getLandmarks({required int mapId}) async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.getLandmarks,
-        queryParameters: {'map_id': mapId},
-      );
-
-      final apiResponse = AuthApiResponse<List<MapPoi>>.fromJson(
-        response.data,
-        (json) => (json as List<dynamic>)
-            .map((item) => MapPoi.fromJson(item as Map<String, dynamic>))
-            .toList(),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? [];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final pois = await _request<List<MapPoi>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.getLandmarks,
+      queryParameters: {'map_id': mapId},
+      fromJson: (json) => (json as List<dynamic>)
+          .map((item) => MapPoi.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+    return pois ?? [];
   }
 
   Future<MapSyncFull> syncFull({required int mapId}) async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.syncFull,
-        queryParameters: {'map_id': mapId},
-      );
-
-      final apiResponse = AuthApiResponse<MapSyncFull>.fromJson(
-        response.data,
-        (json) => MapSyncFull.fromJson(json as Map<String, dynamic>),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success &&
-          apiResponse.data != null) {
-        return apiResponse.data!;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return (await _request<MapSyncFull>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.syncFull,
+      queryParameters: {'map_id': mapId},
+      fromJson: (json) => MapSyncFull.fromJson(json as Map<String, dynamic>),
+      requireData: true,
+    ))!;
   }
 
   Future<List<RouteMode>> getRouteModes() async {
-    try {
-      final response = await ApiClient.instance.get(ApiEndpoints.routeGetModes);
-
-      final apiResponse = AuthApiResponse<List<RouteMode>>.fromJson(
-        response.data,
-        (json) => (json as List<dynamic>)
-            .map((item) => RouteMode.fromJson(item as Map<String, dynamic>))
-            .toList(),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? [];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final modes = await _request<List<RouteMode>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.routeGetModes,
+      fromJson: (json) => (json as List<dynamic>)
+          .map((item) => RouteMode.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+    return modes ?? [];
   }
 
   Future<dynamic> previewRoute({
@@ -247,29 +193,16 @@ class MapRepository {
     required int destLocation,
     required String modeId,
   }) async {
-    try {
-      final response = await ApiClient.instance.post(
-        ApiEndpoints.routePreview,
-        data: {
-          'start_location': startLocation,
-          'dest_location': destLocation,
-          'mode_id': modeId,
-        },
-      );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routePreview,
+      data: {
+        'start_location': startLocation,
+        'dest_location': destLocation,
+        'mode_id': modeId,
+      },
+      fromJson: (json) => json,
+    );
   }
 
   Future<dynamic> orderRoute({
@@ -277,29 +210,16 @@ class MapRepository {
     required int destLocation,
     required String modeId,
   }) async {
-    try {
-      final response = await ApiClient.instance.post(
-        ApiEndpoints.routeOrder,
-        data: {
-          'start_location': startLocation,
-          'dest_location': destLocation,
-          'mode_id': modeId,
-        },
-      );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routeOrder,
+      data: {
+        'start_location': startLocation,
+        'dest_location': destLocation,
+        'mode_id': modeId,
+      },
+      fromJson: (json) => json,
+    );
   }
 
   Future<dynamic> orderRouteMulti({
@@ -307,29 +227,16 @@ class MapRepository {
     required List<int> targetLocations,
     required String modeId,
   }) async {
-    try {
-      final response = await ApiClient.instance.post(
-        ApiEndpoints.routeOrderMulti,
-        data: {
-          'start_location': startLocation,
-          'target_locations': targetLocations,
-          'mode_id': modeId,
-        },
-      );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routeOrderMulti,
+      data: {
+        'start_location': startLocation,
+        'target_locations': targetLocations,
+        'mode_id': modeId,
+      },
+      fromJson: (json) => json,
+    );
   }
 
   Future<dynamic> orderRouteUnordered({
@@ -337,265 +244,121 @@ class MapRepository {
     required List<int> targetLocations,
     required String modeId,
   }) async {
-    try {
-      final response = await ApiClient.instance.post(
-        ApiEndpoints.routeOrderUnordered,
-        data: {
-          'start_location': startLocation,
-          'target_locations': targetLocations,
-          'mode_id': modeId,
-        },
-      );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routeOrderUnordered,
+      data: {
+        'start_location': startLocation,
+        'target_locations': targetLocations,
+        'mode_id': modeId,
+      },
+      fromJson: (json) => json,
+    );
   }
 
   Future<dynamic> recalculateRoute({
     required String routeId,
     required int currentLocation,
   }) async {
-    try {
-      final response = await ApiClient.instance.post(
-        ApiEndpoints.routeRecalculate,
-        data: {'route_id': routeId, 'current_location': currentLocation},
-      );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routeRecalculate,
+      data: {'route_id': routeId, 'current_location': currentLocation},
+      fromJson: (json) => json,
+    );
   }
 
   Future<RouteHistory> getRouteHistory() async {
-    try {
-      final response = await ApiClient.instance.get(ApiEndpoints.routeHistory);
-
-      final apiResponse = AuthApiResponse<RouteHistory>.fromJson(
-        response.data,
-        (json) => RouteHistory.fromJson(json as Map<String, dynamic>),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success &&
-          apiResponse.data != null) {
-        return apiResponse.data!;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return (await _request<RouteHistory>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.routeHistory,
+      fromJson: (json) => RouteHistory.fromJson(json as Map<String, dynamic>),
+      requireData: true,
+    ))!;
   }
 
   Future<RouteClearHistory> clearRouteHistory() async {
-    try {
-      final response = await ApiClient.instance.delete(
-        ApiEndpoints.routeClearHistory,
-      );
-
-      final apiResponse = AuthApiResponse<RouteClearHistory>.fromJson(
-        response.data,
-        (json) => RouteClearHistory.fromJson(json as Map<String, dynamic>),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success &&
-          apiResponse.data != null) {
-        return apiResponse.data!;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return (await _request<RouteClearHistory>(
+      method: _MapHttpMethod.delete,
+      endpoint: ApiEndpoints.routeClearHistory,
+      fromJson: (json) =>
+          RouteClearHistory.fromJson(json as Map<String, dynamic>),
+      requireData: true,
+    ))!;
   }
 
   Future<List<FlowCell>> getFlowDensity({int? gridLocation}) async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.flowGetDensity,
-        queryParameters: {'grid_location': ?gridLocation},
-      );
-
-      final apiResponse = AuthApiResponse<List<FlowCell>>.fromJson(
-        response.data,
-        (json) => _parseFlowCells(json),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? const <FlowCell>[];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final cells = await _request<List<FlowCell>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.flowGetDensity,
+      queryParameters: {'grid_location': ?gridLocation},
+      fromJson: _parseFlowCells,
+    );
+    return cells ?? const <FlowCell>[];
   }
 
   Future<List<FlowCell>> getFlowHeatmap() async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.flowGetHeatmap,
-      );
-
-      final apiResponse = AuthApiResponse<List<FlowCell>>.fromJson(
-        response.data,
-        (json) => _parseFlowCells(json),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? const <FlowCell>[];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final cells = await _request<List<FlowCell>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.flowGetHeatmap,
+      fromJson: _parseFlowCells,
+    );
+    return cells ?? const <FlowCell>[];
   }
 
   Future<List<FlowCell>> getFlowBottlenecks({int limit = 10}) async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.flowGetBottlenecks,
-        queryParameters: {'limit': limit},
-      );
-
-      final apiResponse = AuthApiResponse<List<FlowCell>>.fromJson(
-        response.data,
-        (json) => _parseFlowCells(json),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? const <FlowCell>[];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final cells = await _request<List<FlowCell>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.flowGetBottlenecks,
+      queryParameters: {'limit': limit},
+      fromJson: _parseFlowCells,
+    );
+    return cells ?? const <FlowCell>[];
   }
 
   Future<List<FlowCell>> getFlowForecast({int hours = 24}) async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.flowGetForecast,
-        queryParameters: {'hours': hours},
-      );
-
-      final apiResponse = AuthApiResponse<List<FlowCell>>.fromJson(
-        response.data,
-        (json) => _parseFlowCells(json),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? const <FlowCell>[];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final cells = await _request<List<FlowCell>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.flowGetForecast,
+      queryParameters: {'hours': hours},
+      fromJson: _parseFlowCells,
+    );
+    return cells ?? const <FlowCell>[];
   }
 
   Future<List<FlowAlert>> getFlowAlerts() async {
-    try {
-      final response = await ApiClient.instance.get(ApiEndpoints.flowGetAlerts);
-
-      final apiResponse = AuthApiResponse<List<FlowAlert>>.fromJson(
-        response.data,
-        (json) => _parseFlowAlerts(json),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? const <FlowAlert>[];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final alerts = await _request<List<FlowAlert>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.flowGetAlerts,
+      fromJson: _parseFlowAlerts,
+    );
+    return alerts ?? const <FlowAlert>[];
   }
 
   Future<List<EdgeStatus>> getFlowEdgeStatus() async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.flowEdgeStatus,
-      );
-
-      final apiResponse = AuthApiResponse<List<EdgeStatus>>.fromJson(
-        response.data,
-        (json) => _parseEdgeStatuses(json),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? const <EdgeStatus>[];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final statuses = await _request<List<EdgeStatus>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.flowEdgeStatus,
+      fromJson: _parseEdgeStatuses,
+    );
+    return statuses ?? const <EdgeStatus>[];
   }
 
   Future<String?> getVoiceKey() async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.sysGetVoiceKey,
-      );
-
-      final apiResponse = AuthApiResponse<String?>.fromJson(
-        response.data,
-        (json) => _parseVoiceKey(json),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    return _request<String?>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.sysGetVoiceKey,
+      fromJson: _parseVoiceKey,
+    );
   }
 
   Future<Map<String, String>> getVoiceFiles() async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.sysGetVoiceFiles,
-      );
-
-      final apiResponse = AuthApiResponse<Map<String, String>>.fromJson(
-        response.data,
-        (json) => _parseVoiceFiles(json),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? const <String, String>{};
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final files = await _request<Map<String, String>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.sysGetVoiceFiles,
+      fromJson: _parseVoiceFiles,
+    );
+    return files ?? const <String, String>{};
   }
 
   Future<void> pingLocation({
@@ -606,30 +369,17 @@ class MapRepository {
   }) async {
     // TODO(Phase J backend:flow-ping): confirm payload fields, route_id usage,
     // and cadence before wiring simulated navigation to flow/ping_location.
-    try {
-      final response = await ApiClient.instance.post(
-        ApiEndpoints.flowPingLocation,
-        data: {
-          'grid_location': gridLocation,
-          'grid_row': gridRow,
-          'grid_col': gridCol,
-          'route_id': ?routeId,
-        },
-      );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    await _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.flowPingLocation,
+      data: {
+        'grid_location': gridLocation,
+        'grid_row': gridRow,
+        'grid_col': gridCol,
+        'route_id': ?routeId,
+      },
+      fromJson: (json) => json,
+    );
   }
 
   Future<void> reportObstacle({
@@ -638,52 +388,27 @@ class MapRepository {
     String? note,
     String? routeId,
   }) async {
-    try {
-      final response = await ApiClient.instance.post(
-        ApiEndpoints.flowReportObstacle,
-        data: {
-          'grid_location': gridLocation,
-          'report_type': type,
-          if (note != null && note.isNotEmpty) 'description': note,
-          'route_id': ?routeId,
-        },
-      );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    await _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.flowReportObstacle,
+      data: {
+        'grid_location': gridLocation,
+        'report_type': type,
+        if (note != null && note.isNotEmpty) 'description': note,
+        'route_id': ?routeId,
+      },
+      fromJson: (json) => json,
+    );
   }
 
   Future<List<MapObstacle>> getObstacles({String? status}) async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.flowGetObstacles,
-        queryParameters: {'status': ?status},
-      );
-
-      final apiResponse = AuthApiResponse<List<MapObstacle>>.fromJson(
-        response.data,
-        (json) => _parseObstacles(json),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? const <MapObstacle>[];
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
+    final obstacles = await _request<List<MapObstacle>>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.flowGetObstacles,
+      queryParameters: {'status': ?status},
+      fromJson: _parseObstacles,
+    );
+    return obstacles ?? const <MapObstacle>[];
   }
 
   String _extractErrorMessage(DioException e) {
