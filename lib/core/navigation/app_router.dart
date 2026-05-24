@@ -24,6 +24,7 @@ import 'package:hospital_app/features/info/presentation/pages/info_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/about_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/contact_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/faq_page.dart';
+import 'package:hospital_app/features/notification/presentation/pages/notification_settings_page.dart';
 
 // RouterNotifier to handle reactive redirection
 class RouterNotifier extends ChangeNotifier {
@@ -74,7 +75,7 @@ final routerNotifierProvider = Provider<RouterNotifier>((ref) {
   return RouterNotifier(ref);
 });
 
-final goRouterPrivider = Provider<GoRouter>((ref) {
+final goRouterProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(routerNotifierProvider);
 
   return GoRouter(
@@ -123,6 +124,13 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/notification',
                 builder: (context, state) => const NotificationPage(),
+                routes: [
+                  GoRoute(
+                    path: 'settings',
+                    builder: (context, state) =>
+                        const NotificationSettingsPage(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -180,14 +188,12 @@ final goRouterPrivider = Provider<GoRouter>((ref) {
           final phone = state.pathParameters['phone'] ?? '';
           final type = state.pathParameters['type'] ?? '';
           final extra = state.extra as Map<String, dynamic>?;
-          final pendingUser = extra?['pendingUser'] as AuthUser?;
           final password = extra?['password'] as String?;
           final optCode = extra?['otp_code'] as String?;
 
           return OtpVerificationPage(
             phoneNumber: phone,
             otpType: type,
-            pendingUser: pendingUser,
             password: password,
             otpCode: optCode,
           );

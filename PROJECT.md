@@ -1,6 +1,6 @@
 # Hospital App Project Checklist
 
-Last checked: 2026-05-18
+Last checked: 2026-05-22
 
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
@@ -33,11 +33,17 @@ Scope: login, signup, OTP, forgot password, 6 pages, auth state management.
 - [x] Token persistence is wired through `TokenRepository`.
 - [x] Auth repository supports login, signup, verify OTP, resend OTP, forgot password, reset password, and change password.
 - [x] Router redirects unauthenticated users to `/login`.
-- [ ] App version check is not wired; Swagger exposes `sys/check_version`.
-- [ ] Account deletion is not wired; Swagger exposes `user/delete_account`.
-- [ ] Confirm full OTP flows against real backend responses.
-- [ ] Add/expand tests for auth provider and form validation.
-- [ ] Review route naming typo: `goRouterPrivider` should likely be `goRouterProvider`.
+- [x] App version check is wired through `VersionCheckWidget` and `sys/check_version`.
+- [x] Account deletion is wired through `ProfilePage`, `DeleteAccountService`, and `user/delete_account`.
+- [x] Run build_runner; generated Freezed/json files are present.
+- [x] Login is direct phone/password per `swagger.yaml`; no login OTP is required.
+- [ ] Confirm signup OTP flow against real backend responses.
+- [x] Confirm forgot/reset-password OTP flow against real backend responses.
+- [ ] Decide whether signup OTP resend is required; current code disables signup resend.
+- [x] Auth provider tests exist.
+- [x] Form validation tests exist.
+- [ ] Expand tests for auth repository errors, router redirects, widget flows, version check dialog, and delete account UI.
+- [x] Route provider is named `goRouterProvider`; no `goRouterPrivider` typo exists in `lib/`.
 
 ## Chat 2: Home Module
 
@@ -50,8 +56,8 @@ Scope: mobile dashboard, patient summary cards, quick actions, and public/patien
 - [x] Home includes pull-to-refresh, manual refresh, theme toggle, logout, toast examples, and animated summary cards.
 - [ ] Home still uses a local counter for appointments; no real appointment API/data flow is wired.
 - [ ] Home "doctors available" card is static demo content.
-- [x] Home notification area is static/demo-only; it is not wired to `notification/get_list`.
-- [x] Home quick actions are missing for Map, Medical tasks, Notifications, SOS, FAQ/help, utilities, wheelchair booking, staff request, and chat/support.
+- [ ] Home notification area is static/demo-only; it is not wired to `notification/get_list`.
+- [ ] Home quick actions only cover Map, Medical, Profile, and FAQ; shortcuts are still missing for Notifications, SOS, utilities, wheelchair booking, staff request, and chat/support.
 - [ ] Home does not show live utility data even though Swagger exposes `util/weather`, `util/parking`, `util/pharmacy`, `util/canteen`, and `util/wifi`.
 - [ ] Home does not show active route status even though Swagger exposes `route/get_active` and route lifecycle APIs.
 - [ ] Home does not surface device/asset state even though Swagger exposes wheelchair/device APIs.
@@ -67,22 +73,38 @@ Scope: grid-based map rendering, route preview/navigation, floor switching.
 - [x] Map search UI exists: top bar and search results panel.
 - [x] POI metadata panel exists.
 - [x] Route panel exists.
-- [x] Route state providers exist for start, destination, mode, result, and route locations.
+- [x] Route state providers exist for current position (you-are-here), destination, mode, result, and route locations.
 - [x] Route preview is wired to `route/preview`.
 - [x] Map repository supports floors, nodes, edges, metadata, departments, landmarks, full sync, route modes, route preview/order/history.
 - [x] Map provider tests exist under `test/features/map/`.
+- [x] Current user position ("you are here") with entrance-default anchor (ENT code / name / landmark / first walkable cell).
+- [x] Set current position via long-press pin, QR scan (`mobile_scanner`, payload = `poi_code`), and "I'm here" on landmark POIs.
+- [x] Simulated active navigation: animated dot walks start→destination with mode-based speed, traveled/remaining route split, and camera follow.
+- [x] Navigation sheet with live distance/ETA, pause/resume/stop, ×1/×2 speed; collapsible and shows an arrival state.
+- [x] One-tap Start FAB once destination + route are ready; on arrival the user position moves to the destination.
+- [x] `route/order` is logged on arrival (success silent, failure shows a snackbar).
+- [x] Debug grid painter available as a dev tool (`map_debug_grid_painter.dart`, wired via commented import).
+- [x] QR poster generator script for demo (`scripts/make_qr.py`).
 - [ ] Floor switching UI is not complete; current map page uses `_defaultMapId = 1`.
-- [ ] Route "navigation" is currently preview/animation-focused; confirm whether turn-by-turn active navigation is required.
+- [x] Active navigation built as a client-side simulation (no real indoor positioning); backend turn-by-turn APIs are still unused — see below.
 - [ ] Voice route support is not wired; Swagger exposes `sys/get_voice_key` and `sys/get_voice_files`.
 - [ ] Turn-by-turn route APIs are not wired in UI/repository: `route/get_steps`, `route/get_next`, `route/get_eta`, `route/pass_node`, and `route/recalculate`.
-- [ ] Active route lifecycle is not wired: `route/order`, `route/get_active`, `route/cancel`, `route/share`, and `route/rate`.
-- [ ] Multi-stop route ordering is not exposed in UI even though Swagger supports `route/order_multi` and `route/order_unordered`.
-- [ ] Wheelchair/stretcher/hospital-cart modes are supported by Swagger route modes, but need verification in UI and backend responses.
+- [x] `route/order` is wired (logged on arrival).
+- [ ] Dynamic rerouting: when an edge is blocked or heavily congested (`edge_status` / `flow/get_alerts` / obstacles), push an alert and offer an alternative detour route — via `route/recalculate` online, or a client-side reroute over the cached graph when offline.
+- [ ] Verify non-walking modes against backend: `route/preview` returns a `speed_factor` (walking = 1); confirm the wheelchair/stretcher/hospital-cart values and that they flow into the displayed ETA.
 - [ ] Patient-side traffic/flow data is not surfaced: `flow/get_density`, `flow/get_heatmap`, `flow/get_bottlenecks`, `flow/get_forecast`, `flow/get_alerts`, and `flow/edge_status`.
 - [ ] Patient-side location/obstacle reporting is not wired: `flow/ping_location`, `flow/report_obstacle`, and `flow/get_obstacles`.
-- [ ] Offline map fallback is not implemented; `map/sync_full` can support local cache, but client-side static routing/Dijkstra is still missing.
-- [ ] Wire route order/history/clear history into UI if needed for demo.
+- [ ] Offline support (required by teacher): cache the map via `map/sync_full` and add client-side routing (Dijkstra/A* over the edge graph) so route preview, steps, and rerouting work with no signal.
+- [ ] Wire route history/clear-history into UI if needed for demo (`route/order` is already wired on arrival).
 - [ ] Add loading/error UI polish for route preview failures.
+- [x] `route/preview` response shape confirmed (live test): `data.steps[]` of `{step_order, grid_row, grid_col, grid_location}`, plus `distance`, `estimated_time`, `mode_id`, `speed_factor`. Already parsed by `extractRouteLocations` + nav sheet; the cell-based ETA fallback now only matters offline.
+- [ ] Confirm meters-per-cell with backend so distance/ETA labels ("m"/"sec") are truthful — `distance` is a cell count and `estimated_time` is cells ÷ `speed_factor` (grid units, not real meters/seconds).
+
+### Map — out of scope (optional do for this project)
+
+- `route/order_multi`, `route/order_unordered` — multi-stop routing.
+- `route/share`, `route/rate` — route sharing / rating.
+- `route/get_active`, `route/cancel` — server-side route lifecycle (local Stop covers the demo).
 
 ## Chat 4: Medical Module
 
@@ -97,7 +119,7 @@ Scope: tasks, queue, prescription, appointment display.
 - [x] Medical branch is routed in the bottom navigation shell.
 - [ ] Appointment display is only represented on Home as a placeholder counter/card; no dedicated appointment data flow is visible.
 - [ ] QR scanning UI is not implemented; check-in/check-out APIs exist, but the client still needs camera scan flow and treatment/room validation.
-- [ ] Medical records/history screen is missing; Swagger exposes `medical/get_history`, `medical/result_status`, and `medical/get_prescription`.
+- [x] Medical history, result-status dialog, and prescription page are wired.
 - [ ] Add tests for medical providers/repository parsing.
 - [ ] Confirm task actions against backend: check-in, check-out, cancel, sync.
 
@@ -110,14 +132,14 @@ Scope: notification list, mark read, delete, profile edit.
 - [x] Profile avatar, profile form, and profile info widgets exist.
 - [x] Profile provider supports fetch and update.
 - [x] Profile repository is wired to get/set profile endpoints.
-- [x] Notification model files exist under `lib/features/notification_support/models/`.
+- [x] Notification model files exist under `lib/features/notification/data/models/`.
 - [x] Notification list page exists and is wired in app shell.
 - [x] Notification provider/state management exists.
 - [x] Notification repository/API endpoint constants are wired.
 - [x] Mark-read action is wired to UI/API.
 - [x] Delete notification action is wired to UI/API.
 - [x] Notification route or bottom-nav entry is configured.
-- [ ] Verify notification response fields (`id`, `title`, `message`, `created_at`, `is_read`) and update parsing if backend differs.
+- [x] Notification parsing is defensive for `id/notif_id/notification_id`, `message/content/body`, `time/created_at`, and `is_read/read/isRead`.
 - [ ] Confirm `DELETE /notification/delete` accepts JSON body in production.
 - [ ] Use `total/page/limit` to implement pagination or load-more.
 - [ ] Show notification time in UI (use `created_at`).
@@ -133,7 +155,7 @@ Scope: notification list, mark read, delete, profile edit.
 
 Scope: static info pages and SOS feature.
 
-- [x] SOS request model exists in generated notification/support models.
+- [ ] SOS request model is missing.
 - [ ] SOS page/button is not visible in the route tree or main shell.
 - [ ] SOS provider/repository/API endpoint is missing.
 - [ ] SOS confirmation/error states are missing.

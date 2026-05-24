@@ -4,13 +4,14 @@ import 'package:hospital_app/core/navigation/app_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/theme/theme_controller.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
-
+import 'package:hospital_app/core/widgets/version_check_widget.dart';
+import 'package:hospital_app/core/widgets/app_initializer.dart';
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(goRouterPrivider);
+    final router = ref.watch(goRouterProvider);
 
     return ListenableBuilder(
       listenable: themeController,
@@ -26,6 +27,13 @@ class MyApp extends ConsumerWidget {
           theme: HospitalTheme.light,
           darkTheme: HospitalTheme.dark,
           themeMode: themeController.themeMode,
+          builder: (context, child) {
+            return AppInitializer(
+              child: VersionCheckWidget(
+                child: child ?? const SizedBox.shrink(),
+              ),
+            );
+          },
         );
       },
     );

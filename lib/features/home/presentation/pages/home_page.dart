@@ -1,3 +1,5 @@
+// lib/features/home/presentation/pages/home_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/hospital_theme.dart';
@@ -6,6 +8,7 @@ import '../../../../core/utils/app_toast.dart';
 import '../../../../core/widgets/medical_info_card.dart';
 import '../../../../core/widgets/fade_slide_transition.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
 import '../../data/home_repository.dart';
 import 'package:go_router/go_router.dart';
 
@@ -28,37 +31,28 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
     _fetchTasks();
+    // Load real notifications on home page open
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(notificationProvider.notifier).loadNotifications();
+    });
   }
 
   Future<void> _fetchTasks() async {
-    setState(() {
-      _isLoadingTasks = true;
-    });
-
+    setState(() => _isLoadingTasks = true);
     try {
       final tasks = await _homeRepository.getTasks();
-      if (mounted) {
-        setState(() {
-          _taskCount = tasks.length;
-        });
-      }
+      if (mounted) setState(() => _taskCount = tasks.length);
     } catch (error) {
       if (mounted) {
         AppToast.showError(error.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingTasks = false;
-        });
-      }
+      if (mounted) setState(() => _isLoadingTasks = false);
     }
   }
 
   void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
+    setState(() => _counter++);
   }
 
   Future<void> _logout() async {
@@ -83,15 +77,16 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     if (confirmed == true) {
       await ref.read(authStateProvider.notifier).logout();
-      if (mounted) {
-        AppToast.showSuccess('Đã đăng xuất');
-        // GoRouter will automatically redirect to /login due to authState change
-      }
+      if (mounted) AppToast.showSuccess('Đã đăng xuất');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // ── Watch real unread count from provider ──────────────────────────────
+    final unreadCount = ref.watch(unreadCountProvider);
+    final notifState = ref.watch(notificationProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -101,7 +96,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             tooltip: 'Tải lại',
             onPressed: _isLoadingTasks ? null : _fetchTasks,
           ),
-          // Theme Toggle Button
           IconButton(
             icon: Icon(
               context.isDarkMode
@@ -109,11 +103,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   : Icons.dark_mode_rounded,
             ),
             tooltip: 'Giao diện',
-            onPressed: () {
-              themeController.toggleTheme();
-            },
+            onPressed: () => themeController.toggleTheme(),
           ),
-          // Logout Button
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             tooltip: 'Đăng xuất',
@@ -162,7 +153,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 150),
-                child: Text('Tổng quan', style: context.textTheme.titleMedium),
+                child:
+                    Text('Tổng quan', style: context.textTheme.titleMedium),
               ),
               const SizedBox(height: AppSpacing.md),
 
@@ -174,9 +166,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ? 'Đang tải...'
                       : '$_taskCount Hoạt động',
                   icon: Icons.assignment_rounded,
-                  onTap: () {
-                    _fetchTasks();
-                  },
+                  onTap: _fetchTasks,
                 ),
               ),
 
@@ -188,9 +178,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   label: 'Lịch hẹn hôm nay',
                   value: '$_counter Lịch hẹn',
                   icon: Icons.calendar_month_rounded,
-                  onTap: () {
-                    debugPrint('Tapped appointments card');
-                  },
+                  onTap: () => debugPrint('Tapped appointments card'),
                 ),
               ),
 
@@ -207,6 +195,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
 
               const SizedBox(height: AppSpacing.md),
+
+              // ── Notification Section ──────────────────────────────────────
               const FadeSlideTransition(
                 delay: Duration(milliseconds: 350),
                 child: Text(
@@ -215,15 +205,57 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
+
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 400),
                 child: Card(
                   child: ListTile(
-                    leading: Icon(
-                      Icons.notifications_active_rounded,
-                      color: context.colorScheme.primary,
+                    leading: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          unreadCount > 0
+                              ? Icons.notifications_active_rounded
+                              : Icons.notifications_outlined,
+                          color: context.colorScheme.primary,
+                        ),
+                        // Red dot badge if unread > 0
+                        if (unreadCount > 0)
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              constraints: const BoxConstraints(
+                                minWidth: 14,
+                                minHeight: 14,
+                              ),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 3),
+                              decoration: BoxDecoration(
+                                color: context.colorScheme.error,
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                              child: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                style: TextStyle(
+                                  color: context.colorScheme.onError,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    title: const Text('Bạn có 2 thông báo mới'),
+                    // Show real count — or loading — or "no notifications"
+                    title: Text(
+                      notifState.isLoading
+                          ? 'Đang tải thông báo...'
+                          : unreadCount > 0
+                              ? 'Bạn có $unreadCount thông báo mới'
+                              : 'Không có thông báo mới',
+                    ),
                     subtitle: const Text('Nhấn để xem danh sách thông báo'),
                     trailing: const Icon(
                       Icons.arrow_forward_ios_rounded,
@@ -233,6 +265,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
+
               const SizedBox(height: AppSpacing.xl),
 
               FadeSlideTransition(
@@ -286,9 +319,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ],
                 ),
               ),
+
               const SizedBox(height: AppSpacing.xl),
 
-              // Status Badge Example
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 450),
                 child: Container(

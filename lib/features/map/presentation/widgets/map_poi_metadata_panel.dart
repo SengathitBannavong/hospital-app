@@ -6,15 +6,15 @@ import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 class MapPoiMetadataPanel extends StatelessWidget {
   final MapPoi poi;
   final VoidCallback onClose;
-  final VoidCallback onSetStart;
   final VoidCallback onSetDestination;
+  final VoidCallback? onSetCurrentLocation;
 
   const MapPoiMetadataPanel({
     super.key,
     required this.poi,
     required this.onClose,
-    required this.onSetStart,
     required this.onSetDestination,
+    this.onSetCurrentLocation,
   });
 
   @override
@@ -124,24 +124,26 @@ class MapPoiMetadataPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onSetStart,
-                  icon: const Icon(Icons.my_location_rounded),
-                  label: const Text('Set as start'),
-                ),
+          // Landmarks double as anchors the user can recognize, so they can
+          // mark "I'm here" without a QR scan or long-press.
+          if (poi.isLandmark && onSetCurrentLocation != null) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onSetCurrentLocation,
+                icon: const Icon(Icons.my_location_rounded),
+                label: const Text("I'm here"),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onSetDestination,
-                  icon: const Icon(Icons.flag_rounded),
-                  label: const Text('Destination'),
-                ),
-              ),
-            ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onSetDestination,
+              icon: const Icon(Icons.flag_rounded),
+              label: const Text('Set destination'),
+            ),
           ),
         ],
       ),
