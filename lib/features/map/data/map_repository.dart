@@ -247,10 +247,11 @@ class MapRepository {
     );
   }
 
-  Future<RouteHistory> getRouteHistory() async {
+  Future<RouteHistory> getRouteHistory({int limit = 15, int page = 1}) async {
     return (await _request<RouteHistory>(
       method: _MapHttpMethod.get,
       endpoint: ApiEndpoints.routeHistory,
+      queryParameters: {'limit': limit, 'page': page},
       fromJson: (json) => RouteHistory.fromJson(json as Map<String, dynamic>),
       requireData: true,
     ))!;

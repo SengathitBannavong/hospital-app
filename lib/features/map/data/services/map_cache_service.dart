@@ -23,6 +23,12 @@ class MapCacheService {
     _edgeMemoryCache[mapId] = edges;
   }
 
+  Future<void> clearAll() async {
+    _edgeMemoryCache.clear();
+    final box = await _openBox();
+    await box.clear();
+  }
+
   Future<void> saveSyncFull({
     required int mapId,
     required MapSyncFull syncFull,

@@ -758,6 +758,12 @@ class _MapPageState extends ConsumerState<MapPage>
           ),
           const SizedBox(height: AppSpacing.sm),
           _MapFab(
+            icon: Icons.history_rounded,
+            tooltip: 'Route history',
+            onPressed: _showRouteHistory,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _MapFab(
             icon: _showAnalyticsPanel
                 ? Icons.analytics_rounded
                 : Icons.analytics_outlined,
@@ -774,6 +780,12 @@ class _MapPageState extends ConsumerState<MapPage>
             icon: Icons.center_focus_strong_rounded,
             tooltip: 'Recenter',
             onPressed: _recenter,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _MapFab(
+            icon: Icons.cleaning_services_rounded,
+            tooltip: 'Clear cache',
+            onPressed: _showClearCacheDialog,
           ),
         ],
       ),
@@ -1080,6 +1092,92 @@ class _MapPageState extends ConsumerState<MapPage>
     );
     if (!mounted || positioned != true) return;
     ref.read(mapInlineNoticeProvider.notifier).state = 'Position set by QR';
+  }
+
+  Future<void> _showRouteHistory() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: false,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Consumer(
+          builder: (context, ref, _) {
+            return SafeArea(
+              top: false,
+              child: _RouteHistorySheet(
+                history: ref.watch(routeHistoryProvider),
+                onRetry: () => ref.invalidate(routeHistoryProvider),
+                onClearAll: () async {
+                  final result = await ref
+                      .read(mapRepositoryProvider)
+                      .clearRouteHistory();
+                  if (!mounted) return;
+                  ref
+                    ..invalidate(routeHistoryProvider)
+                    ..read(
+                      mapInlineNoticeProvider.notifier,
+                    ).state = result.cleared
+                        ? 'Route history cleared'
+                        : 'No completed routes to clear';
+                  if (!sheetContext.mounted) return;
+                  await Navigator.of(sheetContext).maybePop();
+                },
+                onRenavigate: (entry) async {
+                  final poiById = ref.read(poiByIdProvider(_defaultMapId));
+                  final poiByCell = ref.read(poiByCellProvider(_defaultMapId));
+                  final poi =
+                      poiById[entry.resolvedPoiId] ??
+                      poiByCell[entry.resolvedLocation];
+                  if (poi == null) return;
+                  _setRouteDestination(poi);
+                  if (!mounted) return;
+                  await Navigator.of(sheetContext).maybePop();
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showClearCacheDialog() async {
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Clear offline cache'),
+          content: const Text(
+            'This removes downloaded map and route data from this device. '
+            'The app will re-download the data the next time it is needed.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Clear'),
+            ),
+          ],
+        );
+      },
+    );
+    if (!mounted || shouldClear != true) return;
+
+    await ref.read(mapCacheProvider).clearAll();
+    if (!mounted) return;
+    final id = _defaultMapId;
+    ref
+      ..invalidate(mapMetaProvider(id))
+      ..invalidate(mapNodesProvider(id))
+      ..invalidate(mapEdgesProvider(id))
+      ..invalidate(flowSnapshotProvider(id))
+      ..invalidate(mapObstaclesProvider(id))
+      ..invalidate(mapLastSyncedAtProvider(id))
+      ..invalidate(routeResultProvider);
+    ref.read(mapInlineNoticeProvider.notifier).state = 'Cache cleared';
   }
 
   Future<void> _showRoutePanel() async {

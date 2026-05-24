@@ -3,9 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/data/models/route_clear_history.dart';
+import 'package:hospital_app/features/map/data/models/route_history.dart';
+import 'package:hospital_app/features/map/data/models/route_history_entry.dart';
 import 'package:hospital_app/features/map/presentation/pages/map_page.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 
@@ -78,4 +82,174 @@ void main() {
 
     expect(edgeReads, 1);
   });
+
+  testWidgets('history FAB opens the route history sheet', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          floorsProvider.overrideWith(
+            (ref) async => const [
+              MapFloor(mapId: 1, mapName: 'Floor 1', rows: 33, cols: 57),
+            ],
+          ),
+          mapMetaProvider.overrideWith(
+            (ref, mapId) async => const MapFloor(
+              mapId: 1,
+              mapName: 'Floor 1',
+              rows: 33,
+              cols: 57,
+            ),
+          ),
+          mapNodesProvider.overrideWith((ref, mapId) async => const <MapPoi>[]),
+          mapEdgesProvider.overrideWith(
+            (ref, mapId) async => const <MapEdge>[],
+          ),
+          mapConnectivityProvider.overrideWith((ref) async* {
+            yield false;
+          }),
+          mapLastSyncedAtProvider.overrideWith((ref, mapId) async => null),
+          routeHistoryProvider.overrideWith(
+            (ref) async => const RouteHistory(routes: []),
+          ),
+        ],
+        child: MaterialApp(
+          theme: ThemeData(useMaterial3: false),
+          home: const MapPage(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.history_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Route history'), findsOneWidget);
+    expect(find.text('No completed routes yet'), findsOneWidget);
+  });
+
+  testWidgets('route history sheet displays at most 15 rows', (tester) async {
+    final routes = List<RouteHistoryEntry>.generate(
+      18,
+      (index) => RouteHistoryEntry(
+        id: 'r$index',
+        destinationName: 'Destination $index',
+        destLocation: index,
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          floorsProvider.overrideWith(
+            (ref) async => const [
+              MapFloor(mapId: 1, mapName: 'Floor 1', rows: 33, cols: 57),
+            ],
+          ),
+          mapMetaProvider.overrideWith(
+            (ref, mapId) async => const MapFloor(
+              mapId: 1,
+              mapName: 'Floor 1',
+              rows: 33,
+              cols: 57,
+            ),
+          ),
+          mapNodesProvider.overrideWith((ref, mapId) async => const <MapPoi>[]),
+          mapEdgesProvider.overrideWith(
+            (ref, mapId) async => const <MapEdge>[],
+          ),
+          mapConnectivityProvider.overrideWith((ref) async* {
+            yield false;
+          }),
+          mapLastSyncedAtProvider.overrideWith((ref, mapId) async => null),
+          routeHistoryProvider.overrideWith(
+            (ref) async => RouteHistory(routes: routes),
+          ),
+        ],
+        child: MaterialApp(
+          theme: ThemeData(useMaterial3: false),
+          home: const MapPage(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.history_rounded));
+    await tester.pumpAndSettle();
+
+    final listView = tester.widget<ListView>(find.byType(ListView));
+    expect(listView.childrenDelegate.estimatedChildCount, 29);
+  });
+
+  testWidgets('route history clear all calls repository and closes sheet', (
+    tester,
+  ) async {
+    final repository = _FakeHistoryRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mapRepositoryProvider.overrideWithValue(repository),
+          floorsProvider.overrideWith(
+            (ref) async => const [
+              MapFloor(mapId: 1, mapName: 'Floor 1', rows: 33, cols: 57),
+            ],
+          ),
+          mapMetaProvider.overrideWith(
+            (ref, mapId) async => const MapFloor(
+              mapId: 1,
+              mapName: 'Floor 1',
+              rows: 33,
+              cols: 57,
+            ),
+          ),
+          mapNodesProvider.overrideWith((ref, mapId) async => const <MapPoi>[]),
+          mapEdgesProvider.overrideWith(
+            (ref, mapId) async => const <MapEdge>[],
+          ),
+          mapConnectivityProvider.overrideWith((ref) async* {
+            yield false;
+          }),
+          mapLastSyncedAtProvider.overrideWith((ref, mapId) async => null),
+        ],
+        child: MaterialApp(
+          theme: ThemeData(useMaterial3: false),
+          home: const MapPage(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.history_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Route history'), findsOneWidget);
+    await tester.tap(find.text('Clear all'));
+    await tester.pumpAndSettle();
+
+    expect(repository.clearCalls, 1);
+    expect(find.text('Route history'), findsNothing);
+    expect(find.text('Route history cleared'), findsOneWidget);
+  });
+}
+
+class _FakeHistoryRepository extends MapRepository {
+  int clearCalls = 0;
+
+  @override
+  Future<RouteHistory> getRouteHistory({int limit = 15, int page = 1}) async {
+    return const RouteHistory(
+      routes: [
+        RouteHistoryEntry(
+          id: 'r1',
+          destinationName: 'Radiology',
+          destLocation: 12,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<RouteClearHistory> clearRouteHistory() async {
+    clearCalls++;
+    return const RouteClearHistory(cleared: true);
+  }
 }
