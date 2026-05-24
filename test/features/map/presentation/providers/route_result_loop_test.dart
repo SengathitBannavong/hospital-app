@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -247,6 +248,59 @@ void main() {
       reason: 'crowd-aware engine should detour around the bottleneck cell '
           'even with the analytics overlay closed',
     );
+  });
+
+  test('routeLocationsProvider keeps the path while the result reloads',
+      () async {
+    // Regression for the arrival double re-render: on arrival the route result
+    // RELOADS because its dependencies change (navPhase -> arrived, then
+    // userPosition -> dest). A dependency-driven reload shows AsyncLoading
+    // (skipLoadingOnReload defaults false), so routeLocationsProvider must keep
+    // the previous path instead of blinking to [] — the blink re-triggers the
+    // route-draw animation, redrawing the route ~twice before it clears.
+    const routeA = RouteResult(
+      path: [0, 1, 2],
+      steps: [],
+      distance: 2,
+      estimatedTime: 1,
+      modeId: 'walking',
+      speedFactor: 6,
+    );
+
+    final trigger = StateProvider<int>((ref) => 0);
+    Completer<RouteResult?>? pending;
+
+    final container = ProviderContainer(
+      overrides: [
+        routeResultProvider.overrideWith((ref) {
+          ref.watch(trigger); // dependency that drives a reload
+          return pending == null ? Future.value(routeA) : pending.future;
+        }),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final sub = container.listen(routeLocationsProvider, (_, _) {});
+    addTearDown(sub.close);
+
+    await container.read(routeResultProvider.future);
+    expect(container.read(routeLocationsProvider), routeA.path);
+
+    // Dependency-driven reload that stays pending (mirrors the async
+    // loadActiveRoute reload arrival triggers).
+    pending = Completer<RouteResult?>();
+    container.read(trigger.notifier).state++;
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      container.read(routeLocationsProvider),
+      routeA.path,
+      reason: 'route must not blink to empty while the result reloads',
+    );
+
+    pending.complete(routeA);
+    await container.read(routeResultProvider.future);
+    expect(container.read(routeLocationsProvider), routeA.path);
   });
 }
 

@@ -592,12 +592,17 @@ Map<int, double> _bottleneckWeightsFromCells(
 final activeRouteResultProvider = routeResultProvider;
 
 // Extracted route locations memoized off the typed RouteResult.
+//
+// Uses valueOrNull (not maybeWhen) so the path is RETAINED while the result
+// reloads. routeResultProvider reloads whenever its deps change (e.g. on
+// arrival: navPhase -> arrived, then userPosition -> dest), and a
+// dependency-driven reload reports AsyncLoading. maybeWhen(orElse: []) would
+// blink the route to empty during each reload, which re-triggers the route
+// draw animation and redraws it ~twice before it clears. valueOrNull keeps the
+// last path through the reload. Regression: route_result_loop_test.dart.
 final routeLocationsProvider = Provider.autoDispose<List<int>>((ref) {
   final result = ref.watch(activeRouteResultProvider);
-  return result.maybeWhen(
-    data: (route) => route?.path ?? const <int>[],
-    orElse: () => const <int>[],
-  );
+  return result.valueOrNull?.path ?? const <int>[];
 });
 
 final navDotProvider = Provider.autoDispose<NavDot?>((ref) {
