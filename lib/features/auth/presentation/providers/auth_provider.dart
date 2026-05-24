@@ -17,7 +17,7 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
 
   AuthNotifier(this._repository) : super(null);
 
-  // Step 1 of multi-step login: verify credentials but don't log in yet
+  // Verifies phone/password without mutating auth state.
   Future<AuthUser> verifyCredentials(
     String phoneNumber,
     String password,
@@ -28,7 +28,7 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     );
   }
 
-  // To be called after OTP verification success to finalize login
+  // Direct phone/password login. Swagger does not require OTP for login.
   Future<void> login(String phoneNumber, String password) async {
     final user = await _repository.login(
       phoneNumber: phoneNumber,
@@ -37,8 +37,7 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     await saveTokenAndSetUser(user);
   }
 
-  // To be called when we already have the AuthUser
-  // (e.g. from verifyCredentials then OTP)
+  // To be called when we already have the AuthUser.
   Future<void> saveTokenAndSetUser(AuthUser user) async {
     await TokenRepository.saveToken(user.token);
     state = user;
@@ -66,7 +65,7 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     }
   }
 
-  // For OTP verification success that leads to login
+  // For flows that already have a complete AuthUser.
   void setUser(AuthUser user) {
     state = user;
   }
@@ -89,7 +88,7 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     );
   }
 
-  // Verify OTP for signup, forgot_password, or login flows
+  // Verify OTP for signup or reset-password flows.
   Future<void> verifyOtp({
     required String phoneNumber,
     required String otp,
