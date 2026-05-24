@@ -517,21 +517,42 @@ final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
   // Regression guard: route_result_loop_test.dart.
   final meta = await ref.watch(mapMetaProvider(mapId).future);
   final adjacency = ref.watch(adjacencyProvider(mapId));
-  final flowSnapshot = ref.read(flowSnapshotProvider(mapId)).valueOrNull;
-  final obstacles =
-      ref.read(mapObstaclesProvider(mapId)).valueOrNull ??
-      const <MapObstacle>[];
-  final edgeStatuses = mergeObstacleEdgeStatuses(
-    edgeStatuses: {
-      for (final edge in flowSnapshot?.edgeStatuses ?? const <EdgeStatus>[])
-        edgeStatusKey(edge.fromLocation, edge.toLocation): edge,
-    },
-    obstacles: obstacles,
-    adjacency: adjacency,
-  );
+
+  // Crowd inputs are fetched on demand with read()+await — NOT watch. Watching
+  // flow/obstacles/bottlenecks here reintroduces the infinite rebuild loop
+  // (guard: route_result_loop_test.dart); read(...future) triggers and awaits
+  // the fetch without creating a reactive dependency, so the engine gets live
+  // congestion/obstacle/bottleneck data even when the analytics overlays are
+  // closed (previously these used .read().valueOrNull and were null unless an
+  // overlay had already fetched them, so routing fell back to plain shortest
+  // path). Best-effort: a crowd-input failure must never block routing, so
+  // swallow errors and route with whatever resolved. Started together so they
+  // resolve concurrently.
+  try {
+    await Future.wait([
+      ref.read(flowSnapshotProvider(mapId).future),
+      ref.read(mapObstaclesProvider(mapId).future),
+    ]);
+  } catch (_) {
+    // Route without flow/obstacle data if it fails to load.
+  }
+  List<FlowCell> bottleneckCells = const <FlowCell>[];
+  try {
+    bottleneckCells = await ref.read(bottlenecksProvider(mapId).future);
+  } catch (_) {
+    // Route without bottleneck weighting if it fails to load.
+  }
+
+  // corridorStatusProvider derives per-edge congestion (heatmap density) and
+  // blocked flags (obstacles) — the same source the overlay draws, so what the
+  // user sees is what the router avoids.
+  final edgeStatuses = {
+    for (final status in ref.read(corridorStatusProvider(mapId)))
+      edgeStatusKey(status.fromLocation, status.toLocation): status,
+  };
   final poiCells = ref.watch(poiByCellProvider(mapId)).keys.toSet();
   final bottleneckWeights = _bottleneckWeightsFromCells(
-    ref.read(bottlenecksProvider(mapId)).valueOrNull ?? const <FlowCell>[],
+    bottleneckCells,
     meta.rows * meta.cols,
   );
 

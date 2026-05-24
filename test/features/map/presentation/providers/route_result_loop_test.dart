@@ -171,6 +171,83 @@ void main() {
 
     expect(service.routeCalls, 1);
   });
+
+  test('route avoids a bottleneck with no analytics overlay active', () async {
+    // Regression: routeResultProvider used to read crowd inputs with
+    // .read().valueOrNull, which was null unless an overlay had already fetched
+    // them — so routing ignored bottlenecks/obstacles and walked straight
+    // through. It now fetches them on demand, so this passes with overlays off.
+    final service = RoutingService(
+      repository: FakeMapRepository(),
+      engine: RoutingEngine(),
+      cache: testCache,
+      connectivity: FakeConnectivity([ConnectivityResult.none]),
+    );
+
+    const dest = MapPoi(
+      poiId: 1,
+      mapId: 1,
+      poiCode: 'D',
+      poiName: 'Dest',
+      poiType: 'room',
+      gridRow: 0,
+      gridCol: 2,
+      gridLocation: 2,
+      isLandmark: false,
+      isAccessible: true,
+      wheelchairAccessible: true,
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        routingServiceProvider.overrideWithValue(service),
+        userPositionProvider.overrideWith((ref) => 0),
+        routeDestProvider.overrideWith((ref) => dest),
+        selectedFloorProvider.overrideWith((ref) => 1),
+        floorsProvider.overrideWith((ref) async => const <MapFloor>[]),
+        mapMetaProvider.overrideWith(
+          (ref, id) async =>
+              const MapFloor(mapId: 1, mapName: 't', rows: 3, cols: 3),
+        ),
+        // 0->2 directly via cell 1, or detour 0-3-4-5-2 avoiding it.
+        adjacencyProvider.overrideWith(
+          (ref, id) => const <int, List<int>>{
+            0: [1, 3],
+            1: [0, 2],
+            2: [1, 5],
+            3: [0, 4],
+            4: [3, 5],
+            5: [2, 4],
+          },
+        ),
+        flowSnapshotProvider.overrideWith(
+          (ref, id) async => FlowSnapshot.empty(),
+        ),
+        mapObstaclesProvider.overrideWith(
+          (ref, id) async => const <MapObstacle>[],
+        ),
+        poiByCellProvider.overrideWith((ref, id) => const <int, MapPoi>{}),
+        // Bottleneck on cell 1 — never read by an overlay here, only by
+        // routeResultProvider's own on-demand fetch.
+        bottlenecksProvider.overrideWith(
+          (ref, id) async => const [FlowCell(location: 1, density: 1)],
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final route = await container.read(routeResultProvider.future);
+
+    expect(route, isNotNull);
+    expect(route!.path.first, 0);
+    expect(route.path.last, 2);
+    expect(
+      route.path,
+      isNot(contains(1)),
+      reason: 'crowd-aware engine should detour around the bottleneck cell '
+          'even with the analytics overlay closed',
+    );
+  });
 }
 
 class FakeConnectivity implements Connectivity {
