@@ -299,7 +299,11 @@ class _MapPageState extends ConsumerState<MapPage>
     final routeLocations = shouldWatchRoute
         ? ref.watch(routeLocationsProvider)
         : const <int>[];
-    final navDot = shouldWatchRoute ? ref.watch(navDotProvider) : null;
+    // Not gated on shouldWatchRoute: navDotProvider returns the resting
+    // "you are here" dot from userPosition when there is no route, so it must
+    // render before a destination is picked. routeResultProvider still returns
+    // null while dest is unset, so this triggers no routing work.
+    final navDot = ref.watch(navDotProvider);
     final navProgress = ref.watch(navProgressProvider);
     ref.watch(navigationControllerProvider);
     final defaultUserPosition = userPosition == null && nodes.isNotEmpty
