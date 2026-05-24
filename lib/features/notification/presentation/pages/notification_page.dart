@@ -25,8 +25,10 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_handleScroll);
-    _scrollController.dispose();
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
+
     super.dispose();
   }
 
