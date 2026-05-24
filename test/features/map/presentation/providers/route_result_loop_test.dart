@@ -245,13 +245,13 @@ void main() {
     expect(
       route.path,
       isNot(contains(1)),
-      reason: 'crowd-aware engine should detour around the bottleneck cell '
+      reason:
+          'crowd-aware engine should detour around the bottleneck cell '
           'even with the analytics overlay closed',
     );
   });
 
-  test('routeLocationsProvider keeps the path while the result reloads',
-      () async {
+  test('routeLocationsProvider keeps the path while the res reloads', () async {
     // Regression for the arrival double re-render: on arrival the route result
     // RELOADS because its dependencies change (navPhase -> arrived, then
     // userPosition -> dest). A dependency-driven reload shows AsyncLoading
