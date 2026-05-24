@@ -13,6 +13,7 @@ import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/data/models/route_history.dart';
 import 'package:hospital_app/features/map/data/models/route_history_entry.dart';
+import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/pages/map_qr_scanner_page.dart';
 import 'package:hospital_app/features/map/data/services/map_perf_debug.dart';
@@ -27,6 +28,21 @@ import 'package:hospital_app/features/map/presentation/widgets/map_poi_metadata_
 import 'package:hospital_app/features/map/presentation/widgets/map_route_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_search_results_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_top_bar.dart';
+
+part '../widgets/map_page/route_pill.dart';
+part '../widgets/map_page/map_fab.dart';
+part '../widgets/map_page/floor_selector.dart';
+part '../widgets/map_page/route_history_sheet.dart';
+part '../widgets/map_page/map_status_cluster.dart';
+part '../widgets/map_page/status_pill.dart';
+part '../widgets/map_page/pill_data.dart';
+part '../widgets/map_page/flow_legend.dart';
+part '../widgets/map_page/legend_swatch.dart';
+part '../widgets/map_page/flow_analytics_panel.dart';
+part '../widgets/map_page/analytics_row.dart';
+part '../widgets/map_page/obstacle_report_draft.dart';
+part '../widgets/map_page/obstacle_report_sheet.dart';
+part '../widgets/map_page/route_poi_picker_sheet.dart';
 
 // debug
 // import 'package:hospital_app/features/map/presentation/widgets/map_debug_grid_painter.dart';
@@ -349,349 +365,483 @@ class _MapPageState extends ConsumerState<MapPage>
       backgroundColor: MapSurface.background,
       body: Stack(
         children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            // Keep the map viewport above the system navigation bar so POIs
-            // along the bottom edge stay tappable.
-            bottom: mediaBottom,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final cellWidth = constraints.maxWidth / cols;
-                final cellHeight = constraints.maxHeight / rows;
-                final cellSize = math.max(cellWidth, cellHeight);
-                final gridWidth = cols * cellSize;
-                final gridHeight = rows * cellSize;
-                const minScale = _minMapScale;
-
-                final controller = _ensureTransformController();
-                _syncTransformToLayout(
-                  viewportSize: Size(
-                    constraints.maxWidth,
-                    constraints.maxHeight,
-                  ),
-                  gridSize: Size(gridWidth, gridHeight),
-                  minScale: minScale,
-                );
-
-                return InteractiveViewer(
-                  transformationController: controller,
-                  alignment: Alignment.topLeft,
-                  clipBehavior: Clip.hardEdge,
-                  constrained: false,
-                  minScale: minScale,
-                  maxScale: _maxMapScale,
-                  boundaryMargin: EdgeInsets.zero,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTapDown: (details) =>
-                        _handleTap(details.localPosition, rows, cols, cellSize),
-                    onLongPressStart: (details) => _handleLongPressStart(
-                      details.localPosition,
-                      rows,
-                      cols,
-                      cellSize,
-                    ),
-                    child: SizedBox(
-                      width: gridWidth,
-                      height: gridHeight,
-                      child: RepaintBoundary(
-                        child: AnimatedBuilder(
-                          animation: Listenable.merge([controller, _routeAnim]),
-                          builder: (context, _) {
-                            final visibleRect = _visibleRectFor(
-                              controller.value,
-                              Size(constraints.maxWidth, constraints.maxHeight),
-                              Size(gridWidth, gridHeight),
-                            );
-                            return CustomPaint(
-                              size: Size(gridWidth, gridHeight),
-                              painter: MapGridPainter(
-                                rows: rows,
-                                cols: cols,
-                                walkableLocations: walkable,
-                                pois: nodes,
-                                flowCells: forecastVisible
-                                    ? forecast
-                                    : (flow?.cells ?? const []),
-                                edgeStatuses: flow?.edgeStatuses ?? const [],
-                                showFlowOverlay: forecastVisible || flowVisible,
-                                showEdgeStatus: edgeStatusVisible,
-                                bottlenecks: bottlenecks,
-                                showBottlenecks: bottlenecksVisible,
-                                routeLocations: routeLocations,
-                                routeProgress: _routeAnim.value,
-                                userDot: navDot,
-                                navProgress: navProgress,
-                                visibleRect: visibleRect,
-                                debugTap: _debugTapScene,
-                                debugPoiCenter: _debugPoiCenter,
-                                showDebug: _showDebugHitTest,
-                              ),
-                              // foregroundPainter: MapDebugGridPainter(
-                              //   rows: rows,
-                              //   cols: cols,
-                              //   visibleRect: visibleRect,
-                              //   // labelCells: true,
-                              // ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+          _buildMapViewport(
+            mediaBottom: mediaBottom,
+            rows: rows,
+            cols: cols,
+            walkable: walkable,
+            nodes: nodes,
+            forecastVisible: forecastVisible,
+            forecast: forecast,
+            flow: flow,
+            flowVisible: flowVisible,
+            edgeStatusVisible: edgeStatusVisible,
+            bottlenecks: bottlenecks,
+            bottlenecksVisible: bottlenecksVisible,
+            routeLocations: routeLocations,
+            navDot: navDot,
+            navProgress: navProgress,
           ),
 
-          // Top: collapsible search
-          Positioned(
-            top: mediaTop + AppSpacing.md,
-            left: AppSpacing.md,
-            right: AppSpacing.md,
-            child: AnimatedSize(
-              duration: MapMotion.medium,
-              curve: MapMotion.resize,
-              alignment: Alignment.topRight,
-              child: _searchExpanded
-                  ? Column(
-                      key: const ValueKey('search-expanded'),
-                      children: [
-                        MapTopBar(
-                          controller: _searchController,
-                          isLoading: loading,
-                          onCollapse: () => setState(() {
-                            _searchController.clear();
-                            _setSearchKeyword('', immediate: true);
-                            _searchExpanded = false;
-                          }),
-                        ),
-                        AnimatedSwitcher(
-                          duration: MapMotion.medium,
-                          switchInCurve: MapMotion.enter,
-                          switchOutCurve: MapMotion.enter,
-                          child: searching
-                              ? Padding(
-                                  key: const ValueKey('results'),
-                                  padding: const EdgeInsets.only(
-                                    top: AppSpacing.sm,
-                                  ),
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxHeight: 320,
-                                    ),
-                                    child: MapSearchResultsPanel(
-                                      results: searchResultsAsync,
-                                      query: keyword.trim(),
-                                      suggestions: nodes.take(3).toList(),
-                                      onSelect: _selectPoiFromSearch,
-                                      onRetry: () => ref.invalidate(
-                                        searchResultsProvider(activeMapId),
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : const SizedBox.shrink(key: ValueKey('idle')),
-                        ),
-                      ],
-                    )
-                  : Align(
-                      key: const ValueKey('search-collapsed'),
-                      alignment: Alignment.topRight,
-                      child: _MapFab(
-                        icon: Icons.search_rounded,
-                        tooltip: 'Search',
-                        onPressed: () => setState(() => _searchExpanded = true),
-                      ),
-                    ),
-            ),
+          _buildSearchOverlay(
+            mediaTop: mediaTop,
+            loading: loading,
+            searching: searching,
+            searchResultsAsync: searchResultsAsync,
+            keyword: keyword,
+            nodes: nodes,
+            activeMapId: activeMapId,
           ),
 
-          // Top-left: route progress pill (only when route in progress)
           if (hasRoute)
-            Positioned(
-              top: mediaTop + AppSpacing.md + 52,
-              left: AppSpacing.md,
-              child: _RoutePill(
-                startName: userPositionPoi?.poiName ?? 'You are here',
-                dest: dest,
-                onTap: _showRoutePanel,
-                onClear: _clearRoute,
-              ),
+            _buildRoutePillOverlay(
+              mediaTop: mediaTop,
+              userPositionPoi: userPositionPoi,
+              dest: dest,
             ),
 
-          Positioned(
-            top: mediaTop + AppSpacing.md + (hasRoute ? 104 : 52),
-            left: AppSpacing.md,
-            child: _MapStatusCluster(
-              snapshot: flowSnapshot,
-              isOnline: isOnline,
-              lastSyncedAt: lastSyncedAt,
-              locationSource: locationSource,
-              notice: inlineNotice,
-              onRetry: () => ref.invalidate(flowSnapshotProvider(activeMapId)),
-            ),
+          _buildStatusOverlay(
+            mediaTop: mediaTop,
+            hasRoute: hasRoute,
+            flowSnapshot: flowSnapshot,
+            isOnline: isOnline,
+            lastSyncedAt: lastSyncedAt,
+            locationSource: locationSource,
+            inlineNotice: inlineNotice,
+            activeMapId: activeMapId,
           ),
 
-          Positioned(
-            top: mediaTop + AppSpacing.md + 56,
-            right: AppSpacing.md,
-            child: _FloorSelector(
-              floors: floors,
-              selectedMapId: activeMapId,
-              onChanged: (mapId) {
-                if (mapId == null || mapId == activeMapId) return;
-                ref.read(selectedFloorProvider.notifier).state = mapId;
-              },
-            ),
+          _buildFloorSelectorOverlay(
+            mediaTop: mediaTop,
+            floors: floors,
+            activeMapId: activeMapId,
           ),
 
-          if (_showAnalyticsPanel)
-            Positioned(
-              left: AppSpacing.md,
-              bottom: mediaBottom + 252,
-              child: _FlowAnalyticsPanel(
-                isStale: flow?.isStale ?? false,
-                heatmapActive: flowVisible,
-                edgeStatusActive: edgeStatusVisible,
-                bottlenecksActive: bottlenecksVisible,
-                forecastActive: forecastVisible,
-                forecastHours: forecastHours,
-                noLiveHeatmapData: flow == null || flow.cells.isEmpty,
-                noLiveBottlenecksData: bottlenecks.isEmpty,
-                noLiveForecastData: forecast.isEmpty,
-                onHeatmapChanged: (active) {
-                  ref.read(flowOverlayVisibleProvider.notifier).state = active;
-                },
-                onEdgeStatusChanged: (active) {
-                  ref.read(edgeStatusVisibleProvider.notifier).state = active;
-                },
-                onBottlenecksChanged: (active) {
-                  ref.read(bottlenecksVisibleProvider.notifier).state = active;
-                },
-                onForecastChanged: (active) {
-                  ref.read(forecastVisibleProvider.notifier).state = active;
-                },
-                onForecastHoursChanged: (hours) {
-                  ref.read(forecastHoursProvider.notifier).state = hours;
-                },
-              ),
-            )
-          else if (flowVisible)
-            Positioned(
-              left: AppSpacing.md,
-              bottom: mediaBottom + 204,
-              child: _FlowLegend(
-                isStale: flow?.isStale ?? false,
-                noData: flow == null || flow.cells.isEmpty,
-              ),
+          if (_showAnalyticsPanel || flowVisible)
+            _buildAnalyticsOverlay(
+              mediaBottom: mediaBottom,
+              flow: flow,
+              flowVisible: flowVisible,
+              edgeStatusVisible: edgeStatusVisible,
+              bottlenecksVisible: bottlenecksVisible,
+              forecastVisible: forecastVisible,
+              forecastHours: forecastHours,
+              bottlenecks: bottlenecks,
+              forecast: forecast,
             ),
 
-          // Bottom-left FAB cluster: legend + recenter
-          Positioned(
-            left: AppSpacing.md,
-            bottom: mediaBottom + AppSpacing.md,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _MapFab(
-                  icon: Icons.qr_code_scanner_rounded,
-                  tooltip: 'Scan QR code',
-                  onPressed: _showQrScanner,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _MapFab(
-                  icon: Icons.map_outlined,
-                  tooltip: 'Map legend',
-                  onPressed: _showLegend,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _MapFab(
-                  icon: _showAnalyticsPanel
-                      ? Icons.analytics_rounded
-                      : Icons.analytics_outlined,
-                  tooltip: 'Flow Analytics Options',
-                  active: _showAnalyticsPanel,
-                  onPressed: () {
-                    setState(() {
-                      _showAnalyticsPanel = !_showAnalyticsPanel;
-                    });
-                  },
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _MapFab(
-                  icon: Icons.center_focus_strong_rounded,
-                  tooltip: 'Recenter',
-                  onPressed: _recenter,
-                ),
-              ],
-            ),
+          _buildMapActionCluster(mediaBottom),
+
+          _buildRouteActionOverlay(
+            mediaBottom: mediaBottom,
+            showNavigationSheet: showNavigationSheet,
+            dest: dest,
+            userPosition: userPosition,
+            routeResultAsync: routeResultAsync,
+            hasRoute: hasRoute,
           ),
+        ],
+      ),
+    );
+  }
 
-          if (showNavigationSheet && dest != null)
-            // Compact card anchored bottom-right so the map stays visible.
-            // Collapses to a small button when the user wants it hidden.
-            Positioned(
-              right: AppSpacing.md,
-              bottom: mediaBottom + AppSpacing.md,
-              child: _navCollapsed
-                  ? _MapFab(
-                      icon: Icons.navigation_rounded,
-                      tooltip: 'Show navigation',
-                      onPressed: () => setState(() => _navCollapsed = false),
-                    )
-                  : MapNavigationSheet(
-                      destinationName: dest.poiName,
-                      onStop: _stopNavigation,
-                      onCollapse: () => setState(() => _navCollapsed = true),
-                    ),
-            )
-          else if (dest != null &&
-              userPosition != null &&
-              routeResultAsync.hasValue)
-            // Route is ready: one-tap Start, with a small Route options button
-            // above it for changing the mode or clearing.
-            Positioned(
-              right: AppSpacing.md,
-              bottom: mediaBottom + AppSpacing.md,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _MapFab(
-                    icon: Icons.tune_rounded,
-                    tooltip: 'Route options',
-                    onPressed: _showRoutePanel,
+  Widget _buildMapViewport({
+    required double mediaBottom,
+    required int rows,
+    required int cols,
+    required Set<int> walkable,
+    required List<MapPoi> nodes,
+    required bool forecastVisible,
+    required List<FlowCell> forecast,
+    required FlowSnapshot? flow,
+    required bool flowVisible,
+    required bool edgeStatusVisible,
+    required List<FlowCell> bottlenecks,
+    required bool bottlenecksVisible,
+    required List<int> routeLocations,
+    required NavDot? navDot,
+    required double navProgress,
+  }) {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      // Keep the map viewport above the system navigation bar so POIs
+      // along the bottom edge stay tappable.
+      bottom: mediaBottom,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cellWidth = constraints.maxWidth / cols;
+          final cellHeight = constraints.maxHeight / rows;
+          final cellSize = math.max(cellWidth, cellHeight);
+          final gridWidth = cols * cellSize;
+          final gridHeight = rows * cellSize;
+          const minScale = _minMapScale;
+
+          final controller = _ensureTransformController();
+          _syncTransformToLayout(
+            viewportSize: Size(constraints.maxWidth, constraints.maxHeight),
+            gridSize: Size(gridWidth, gridHeight),
+            minScale: minScale,
+          );
+
+          return InteractiveViewer(
+            transformationController: controller,
+            alignment: Alignment.topLeft,
+            clipBehavior: Clip.hardEdge,
+            constrained: false,
+            minScale: minScale,
+            maxScale: _maxMapScale,
+            boundaryMargin: EdgeInsets.zero,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (details) =>
+                  _handleTap(details.localPosition, rows, cols, cellSize),
+              onLongPressStart: (details) => _handleLongPressStart(
+                details.localPosition,
+                rows,
+                cols,
+                cellSize,
+              ),
+              child: SizedBox(
+                width: gridWidth,
+                height: gridHeight,
+                child: RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([controller, _routeAnim]),
+                    builder: (context, _) {
+                      final visibleRect = _visibleRectFor(
+                        controller.value,
+                        Size(constraints.maxWidth, constraints.maxHeight),
+                        Size(gridWidth, gridHeight),
+                      );
+                      return CustomPaint(
+                        size: Size(gridWidth, gridHeight),
+                        painter: MapGridPainter(
+                          rows: rows,
+                          cols: cols,
+                          walkableLocations: walkable,
+                          pois: nodes,
+                          flowCells: forecastVisible
+                              ? forecast
+                              : (flow?.cells ?? const []),
+                          edgeStatuses: flow?.edgeStatuses ?? const [],
+                          showFlowOverlay: forecastVisible || flowVisible,
+                          showEdgeStatus: edgeStatusVisible,
+                          bottlenecks: bottlenecks,
+                          showBottlenecks: bottlenecksVisible,
+                          routeLocations: routeLocations,
+                          routeProgress: _routeAnim.value,
+                          userDot: navDot,
+                          navProgress: navProgress,
+                          visibleRect: visibleRect,
+                          debugTap: _debugTapScene,
+                          debugPoiCenter: _debugPoiCenter,
+                          showDebug: _showDebugHitTest,
+                        ),
+                        // foregroundPainter: MapDebugGridPainter(
+                        //   rows: rows,
+                        //   cols: cols,
+                        //   visibleRect: visibleRect,
+                        //   // labelCells: true,
+                        // ),
+                      );
+                    },
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  FloatingActionButton.extended(
-                    heroTag: 'map-start-fab',
-                    onPressed: _startNavigation,
-                    icon: const Icon(Icons.navigation_rounded),
-                    label: const Text('Start'),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSearchOverlay({
+    required double mediaTop,
+    required bool loading,
+    required bool searching,
+    required AsyncValue<List<MapPoi>> searchResultsAsync,
+    required String keyword,
+    required List<MapPoi> nodes,
+    required int activeMapId,
+  }) {
+    return Positioned(
+      top: mediaTop + AppSpacing.md,
+      left: AppSpacing.md,
+      right: AppSpacing.md,
+      child: AnimatedSize(
+        duration: MapMotion.medium,
+        curve: MapMotion.resize,
+        alignment: Alignment.topRight,
+        child: _searchExpanded
+            ? Column(
+                key: const ValueKey('search-expanded'),
+                children: [
+                  MapTopBar(
+                    controller: _searchController,
+                    isLoading: loading,
+                    onCollapse: () => setState(() {
+                      _searchController.clear();
+                      _setSearchKeyword('', immediate: true);
+                      _searchExpanded = false;
+                    }),
+                  ),
+                  AnimatedSwitcher(
+                    duration: MapMotion.medium,
+                    switchInCurve: MapMotion.enter,
+                    switchOutCurve: MapMotion.enter,
+                    child: searching
+                        ? Padding(
+                            key: const ValueKey('results'),
+                            padding: const EdgeInsets.only(top: AppSpacing.sm),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 320),
+                              child: MapSearchResultsPanel(
+                                results: searchResultsAsync,
+                                query: keyword.trim(),
+                                suggestions: nodes.take(3).toList(),
+                                onSelect: _selectPoiFromSearch,
+                                onRetry: () => ref.invalidate(
+                                  searchResultsProvider(activeMapId),
+                                ),
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(key: ValueKey('idle')),
                   ),
                 ],
-              ),
-            )
-          else
-            // Bottom-right: route plan FAB
-            Positioned(
-              right: AppSpacing.md,
-              bottom: mediaBottom + AppSpacing.md,
-              child: FloatingActionButton.extended(
-                heroTag: 'map-route-fab',
-                onPressed: _showRoutePanel,
-                icon: Icon(
-                  hasRoute
-                      ? Icons.edit_location_alt_rounded
-                      : Icons.alt_route_rounded,
+              )
+            : Align(
+                key: const ValueKey('search-collapsed'),
+                alignment: Alignment.topRight,
+                child: _MapFab(
+                  icon: Icons.search_rounded,
+                  tooltip: 'Search',
+                  onPressed: () => setState(() => _searchExpanded = true),
                 ),
-                label: Text(hasRoute ? 'Route' : 'Plan route'),
               ),
-            ),
+      ),
+    );
+  }
+
+  Widget _buildRoutePillOverlay({
+    required double mediaTop,
+    required MapPoi? userPositionPoi,
+    required MapPoi? dest,
+  }) {
+    return Positioned(
+      top: mediaTop + AppSpacing.md + 52,
+      left: AppSpacing.md,
+      child: _RoutePill(
+        startName: userPositionPoi?.poiName ?? 'You are here',
+        dest: dest,
+        onTap: _showRoutePanel,
+        onClear: _clearRoute,
+      ),
+    );
+  }
+
+  Widget _buildStatusOverlay({
+    required double mediaTop,
+    required bool hasRoute,
+    required AsyncValue<FlowSnapshot> flowSnapshot,
+    required bool? isOnline,
+    required DateTime? lastSyncedAt,
+    required LocationSource locationSource,
+    required String? inlineNotice,
+    required int activeMapId,
+  }) {
+    return Positioned(
+      top: mediaTop + AppSpacing.md + (hasRoute ? 104 : 52),
+      left: AppSpacing.md,
+      child: _MapStatusCluster(
+        snapshot: flowSnapshot,
+        isOnline: isOnline,
+        lastSyncedAt: lastSyncedAt,
+        locationSource: locationSource,
+        notice: inlineNotice,
+        onRetry: () => ref.invalidate(flowSnapshotProvider(activeMapId)),
+      ),
+    );
+  }
+
+  Widget _buildFloorSelectorOverlay({
+    required double mediaTop,
+    required List<MapFloor> floors,
+    required int activeMapId,
+  }) {
+    return Positioned(
+      top: mediaTop + AppSpacing.md + 56,
+      right: AppSpacing.md,
+      child: _FloorSelector(
+        floors: floors,
+        selectedMapId: activeMapId,
+        onChanged: (mapId) {
+          if (mapId == null || mapId == activeMapId) return;
+          ref.read(selectedFloorProvider.notifier).state = mapId;
+        },
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsOverlay({
+    required double mediaBottom,
+    required FlowSnapshot? flow,
+    required bool flowVisible,
+    required bool edgeStatusVisible,
+    required bool bottlenecksVisible,
+    required bool forecastVisible,
+    required int forecastHours,
+    required List<FlowCell> bottlenecks,
+    required List<FlowCell> forecast,
+  }) {
+    if (_showAnalyticsPanel) {
+      return Positioned(
+        left: AppSpacing.md,
+        bottom: mediaBottom + 252,
+        child: _FlowAnalyticsPanel(
+          isStale: flow?.isStale ?? false,
+          heatmapActive: flowVisible,
+          edgeStatusActive: edgeStatusVisible,
+          bottlenecksActive: bottlenecksVisible,
+          forecastActive: forecastVisible,
+          forecastHours: forecastHours,
+          noLiveHeatmapData: flow == null || flow.cells.isEmpty,
+          noLiveBottlenecksData: bottlenecks.isEmpty,
+          noLiveForecastData: forecast.isEmpty,
+          onHeatmapChanged: (active) {
+            ref.read(flowOverlayVisibleProvider.notifier).state = active;
+          },
+          onEdgeStatusChanged: (active) {
+            ref.read(edgeStatusVisibleProvider.notifier).state = active;
+          },
+          onBottlenecksChanged: (active) {
+            ref.read(bottlenecksVisibleProvider.notifier).state = active;
+          },
+          onForecastChanged: (active) {
+            ref.read(forecastVisibleProvider.notifier).state = active;
+          },
+          onForecastHoursChanged: (hours) {
+            ref.read(forecastHoursProvider.notifier).state = hours;
+          },
+        ),
+      );
+    }
+
+    return Positioned(
+      left: AppSpacing.md,
+      bottom: mediaBottom + 204,
+      child: _FlowLegend(
+        isStale: flow?.isStale ?? false,
+        noData: flow == null || flow.cells.isEmpty,
+      ),
+    );
+  }
+
+  Widget _buildMapActionCluster(double mediaBottom) {
+    return Positioned(
+      left: AppSpacing.md,
+      bottom: mediaBottom + AppSpacing.md,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _MapFab(
+            icon: Icons.qr_code_scanner_rounded,
+            tooltip: 'Scan QR code',
+            onPressed: _showQrScanner,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _MapFab(
+            icon: Icons.map_outlined,
+            tooltip: 'Map legend',
+            onPressed: _showLegend,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _MapFab(
+            icon: _showAnalyticsPanel
+                ? Icons.analytics_rounded
+                : Icons.analytics_outlined,
+            tooltip: 'Flow Analytics Options',
+            active: _showAnalyticsPanel,
+            onPressed: () {
+              setState(() {
+                _showAnalyticsPanel = !_showAnalyticsPanel;
+              });
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _MapFab(
+            icon: Icons.center_focus_strong_rounded,
+            tooltip: 'Recenter',
+            onPressed: _recenter,
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRouteActionOverlay({
+    required double mediaBottom,
+    required bool showNavigationSheet,
+    required MapPoi? dest,
+    required int? userPosition,
+    required AsyncValue<RouteResult?> routeResultAsync,
+    required bool hasRoute,
+  }) {
+    if (showNavigationSheet && dest != null) {
+      return Positioned(
+        right: AppSpacing.md,
+        bottom: mediaBottom + AppSpacing.md,
+        child: _navCollapsed
+            ? _MapFab(
+                icon: Icons.navigation_rounded,
+                tooltip: 'Show navigation',
+                onPressed: () => setState(() => _navCollapsed = false),
+              )
+            : MapNavigationSheet(
+                destinationName: dest.poiName,
+                onStop: _stopNavigation,
+                onCollapse: () => setState(() => _navCollapsed = true),
+              ),
+      );
+    }
+
+    if (dest != null && userPosition != null && routeResultAsync.hasValue) {
+      return Positioned(
+        right: AppSpacing.md,
+        bottom: mediaBottom + AppSpacing.md,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _MapFab(
+              icon: Icons.tune_rounded,
+              tooltip: 'Route options',
+              onPressed: _showRoutePanel,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            FloatingActionButton.extended(
+              heroTag: 'map-start-fab',
+              onPressed: _startNavigation,
+              icon: const Icon(Icons.navigation_rounded),
+              label: const Text('Start'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Positioned(
+      right: AppSpacing.md,
+      bottom: mediaBottom + AppSpacing.md,
+      child: FloatingActionButton.extended(
+        heroTag: 'map-route-fab',
+        onPressed: _showRoutePanel,
+        icon: Icon(
+          hasRoute ? Icons.edit_location_alt_rounded : Icons.alt_route_rounded,
+        ),
+        label: Text(hasRoute ? 'Route' : 'Plan route'),
       ),
     );
   }
@@ -1168,1225 +1318,5 @@ class _MapPageState extends ConsumerState<MapPage>
   ) {
     if (gridExtent <= viewportExtent) return 0;
     return translate.clamp(viewportExtent - gridExtent, 0).toDouble();
-  }
-}
-
-class _RoutePill extends StatelessWidget {
-  final String startName;
-  final MapPoi? dest;
-  final VoidCallback? onTap;
-  final VoidCallback? onClear;
-
-  const _RoutePill({
-    required this.startName,
-    required this.dest,
-    required this.onTap,
-    required this.onClear,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (dest == null) return const SizedBox.shrink();
-    final scheme = context.colorScheme;
-    final destName = dest?.poiName ?? 'Pick destination';
-
-    return Semantics(
-      container: true,
-      button: onTap != null,
-      label: 'Route from $startName to $destName. Tap to edit.',
-      child: Material(
-        color: scheme.surface,
-        elevation: 2,
-        shadowColor: scheme.shadow,
-        borderRadius: AppRadius.borderFull,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: AppRadius.borderFull,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.xs,
-              AppSpacing.xs,
-              AppSpacing.xs,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.my_location_rounded,
-                  size: 14,
-                  color: scheme.primary,
-                ),
-                const SizedBox(width: 6),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 96),
-                  child: Text(
-                    startName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 14,
-                  color: scheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 6),
-                Icon(Icons.flag_rounded, size: 14, color: scheme.secondary),
-                const SizedBox(width: 6),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 96),
-                  child: Text(
-                    destName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                if (onClear != null)
-                  IconButton(
-                    iconSize: 18,
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onClear,
-                    icon: const Icon(Icons.close_rounded),
-                    tooltip: 'Clear route',
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MapFab extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onPressed;
-  final bool active;
-
-  const _MapFab({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-    this.active = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    return Semantics(
-      button: true,
-      label: tooltip,
-      child: Material(
-        color: active ? scheme.primaryContainer : scheme.surface,
-        elevation: 2,
-        shadowColor: scheme.shadow,
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onPressed,
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(
-              icon,
-              size: 22,
-              color: active ? scheme.primary : scheme.onSurface,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FloorSelector extends StatelessWidget {
-  final List<MapFloor> floors;
-  final int selectedMapId;
-  final ValueChanged<int?> onChanged;
-
-  const _FloorSelector({
-    required this.floors,
-    required this.selectedMapId,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (floors.length < 2) {
-      return const SizedBox.shrink();
-    }
-    final scheme = context.colorScheme;
-    return Material(
-      color: scheme.surface,
-      elevation: 2,
-      shadowColor: scheme.shadow,
-      borderRadius: AppRadius.borderFull,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<int>(
-            value: selectedMapId,
-            borderRadius: AppRadius.borderMd,
-            icon: const Icon(Icons.expand_more_rounded),
-            items: [
-              for (final floor in floors)
-                DropdownMenuItem<int>(
-                  value: floor.mapId,
-                  child: Text(
-                    floor.mapName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-            onChanged: onChanged,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ignore: unused_element
-class _RouteHistorySheet extends StatelessWidget {
-  final AsyncValue<RouteHistory> history;
-  final VoidCallback onRetry;
-  final Future<void> Function() onClearAll;
-  final Future<void> Function(RouteHistoryEntry entry) onRenavigate;
-
-  const _RouteHistorySheet({
-    required this.history,
-    required this.onRetry,
-    required this.onClearAll,
-    required this.onRenavigate,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.md,
-        AppSpacing.lg,
-        AppSpacing.lg,
-      ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.72,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Route history',
-                    style: context.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: onRetry,
-                  icon: const Icon(Icons.refresh_rounded),
-                  tooltip: 'Refresh history',
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Flexible(
-              child: history.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => MapAsyncMessage(
-                  icon: Icons.cloud_off_rounded,
-                  title: 'History unavailable',
-                  actionLabel: 'Retry',
-                  onAction: onRetry,
-                ),
-                data: (data) {
-                  if (data.routes.isEmpty) {
-                    return const MapAsyncMessage(
-                      icon: Icons.history_rounded,
-                      title: 'No completed routes yet',
-                    );
-                  }
-                  return ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: data.routes.length,
-                    separatorBuilder: (_, _) =>
-                        const Divider(height: AppSpacing.sm),
-                    itemBuilder: (context, index) {
-                      final entry = data.routes[index];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          backgroundColor: scheme.primaryContainer,
-                          foregroundColor: scheme.onPrimaryContainer,
-                          child: const Icon(Icons.alt_route_rounded),
-                        ),
-                        title: Text(
-                          entry.displayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(
-                          [
-                            if (entry.modeId != null) entry.modeId!,
-                            _relativeTime(entry.createdAt),
-                          ].join(' · '),
-                        ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () => onRenavigate(entry),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: history.valueOrNull?.routes.isEmpty ?? true
-                    ? null
-                    : onClearAll,
-                icon: const Icon(Icons.delete_outline_rounded),
-                label: const Text('Clear all'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String _relativeTime(DateTime? value) {
-    if (value == null) {
-      return 'Unknown time';
-    }
-    final delta = DateTime.now().difference(value.toLocal());
-    if (delta.inMinutes < 1) {
-      return 'Just now';
-    }
-    if (delta.inHours < 1) {
-      return '${delta.inMinutes} min ago';
-    }
-    if (delta.inDays < 1) {
-      return '${delta.inHours} hr ago';
-    }
-    if (delta.inDays < 30) {
-      return '${delta.inDays} d ago';
-    }
-    final local = value.toLocal();
-    final month = local.month.toString().padLeft(2, '0');
-    final day = local.day.toString().padLeft(2, '0');
-    return '${local.year}-$month-$day';
-  }
-}
-
-class _MapStatusCluster extends StatelessWidget {
-  final AsyncValue<FlowSnapshot> snapshot;
-  final bool? isOnline;
-  final DateTime? lastSyncedAt;
-  final LocationSource locationSource;
-  final String? notice;
-  final VoidCallback onRetry;
-
-  const _MapStatusCluster({
-    required this.snapshot,
-    required this.isOnline,
-    required this.lastSyncedAt,
-    required this.locationSource,
-    required this.notice,
-    required this.onRetry,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final flow = snapshot.valueOrNull;
-    final isLoading = snapshot.isLoading && flow == null;
-    final isError = snapshot.hasError && flow == null;
-    final isStale = flow?.isStale ?? false;
-    final hasAlert = flow?.alerts.isNotEmpty ?? false;
-    final online = isOnline;
-
-    final network = _statusForNetwork(
-      scheme: scheme,
-      online: online,
-      isStale: isStale,
-    );
-    final data = _statusForData(
-      scheme: scheme,
-      online: online,
-      isLoading: isLoading,
-      isError: isError,
-      hasAlert: hasAlert,
-      isStale: isStale,
-      lastSyncedAt: lastSyncedAt,
-    );
-    final position = _statusForPosition(
-      scheme: scheme,
-      locationSource: locationSource,
-    );
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 300),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Wrap(
-            spacing: AppSpacing.xs,
-            runSpacing: AppSpacing.xs,
-            children: [
-              _StatusPill(data: network),
-              _StatusPill(data: data, onTap: isError ? onRetry : null),
-              _StatusPill(data: position),
-            ],
-          ),
-          if (notice != null) ...[
-            const SizedBox(height: AppSpacing.xs),
-            _StatusPill(
-              data: _PillData(
-                icon: Icons.info_outline_rounded,
-                label: notice!,
-                background: scheme.surfaceContainerHigh,
-                foreground: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  _PillData _statusForNetwork({
-    required ColorScheme scheme,
-    required bool? online,
-    required bool isStale,
-  }) {
-    if (online == false || (online == null && isStale)) {
-      return _PillData(
-        icon: Icons.cloud_off_rounded,
-        label: 'Offline',
-        background: scheme.tertiaryContainer,
-        foreground: scheme.onTertiaryContainer,
-      );
-    }
-    if (online == null) {
-      return _PillData(
-        icon: Icons.sync_rounded,
-        label: 'Checking',
-        background: scheme.surfaceContainerHigh,
-        foreground: scheme.onSurfaceVariant,
-      );
-    }
-    return _PillData(
-      icon: Icons.cloud_done_rounded,
-      label: 'Online',
-      background: scheme.surfaceContainerHigh,
-      foreground: scheme.onSurfaceVariant,
-    );
-  }
-
-  _PillData _statusForData({
-    required ColorScheme scheme,
-    required bool? online,
-    required bool isLoading,
-    required bool isError,
-    required bool hasAlert,
-    required bool isStale,
-    required DateTime? lastSyncedAt,
-  }) {
-    final syncLabel = _formatSyncAge(lastSyncedAt);
-    if (isError) {
-      return _PillData(
-        icon: Icons.error_outline_rounded,
-        label: 'Sync error',
-        background: scheme.errorContainer,
-        foreground: scheme.onErrorContainer,
-      );
-    }
-    if (online == false || isStale) {
-      return _PillData(
-        icon: Icons.storage_rounded,
-        label: syncLabel == null ? 'Cache data' : 'Cache $syncLabel',
-        background: scheme.tertiaryContainer,
-        foreground: scheme.onTertiaryContainer,
-      );
-    }
-    if (hasAlert) {
-      return _PillData(
-        icon: Icons.warning_amber_rounded,
-        label: 'Flow alert',
-        background: scheme.errorContainer,
-        foreground: scheme.onErrorContainer,
-      );
-    }
-    if (isLoading) {
-      return _PillData(
-        icon: Icons.sync_rounded,
-        label: 'Syncing',
-        background: scheme.surfaceContainerHigh,
-        foreground: scheme.onSurfaceVariant,
-      );
-    }
-    return _PillData(
-      icon: Icons.check_circle_outline_rounded,
-      label: syncLabel == null ? 'Data live' : 'Live $syncLabel',
-      background: scheme.surfaceContainerHigh,
-      foreground: scheme.onSurfaceVariant,
-    );
-  }
-
-  _PillData _statusForPosition({
-    required ColorScheme scheme,
-    required LocationSource locationSource,
-  }) {
-    final label = switch (locationSource) {
-      LocationSource.qr => 'Position QR',
-      LocationSource.manual => 'Position local',
-      LocationSource.simulatedPin => 'Position pin',
-      LocationSource.entranceDefault => 'Position default',
-    };
-    return _PillData(
-      icon: Icons.my_location_rounded,
-      label: label,
-      background: scheme.surfaceContainerHigh,
-      foreground: scheme.onSurfaceVariant,
-    );
-  }
-
-  String? _formatSyncAge(DateTime? value) {
-    if (value == null) {
-      return null;
-    }
-    final delta = DateTime.now().difference(value.toLocal());
-    if (delta.inMinutes < 1) {
-      return 'now';
-    }
-    if (delta.inHours < 1) {
-      return '${delta.inMinutes}m';
-    }
-    if (delta.inDays < 1) {
-      return '${delta.inHours}h';
-    }
-    return '${delta.inDays}d';
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  final _PillData data;
-  final VoidCallback? onTap;
-
-  const _StatusPill({required this.data, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: 0.4,
-      child: Material(
-        color: data.background,
-        elevation: 2,
-        shadowColor: context.colorScheme.shadow,
-        borderRadius: AppRadius.borderXl,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: AppRadius.borderXl,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: AppSpacing.xs,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(data.icon, size: 16, color: data.foreground),
-                const SizedBox(width: AppSpacing.xs),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 220),
-                  child: Text(
-                    data.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.labelSmall?.copyWith(
-                      color: data.foreground,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                if (onTap != null) ...[
-                  const SizedBox(width: AppSpacing.xs),
-                  Icon(Icons.refresh_rounded, size: 14, color: data.foreground),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PillData {
-  final IconData icon;
-  final String label;
-  final Color background;
-  final Color foreground;
-
-  const _PillData({
-    required this.icon,
-    required this.label,
-    required this.background,
-    required this.foreground,
-  });
-}
-
-class _FlowLegend extends StatelessWidget {
-  final bool isStale;
-  final bool noData;
-
-  const _FlowLegend({required this.isStale, this.noData = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    return Material(
-      color: scheme.surface,
-      elevation: 2,
-      shadowColor: scheme.shadow,
-      borderRadius: AppRadius.borderSm,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.sm),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isStale ? 'Flow heatmap · stale' : 'Flow heatmap',
-              style: context.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            if (noData)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 14,
-                    color: scheme.error,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'No live flow data',
-                    style: context.textTheme.labelSmall?.copyWith(
-                      color: scheme.error,
-                    ),
-                  ),
-                ],
-              )
-            else
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const _LegendSwatch(color: Color(0xFFFFD166)),
-                  const SizedBox(width: 4),
-                  Text('0', style: context.textTheme.labelSmall),
-                  const SizedBox(width: AppSpacing.sm),
-                  const _LegendSwatch(color: Color(0xFFE63946)),
-                  const SizedBox(width: 4),
-                  Text('1 density', style: context.textTheme.labelSmall),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LegendSwatch extends StatelessWidget {
-  final Color color;
-
-  const _LegendSwatch({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 14,
-      height: 14,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(4),
-      ),
-    );
-  }
-}
-
-class _FlowAnalyticsPanel extends StatelessWidget {
-  final bool isStale;
-  final bool heatmapActive;
-  final bool edgeStatusActive;
-  final bool bottlenecksActive;
-  final bool forecastActive;
-  final int forecastHours;
-  final bool noLiveHeatmapData;
-  final bool noLiveBottlenecksData;
-  final bool noLiveForecastData;
-  final ValueChanged<bool> onHeatmapChanged;
-  final ValueChanged<bool> onEdgeStatusChanged;
-  final ValueChanged<bool> onBottlenecksChanged;
-  final ValueChanged<bool> onForecastChanged;
-  final ValueChanged<int> onForecastHoursChanged;
-
-  const _FlowAnalyticsPanel({
-    required this.isStale,
-    required this.heatmapActive,
-    required this.edgeStatusActive,
-    required this.bottlenecksActive,
-    required this.forecastActive,
-    required this.forecastHours,
-    required this.noLiveHeatmapData,
-    required this.noLiveBottlenecksData,
-    required this.noLiveForecastData,
-    required this.onHeatmapChanged,
-    required this.onEdgeStatusChanged,
-    required this.onBottlenecksChanged,
-    required this.onForecastChanged,
-    required this.onForecastHoursChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    return Material(
-      color: scheme.surface,
-      elevation: 3,
-      shadowColor: scheme.shadow,
-      borderRadius: AppRadius.borderMd,
-      child: Container(
-        width: 220,
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  isStale ? 'Flow Analytics · stale' : 'Flow Analytics',
-                  style: context.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: scheme.primary,
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: AppSpacing.md),
-
-            // 1. Heatmap / Density
-            _AnalyticsRow(
-              title: 'Density Heatmap',
-              active: heatmapActive,
-              onChanged: onHeatmapChanged,
-            ),
-            if (heatmapActive) ...[
-              const SizedBox(height: AppSpacing.xs),
-              if (noLiveHeatmapData)
-                Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      size: 12,
-                      color: scheme.error,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'No live flow data',
-                      style: context.textTheme.labelSmall?.copyWith(
-                        color: scheme.error,
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  children: [
-                    const _LegendSwatch(color: Color(0xFFFFD166)),
-                    const SizedBox(width: 4),
-                    Text('0', style: context.textTheme.labelSmall),
-                    const SizedBox(width: AppSpacing.sm),
-                    const _LegendSwatch(color: Color(0xFFE63946)),
-                    const SizedBox(width: 4),
-                    Text('1 density', style: context.textTheme.labelSmall),
-                  ],
-                ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-
-            // 2. Edge status / congestion
-            _AnalyticsRow(
-              title: 'Corridor Status',
-              active: edgeStatusActive,
-              onChanged: onEdgeStatusChanged,
-            ),
-            if (edgeStatusActive) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Row(
-                children: [
-                  Container(
-                    width: 14,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xCCE53935),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text('Blocked', style: context.textTheme.labelSmall),
-                  const SizedBox(width: AppSpacing.sm),
-                  Container(
-                    width: 14,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xCCFF5722),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text('Congested', style: context.textTheme.labelSmall),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-
-            // 3. Bottlenecks
-            _AnalyticsRow(
-              title: 'Top-N Bottlenecks',
-              active: bottlenecksActive,
-              onChanged: onBottlenecksChanged,
-            ),
-            if (bottlenecksActive) ...[
-              const SizedBox(height: AppSpacing.xs),
-              if (noLiveBottlenecksData)
-                Text(
-                  'No bottlenecks detected',
-                  style: context.textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                )
-              else
-                Row(
-                  children: [
-                    Container(
-                      width: 14,
-                      height: 14,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFD32F2F),
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '1',
-                        style: context.textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFFFAFCFE),
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Ranked hotspots',
-                      style: context.textTheme.labelSmall,
-                    ),
-                  ],
-                ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-
-            // 4. Forecast
-            _AnalyticsRow(
-              title: 'Flow Forecast',
-              active: forecastActive,
-              onChanged: onForecastChanged,
-            ),
-            if (forecastActive) ...[
-              const SizedBox(height: AppSpacing.xs),
-              if (noLiveForecastData) ...[
-                Row(
-                  children: [
-                    Icon(
-                      Icons.cloud_off_rounded,
-                      size: 12,
-                      color: scheme.error,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Forecast unavailable',
-                      style: context.textTheme.labelSmall?.copyWith(
-                        color: scheme.error,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-              ],
-              Text(
-                'Offset: $forecastHours hr${forecastHours > 1 ? 's' : ''}',
-                style: context.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SliderTheme(
-                data: SliderThemeData(
-                  trackHeight: 3.0,
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 6.0,
-                  ),
-                  overlayShape: const RoundSliderOverlayShape(
-                    overlayRadius: 12.0,
-                  ),
-                  activeTrackColor: scheme.primary,
-                  inactiveTrackColor: scheme.primaryContainer.withValues(
-                    alpha: 0.24,
-                  ),
-                  thumbColor: scheme.primary,
-                ),
-                child: Slider(
-                  value: forecastHours.toDouble(),
-                  min: 1.0,
-                  max: 12.0,
-                  divisions: 11,
-                  onChanged: (val) => onForecastHoursChanged(val.toInt()),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AnalyticsRow extends StatelessWidget {
-  final String title;
-  final bool active;
-  final ValueChanged<bool> onChanged;
-
-  const _AnalyticsRow({
-    required this.title,
-    required this.active,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: context.textTheme.bodyMedium),
-          Transform.scale(
-            scale: 0.75,
-            child: Switch(
-              value: active,
-              onChanged: onChanged,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ObstacleReportDraft {
-  final String type;
-  final String? note;
-
-  const _ObstacleReportDraft({required this.type, this.note});
-}
-
-class _ObstacleReportSheet extends StatefulWidget {
-  final int location;
-
-  const _ObstacleReportSheet({required this.location});
-
-  @override
-  State<_ObstacleReportSheet> createState() => _ObstacleReportSheetState();
-}
-
-class _ObstacleReportSheetState extends State<_ObstacleReportSheet> {
-  static const _types = ['blockage', 'spill', 'crowd', 'maintenance'];
-
-  late final TextEditingController _noteController;
-  String _type = _types.first;
-
-  @override
-  void initState() {
-    super.initState();
-    _noteController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _noteController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.lg + bottomInset,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Report obstacle',
-              style: context.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Cell ${widget.location}',
-              style: context.textTheme.bodySmall?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            DropdownButtonFormField<String>(
-              initialValue: _type,
-              decoration: const InputDecoration(labelText: 'Type'),
-              items: const [
-                DropdownMenuItem(value: 'blockage', child: Text('Blockage')),
-                DropdownMenuItem(value: 'spill', child: Text('Spill')),
-                DropdownMenuItem(value: 'crowd', child: Text('Crowd')),
-                DropdownMenuItem(
-                  value: 'maintenance',
-                  child: Text('Maintenance'),
-                ),
-              ],
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _type = value);
-                }
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _noteController,
-              minLines: 2,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Note',
-                hintText: 'Optional',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () {
-                  final note = _noteController.text.trim();
-                  Navigator.of(context).pop(
-                    _ObstacleReportDraft(
-                      type: _type,
-                      note: note.isEmpty ? null : note,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.report_problem_rounded),
-                label: const Text('Submit report'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RoutePoiPickerSheet extends StatefulWidget {
-  final String title;
-  final List<MapPoi> pois;
-  final Map<int, String> normalizedNames;
-
-  const _RoutePoiPickerSheet({
-    required this.title,
-    required this.pois,
-    required this.normalizedNames,
-  });
-
-  @override
-  State<_RoutePoiPickerSheet> createState() => _RoutePoiPickerSheetState();
-}
-
-class _RoutePoiPickerSheetState extends State<_RoutePoiPickerSheet> {
-  late final TextEditingController _controller;
-  String _query = '';
-  String? _cachedFilterKey;
-  List<MapPoi> _cachedFiltered = const <MapPoi>[];
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController()..addListener(_onQueryChanged);
-  }
-
-  @override
-  void dispose() {
-    _controller
-      ..removeListener(_onQueryChanged)
-      ..dispose();
-    super.dispose();
-  }
-
-  void _onQueryChanged() {
-    final next = _controller.text.trim();
-    if (next == _query) return;
-    setState(() => _query = next);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final scheme = context.colorScheme;
-    final filteredPois = _filteredPois();
-
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.lg + bottomInset,
-        ),
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.72,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: scheme.outlineVariant,
-                  borderRadius: AppRadius.borderFull,
-                ),
-              ),
-              Text(
-                widget.title,
-                style: context.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                controller: _controller,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Search a place',
-                  prefixIcon: Icon(Icons.search_rounded),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Expanded(
-                child: filteredPois.isEmpty
-                    ? Center(
-                        child: Text(
-                          _query.isEmpty
-                              ? 'Start typing to find a place.'
-                              : 'No matches for "$_query".',
-                          style: context.textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      )
-                    : ListView.separated(
-                        itemCount: filteredPois.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final poi = filteredPois[index];
-                          final color = MapPoiPalette.colorFor(poi.poiType);
-                          return ListTile(
-                            leading: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.18),
-                                shape: BoxShape.circle,
-                              ),
-                              alignment: Alignment.center,
-                              child: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                            title: Text(
-                              poi.poiName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(
-                              '${MapPoiPalette.labelFor(poi.poiType)} · '
-                              '${poi.poiCode}',
-                            ),
-                            onTap: () => Navigator.pop(context, poi),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  List<MapPoi> _filteredPois() {
-    if (_query.isEmpty) return widget.pois;
-    if (_cachedFilterKey == _query) return _cachedFiltered;
-    final normalizedQuery = normalizeForSearch(_query);
-    final result = widget.pois.where((poi) {
-      final text =
-          widget.normalizedNames[poi.poiId] ?? normalizeForSearch(poi.poiName);
-      return text.contains(normalizedQuery);
-    }).toList();
-    _cachedFilterKey = _query;
-    _cachedFiltered = result;
-    return result;
   }
 }
