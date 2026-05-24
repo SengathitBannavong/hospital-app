@@ -5,7 +5,7 @@ import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/theme/theme_controller.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/version_check_widget.dart';
-
+import 'package:hospital_app/core/widgets/app_initializer.dart';
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
@@ -28,7 +28,11 @@ class MyApp extends ConsumerWidget {
           darkTheme: HospitalTheme.dark,
           themeMode: themeController.themeMode,
           builder: (context, child) {
-            return VersionCheckWidget(child: child ?? const SizedBox.shrink());
+            return AppInitializer(
+              child: VersionCheckWidget(
+                child: child ?? const SizedBox.shrink(),
+              ),
+            );
           },
         );
       },
