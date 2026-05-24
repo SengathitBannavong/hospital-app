@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
@@ -11,7 +14,6 @@ import 'package:hospital_app/features/map/data/models/map_edges_response.dart';
 import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'dart:io';
 
 void main() {
   group('searchResultsProvider', () {
@@ -301,6 +303,92 @@ void _addNormalizedHarness() {
       await tempDir.delete(recursive: true);
     });
 
+    test('serves cached edges immediately while live fetch is slow', () async {
+      const cachedEdges = [
+        MapEdge(
+          fromRow: 0,
+          fromCol: 0,
+          fromLocation: 1,
+          toRow: 0,
+          toCol: 1,
+          toLocation: 2,
+        ),
+      ];
+      final liveFetch = Completer<MapEdgesResponse>();
+      await testCache.saveEdges(mapId: 99, edges: cachedEdges);
+
+      final fakeRepo = FakeMapRepository(onGetEdges: () => liveFetch.future);
+      final container = ProviderContainer(
+        overrides: [
+          mapRepositoryProvider.overrideWithValue(fakeRepo),
+          mapCacheProvider.overrideWithValue(testCache),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final loadedEdges = await container
+          .read(mapEdgesProvider(99).future)
+          .timeout(const Duration(milliseconds: 100));
+
+      expect(loadedEdges, cachedEdges);
+      expect(container.read(walkableCellsProvider(99)), {1, 2});
+    });
+
+    test('serves live nodes without waiting for slow bulk sync', () async {
+      final nodes = [_poi(id: 1, code: 'N1', name: 'Node 1', type: 'room')];
+      final slowBulkSync = Completer<MapSyncFull>();
+      final fakeRepo = FakeMapRepository(
+        onGetNodes: () async => nodes,
+        onSyncFull: () => slowBulkSync.future,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          mapRepositoryProvider.overrideWithValue(fakeRepo),
+          mapCacheProvider.overrideWithValue(testCache),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final loadedNodes = await container
+          .read(mapNodesProvider(99).future)
+          .timeout(const Duration(milliseconds: 100));
+
+      expect(loadedNodes, nodes);
+    });
+
+    test('serves live edges without waiting for slow bulk sync', () async {
+      const edges = [
+        MapEdge(
+          fromRow: 0,
+          fromCol: 0,
+          fromLocation: 1,
+          toRow: 0,
+          toCol: 1,
+          toLocation: 2,
+        ),
+      ];
+      final slowBulkSync = Completer<MapSyncFull>();
+      final fakeRepo = FakeMapRepository(
+        onGetEdges: () async =>
+            MapEdgesResponse(edges: edges, mapId: 99, total: edges.length),
+        onSyncFull: () => slowBulkSync.future,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          mapRepositoryProvider.overrideWithValue(fakeRepo),
+          mapCacheProvider.overrideWithValue(testCache),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final loadedEdges = await container
+          .read(mapEdgesProvider(99).future)
+          .timeout(const Duration(milliseconds: 100));
+
+      expect(loadedEdges, edges);
+      expect(container.read(walkableCellsProvider(99)), {1, 2});
+    });
+
     test('saves live fetched data into granular cache slices', () async {
       const meta = MapFloor(
         mapId: 99,
@@ -458,6 +546,25 @@ void _addNormalizedHarness() {
         expect(cachedFull?.edges, isNotEmpty);
         expect(cachedFull?.pois, isNotEmpty);
         expect(cachedFull?.maps, isNotEmpty);
+      },
+    );
+  });
+
+  group('routeResultProvider', () {
+    test(
+      'returns null without waiting for floors when route is incomplete',
+      () async {
+        final slowFloors = Completer<List<MapFloor>>();
+        final container = ProviderContainer(
+          overrides: [floorsProvider.overrideWith((ref) => slowFloors.future)],
+        );
+        addTearDown(container.dispose);
+
+        final result = await container
+            .read(routeResultProvider.future)
+            .timeout(const Duration(milliseconds: 100));
+
+        expect(result, isNull);
       },
     );
   });

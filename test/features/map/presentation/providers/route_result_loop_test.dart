@@ -9,6 +9,9 @@ import 'package:hospital_app/features/map/data/models/map_floor.dart';
 import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
+import 'package:hospital_app/features/map/data/models/edge_status.dart';
+import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
+import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
 import 'package:hospital_app/features/map/data/services/routing_engine.dart';
 import 'package:hospital_app/features/map/data/services/routing_service.dart';
@@ -33,14 +36,85 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  test('routeResultProvider settles (does not loop) with start+dest set',
-      () async {
-    final service = RoutingService(
-      repository: FakeMapRepository(),
-      engine: RoutingEngine(),
-      cache: testCache,
-      connectivity: FakeConnectivity([ConnectivityResult.none]),
-    );
+  test(
+    'routeResultProvider settles (does not loop) with start+dest set',
+    () async {
+      final service = RoutingService(
+        repository: FakeMapRepository(),
+        engine: RoutingEngine(),
+        cache: testCache,
+        connectivity: FakeConnectivity([ConnectivityResult.none]),
+      );
+
+      const dest = MapPoi(
+        poiId: 1,
+        mapId: 1,
+        poiCode: 'D',
+        poiName: 'Dest',
+        poiType: 'room',
+        gridRow: 0,
+        gridCol: 2,
+        gridLocation: 2,
+        isLandmark: false,
+        isAccessible: true,
+        wheelchairAccessible: true,
+      );
+
+      // The loop manifests as routeResultProvider re-invalidating its inputs
+      // every rebuild, so a re-fetched input fires repeatedly. Tap the
+      // bottlenecks input: count how many times it is rebuilt.
+      var bottlenecksBuilds = 0;
+
+      final container = ProviderContainer(
+        overrides: [
+          routingServiceProvider.overrideWithValue(service),
+          userPositionProvider.overrideWith((ref) => 0),
+          routeDestProvider.overrideWith((ref) => dest),
+          selectedFloorProvider.overrideWith((ref) => 1),
+          floorsProvider.overrideWith((ref) async => const <MapFloor>[]),
+          mapMetaProvider.overrideWith(
+            (ref, id) async =>
+                const MapFloor(mapId: 1, mapName: 't', rows: 3, cols: 3),
+          ),
+          adjacencyProvider.overrideWith((ref, id) => const <int, List<int>>{}),
+          flowSnapshotProvider.overrideWith(
+            (ref, id) async => throw StateError('no flow'),
+          ),
+          mapObstaclesProvider.overrideWith(
+            (ref, id) async => const <MapObstacle>[],
+          ),
+          poiByCellProvider.overrideWith((ref, id) => const <int, MapPoi>{}),
+          bottlenecksProvider.overrideWith((ref, id) async {
+            bottlenecksBuilds++;
+            return const <FlowCell>[];
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub = container.listen<AsyncValue<dynamic>>(
+        routeResultProvider,
+        (prev, next) {},
+        fireImmediately: true,
+      );
+      addTearDown(sub.close);
+
+      // Let the graph churn for well over a second — a loop would rebuild the
+      // bottlenecks input dozens of times in this window.
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
+
+      // ignore: avoid_print
+      print('BOTTLENECKS_BUILDS=$bottlenecksBuilds');
+      expect(
+        bottlenecksBuilds,
+        lessThan(5),
+        reason: 'routeResultProvider should settle, not loop its inputs',
+      );
+    },
+  );
+
+  test('flow refresh does not recompute an already-rendered route', () async {
+    final service = CountingRoutingService(cache: testCache);
 
     const dest = MapPoi(
       poiId: 1,
@@ -56,11 +130,6 @@ void main() {
       wheelchairAccessible: true,
     );
 
-    // The loop manifests as routeResultProvider re-invalidating its inputs
-    // every rebuild, so a re-fetched input fires repeatedly. Tap the
-    // bottlenecks input: count how many times it is rebuilt.
-    var bottlenecksBuilds = 0;
-
     final container = ProviderContainer(
       overrides: [
         routingServiceProvider.overrideWithValue(service),
@@ -69,51 +138,38 @@ void main() {
         selectedFloorProvider.overrideWith((ref) => 1),
         floorsProvider.overrideWith((ref) async => const <MapFloor>[]),
         mapMetaProvider.overrideWith(
-          (ref, id) async => const MapFloor(
-            mapId: 1,
-            mapName: 't',
-            rows: 3,
-            cols: 3,
-          ),
+          (ref, id) async =>
+              const MapFloor(mapId: 1, mapName: 't', rows: 3, cols: 3),
         ),
         adjacencyProvider.overrideWith(
-          (ref, id) => const <int, List<int>>{},
+          (ref, id) => const <int, List<int>>{
+            0: [1],
+            1: [0, 2],
+            2: [1],
+          },
         ),
         flowSnapshotProvider.overrideWith(
-          (ref, id) async => throw StateError('no flow'),
+          (ref, id) async => FlowSnapshot.empty(),
         ),
         mapObstaclesProvider.overrideWith(
           (ref, id) async => const <MapObstacle>[],
         ),
-        poiByCellProvider.overrideWith(
-          (ref, id) => const <int, MapPoi>{},
-        ),
-        bottlenecksProvider.overrideWith((ref, id) async {
-          bottlenecksBuilds++;
-          return const <FlowCell>[];
-        }),
+        poiByCellProvider.overrideWith((ref, id) => const <int, MapPoi>{}),
+        bottlenecksProvider.overrideWith((ref, id) async => const <FlowCell>[]),
       ],
     );
     addTearDown(container.dispose);
 
-    final sub = container.listen<AsyncValue<dynamic>>(
-      routeResultProvider,
-      (prev, next) {},
-      fireImmediately: true,
-    );
-    addTearDown(sub.close);
+    final route = await container.read(routeResultProvider.future);
+    expect(route?.path, [0, 1, 2]);
+    expect(service.routeCalls, 1);
 
-    // Let the graph churn for well over a second — a loop would rebuild the
-    // bottlenecks input dozens of times in this window.
-    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    container
+      ..invalidate(flowSnapshotProvider(1))
+      ..invalidate(bottlenecksProvider(1));
+    await Future<void>.delayed(const Duration(milliseconds: 100));
 
-    // ignore: avoid_print
-    print('BOTTLENECKS_BUILDS=$bottlenecksBuilds');
-    expect(
-      bottlenecksBuilds,
-      lessThan(5),
-      reason: 'routeResultProvider should settle, not loop its inputs',
-    );
+    expect(service.routeCalls, 1);
   });
 }
 
@@ -125,8 +181,7 @@ class FakeConnectivity implements Connectivity {
   Future<List<ConnectivityResult>> checkConnectivity() async => results;
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      super.noSuchMethod(invocation);
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class FakeMapRepository extends MapRepository {
@@ -135,6 +190,39 @@ class FakeMapRepository extends MapRepository {
     required int startLocation,
     required int destLocation,
     required String modeId,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
+}
+
+class CountingRoutingService extends RoutingService {
+  CountingRoutingService({required super.cache})
+    : super(
+        repository: FakeMapRepository(),
+        engine: RoutingEngine(),
+        connectivity: FakeConnectivity([ConnectivityResult.none]),
+      );
+
+  int routeCalls = 0;
+
+  @override
+  Future<RouteResult> route({
+    required int mapId,
+    required int startLocation,
+    required int destLocation,
+    required String modeId,
+    required Map<int, List<int>> adjacency,
+    required int cols,
+    Map<String, EdgeStatus> edgeStatuses = const <String, EdgeStatus>{},
+    Set<int> poiCells = const <int>{},
+    Map<int, double> bottleneckWeights = const <int, double>{},
+  }) async {
+    routeCalls++;
+    return const RouteResult(
+      path: [0, 1, 2],
+      steps: [],
+      distance: 2,
+      estimatedTime: 1,
+      modeId: 'walking',
+      speedFactor: 6,
+    );
+  }
 }

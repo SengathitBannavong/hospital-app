@@ -16,6 +16,7 @@ import 'models/map_sync_full.dart';
 import 'models/route_clear_history.dart';
 import 'models/route_history.dart';
 import 'models/route_mode.dart';
+import 'services/map_perf_debug.dart';
 
 class MapRepository {
   Future<List<MapFloor>> getFloors() async {
@@ -40,17 +41,24 @@ class MapRepository {
   }
 
   Future<List<MapPoi>> getNodes({required int mapId}) async {
+    final sw = Stopwatch()..start();
     try {
       final response = await ApiClient.instance.get(
         ApiEndpoints.getNodes,
         queryParameters: {'map_id': mapId},
       );
+      final netMs = sw.elapsedMilliseconds;
 
       final apiResponse = AuthApiResponse<List<MapPoi>>.fromJson(
         response.data,
         (json) => (json as List<dynamic>)
             .map((item) => MapPoi.fromJson(item as Map<String, dynamic>))
             .toList(),
+      );
+      perfLog(
+        'getNodes mapId=$mapId net=${netMs}ms '
+        'parse=${sw.elapsedMilliseconds - netMs}ms '
+        'count=${apiResponse.data?.length ?? 0}',
       );
 
       if (apiResponse.code == ApiResponseCodes.success) {
@@ -64,15 +72,22 @@ class MapRepository {
   }
 
   Future<MapEdgesResponse> getEdges({required int mapId}) async {
+    final sw = Stopwatch()..start();
     try {
       final response = await ApiClient.instance.get(
         ApiEndpoints.getEdges,
         queryParameters: {'map_id': mapId},
       );
+      final netMs = sw.elapsedMilliseconds;
 
       final apiResponse = AuthApiResponse<MapEdgesResponse>.fromJson(
         response.data,
         (json) => MapEdgesResponse.fromJson(json as Map<String, dynamic>),
+      );
+      perfLog(
+        'getEdges mapId=$mapId net=${netMs}ms '
+        'parse=${sw.elapsedMilliseconds - netMs}ms '
+        'count=${apiResponse.data?.edges.length ?? 0}',
       );
 
       if (apiResponse.code == ApiResponseCodes.success &&
@@ -87,11 +102,13 @@ class MapRepository {
   }
 
   Future<MapFloor> getMeta({required int mapId}) async {
+    final sw = Stopwatch()..start();
     try {
       final response = await ApiClient.instance.get(
         ApiEndpoints.getMeta,
         queryParameters: {'map_id': mapId},
       );
+      perfLog('getMeta mapId=$mapId net=${sw.elapsedMilliseconds}ms');
 
       final apiResponse = AuthApiResponse<MapFloor>.fromJson(
         response.data,

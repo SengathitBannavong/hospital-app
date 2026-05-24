@@ -6,6 +6,7 @@ import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
 import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/data/services/map_perf_debug.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 
@@ -84,6 +85,7 @@ class MapGridPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final dbgSw = Stopwatch()..start();
     final cellWidth = size.width / cols;
     final cellHeight = size.height / rows;
 
@@ -103,16 +105,20 @@ class MapGridPainter extends CustomPainter {
         ? rows - 1
         : (clip.bottom / cellHeight).ceil().clamp(0, rows - 1);
 
-    for (final location in walkableLocations) {
-      final row = location ~/ cols;
-      final col = location % cols;
-      if (row < rowStart || row > rowEnd || col < colStart || col > colEnd) {
-        continue;
+    for (var row = rowStart; row <= rowEnd; row++) {
+      for (var col = colStart; col <= colEnd; col++) {
+        final location = row * cols + col;
+        if (!walkableLocations.contains(location)) continue;
+        canvas.drawRect(
+          Rect.fromLTWH(
+            col * cellWidth,
+            row * cellHeight,
+            cellWidth,
+            cellHeight,
+          ),
+          _walkablePaint,
+        );
       }
-      canvas.drawRect(
-        Rect.fromLTWH(col * cellWidth, row * cellHeight, cellWidth, cellHeight),
-        _walkablePaint,
-      );
     }
 
     if (routeLocations.isNotEmpty && routeProgress > 0) {
@@ -190,6 +196,17 @@ class MapGridPainter extends CustomPainter {
       if (debugPoiCenter != null) {
         canvas.drawCircle(debugPoiCenter!, debugRadius, _debugPoiPaint);
       }
+    }
+
+    // Only log slow frames so the probe itself doesn't cause jank at 60fps.
+    final us = dbgSw.elapsedMicroseconds;
+    if (us > 3000) {
+      perfLog(
+        'paint SLOW=${(us / 1000).toStringAsFixed(1)}ms '
+        'walkable=${walkableLocations.length} pois=${pois.length} '
+        'route=${routeLocations.length} edgeStatus=${edgeStatuses.length} '
+        'window=${colEnd - colStart + 1}x${rowEnd - rowStart + 1}',
+      );
     }
   }
 

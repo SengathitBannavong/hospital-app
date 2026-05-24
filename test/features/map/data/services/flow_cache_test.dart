@@ -112,14 +112,54 @@ void main() {
       await service.saveNodes(mapId: 4, nodes: nodes);
       await service.saveEdges(mapId: 4, edges: edges);
 
-      final loadedMeta = await service.loadMeta(mapId: 4);
-      final loadedNodes = await service.loadNodes(mapId: 4);
-      final loadedEdges = await service.loadEdges(mapId: 4);
+      // Read through a *fresh* instance so loadEdges cannot be served by the
+      // in-memory edge cache — this proves the on-disk (Hive) round-trip.
+      final reader = MapCacheService();
+      final loadedMeta = await reader.loadMeta(mapId: 4);
+      final loadedNodes = await reader.loadNodes(mapId: 4);
+      final loadedEdges = await reader.loadEdges(mapId: 4);
 
       expect(loadedMeta, isNotNull);
       expect(loadedMeta!.mapName, 'Floor 4');
       expect(loadedNodes.single.poiName, 'Room A');
       expect(loadedEdges.single.fromLocation, 100);
+    },
+  );
+
+  test(
+    'MapCacheService round-trips a large edge set via the parse isolate',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('large-edges-test-');
+      Hive.init(dir.path);
+      addTearDown(() async {
+        await Hive.close();
+        await dir.delete(recursive: true);
+      });
+
+      // Above _edgeParseIsolateThreshold (1000) so both save and load route
+      // through compute() — the isolate serialize/parse path that the smaller
+      // fixtures never exercise.
+      final edges = [
+        for (var i = 0; i < 1500; i++)
+          MapEdge(
+            fromRow: i ~/ 40,
+            fromCol: i % 40,
+            fromLocation: i,
+            toRow: i ~/ 40,
+            toCol: (i % 40) + 1,
+            toLocation: i + 1,
+          ),
+      ];
+
+      await MapCacheService().saveEdges(mapId: 7, edges: edges);
+
+      // Fresh instance: bypass the in-memory cache and force the Hive read plus
+      // isolate parse.
+      final loaded = await MapCacheService().loadEdges(mapId: 7);
+
+      expect(loaded.length, edges.length);
+      expect(loaded.first.fromLocation, 0);
+      expect(loaded.last.toLocation, 1500);
     },
   );
 

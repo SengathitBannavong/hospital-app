@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
+import 'package:hospital_app/features/map/data/models/flow_cell.dart';
 import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
@@ -14,6 +15,7 @@ import 'package:hospital_app/features/map/data/models/route_history.dart';
 import 'package:hospital_app/features/map/data/models/route_history_entry.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/pages/map_qr_scanner_page.dart';
+import 'package:hospital_app/features/map/data/services/map_perf_debug.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
@@ -43,9 +45,11 @@ class _MapPageState extends ConsumerState<MapPage>
   static const double _minMapScale = 1;
   static const double _maxMapScale = 4;
   static const Duration _searchDebounceDuration = Duration(milliseconds: 500);
+  static const Duration _walkableLayerDelay = Duration(milliseconds: 50);
 
   late final TextEditingController _searchController;
   Timer? _searchDebounceTimer;
+  Timer? _walkableLayerTimer;
   late final AnimationController _routeAnim;
   TransformationController? _transformController;
   Size _lastViewportSize = Size.zero;
@@ -57,6 +61,7 @@ class _MapPageState extends ConsumerState<MapPage>
   bool _navCollapsed = false;
   bool _floorSwitchKeepsNavigation = false;
   bool _showAnalyticsPanel = false;
+  bool _loadWalkableLayer = false;
   final bool _showDebugHitTest = kDebugMode;
   Offset? _debugTapScene;
   Offset? _debugPoiCenter;
@@ -71,6 +76,7 @@ class _MapPageState extends ConsumerState<MapPage>
       value: 1,
     );
     _ensureTransformController();
+    _scheduleWalkableLayerLoad();
   }
 
   @override
@@ -79,6 +85,7 @@ class _MapPageState extends ConsumerState<MapPage>
       ..removeListener(_onSearchChanged)
       ..dispose();
     _searchDebounceTimer?.cancel();
+    _walkableLayerTimer?.cancel();
     _routeAnim.dispose();
     _transformController?.dispose();
     _transformController = null;
@@ -98,6 +105,23 @@ class _MapPageState extends ConsumerState<MapPage>
     _searchDebounceTimer = Timer(_searchDebounceDuration, () {
       if (!mounted) return;
       ref.read(searchKeywordProvider.notifier).state = value;
+    });
+  }
+
+  void _scheduleWalkableLayerLoad() {
+    _walkableLayerTimer?.cancel();
+    perfLog(
+      'walkableLayer scheduled '
+      '(delay=${_walkableLayerDelay.inMilliseconds}ms)',
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _loadWalkableLayer) return;
+      perfLog('walkableLayer first frame painted -> starting delay timer');
+      _walkableLayerTimer = Timer(_walkableLayerDelay, () {
+        if (!mounted || _loadWalkableLayer) return;
+        perfLog('walkableLayer timer fired -> watching mapEdgesProvider now');
+        setState(() => _loadWalkableLayer = true);
+      });
     });
   }
 
@@ -122,6 +146,8 @@ class _MapPageState extends ConsumerState<MapPage>
     _arrivalOrderCommitted = false;
     _lastRouteSignature = 0;
     _routeAnim.value = 0;
+    _loadWalkableLayer = false;
+    _scheduleWalkableLayerLoad();
   }
 
   void _syncTransformToLayout({
@@ -183,7 +209,7 @@ class _MapPageState extends ConsumerState<MapPage>
             (floors.isEmpty ||
                 floors.any((floor) => floor.mapId == selectedFloorId))
         ? selectedFloorId
-        : floors.firstOrNull?.mapId;
+        : floors.firstOrNull?.mapId ?? _defaultMapId;
     ref.listen<int?>(selectedFloorProvider, (previous, next) {
       if (previous == null || next == null || previous == next) {
         return;
@@ -199,20 +225,13 @@ class _MapPageState extends ConsumerState<MapPage>
       });
     });
 
-    if (activeMapId == null) {
-      return const Scaffold(
-        backgroundColor: MapSurface.background,
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     final metaAsync = ref.watch(mapMetaProvider(activeMapId));
     final nodesLoading = ref.watch(
       mapNodesProvider(activeMapId).select((a) => a.isLoading),
     );
-    final edgesLoading = ref.watch(
-      mapEdgesProvider(activeMapId).select((a) => a.isLoading),
-    );
+    final edgesLoading = _loadWalkableLayer
+        ? ref.watch(mapEdgesProvider(activeMapId).select((a) => a.isLoading))
+        : false;
     final keyword = ref.watch(searchKeywordProvider);
     final searchResultsAsync = ref.watch(searchResultsProvider(_defaultMapId));
     final userPosition = ref.watch(userPositionProvider);
@@ -220,41 +239,59 @@ class _MapPageState extends ConsumerState<MapPage>
       poiByCellProvider(_defaultMapId),
     )[userPosition];
     final dest = ref.watch(routeDestProvider);
-    final routeResultAsync = ref.watch(activeRouteResultProvider);
-    final flowSnapshot = ref.watch(flowSnapshotProvider(activeMapId));
-    final flow = flowSnapshot.valueOrNull;
     final isOnline = ref.watch(mapConnectivityProvider).valueOrNull;
     final lastSyncedAt = ref
         .watch(mapLastSyncedAtProvider(activeMapId))
         .valueOrNull;
     final inlineNotice = ref.watch(mapInlineNoticeProvider);
     final locationSource = ref.watch(locationSourceProvider);
-    final obstacles =
-        ref.watch(mapObstaclesProvider(activeMapId)).valueOrNull ?? const [];
     final flowVisible = ref.watch(flowOverlayVisibleProvider);
     final edgeStatusVisible = ref.watch(edgeStatusVisibleProvider);
     final bottlenecksVisible = ref.watch(bottlenecksVisibleProvider);
     final forecastVisible = ref.watch(forecastVisibleProvider);
     final forecastHours = ref.watch(forecastHoursProvider);
-    final bottlenecksAsync = ref.watch(bottlenecksProvider(activeMapId));
-    final bottlenecks = bottlenecksAsync.valueOrNull ?? const [];
-    final forecastAsync = ref.watch(forecastProvider(activeMapId));
-    final forecast = forecastAsync.valueOrNull ?? const [];
+    final navPhase = ref.watch(navPhaseProvider);
+    final shouldWatchRoute =
+        dest != null ||
+        navPhase == NavPhase.navigating ||
+        navPhase == NavPhase.paused ||
+        navPhase == NavPhase.arrived;
+    final routeResultAsync = shouldWatchRoute
+        ? ref.watch(activeRouteResultProvider)
+        : const AsyncValue.data(null);
+    final needsFlowSnapshot =
+        _showAnalyticsPanel || flowVisible || edgeStatusVisible;
+    final flowSnapshot = needsFlowSnapshot
+        ? ref.watch(flowSnapshotProvider(activeMapId))
+        : AsyncValue<FlowSnapshot>.data(FlowSnapshot.empty());
+    final flow = flowSnapshot.valueOrNull;
+    final needsBottlenecks = _showAnalyticsPanel || bottlenecksVisible;
+    final bottlenecks = needsBottlenecks
+        ? ref.watch(bottlenecksProvider(activeMapId)).valueOrNull ??
+              const <FlowCell>[]
+        : const <FlowCell>[];
+    final needsForecast = _showAnalyticsPanel || forecastVisible;
+    final forecast = needsForecast
+        ? ref.watch(forecastProvider(activeMapId)).valueOrNull ??
+              const <FlowCell>[]
+        : const <FlowCell>[];
     final nodes =
         ref.watch(mapNodesProvider(activeMapId)).value ?? const <MapPoi>[];
-    final walkable = ref.watch(walkableCellsProvider(activeMapId));
+    final walkable = _loadWalkableLayer
+        ? ref.watch(walkableCellsProvider(activeMapId))
+        : const <int>{};
     final rows = metaAsync.value?.rows ?? _defaultRows;
     final cols = metaAsync.value?.cols ?? _defaultCols;
-    final routeLocations = ref.watch(routeLocationsProvider);
-    final navDot = ref.watch(navDotProvider);
-    final navPhase = ref.watch(navPhaseProvider);
+    final routeLocations = shouldWatchRoute
+        ? ref.watch(routeLocationsProvider)
+        : const <int>[];
+    final navDot = shouldWatchRoute ? ref.watch(navDotProvider) : null;
     final navProgress = ref.watch(navProgressProvider);
     ref.watch(navigationControllerProvider);
-    final defaultUserPosition = ref.watch(
-      defaultUserPositionProvider(_defaultMapId),
-    );
-
-    if (userPosition == null && defaultUserPosition != null) {
+    final defaultUserPosition = userPosition == null && nodes.isNotEmpty
+        ? _defaultUserPositionFromNodes(nodes)
+        : null;
+    if (defaultUserPosition != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || ref.read(userPositionProvider) != null) return;
         ref.read(userPositionProvider.notifier).state = defaultUserPosition;
@@ -287,7 +324,7 @@ class _MapPageState extends ConsumerState<MapPage>
         final wasOnline = previous?.valueOrNull;
         final isOnline = next.valueOrNull;
         if (wasOnline == false && isOnline == true) {
-          _refreshMapDataOnReconnect();
+          unawaited(_refreshMapDataOnReconnect());
         }
       });
 
@@ -379,7 +416,6 @@ class _MapPageState extends ConsumerState<MapPage>
                                     ? forecast
                                     : (flow?.cells ?? const []),
                                 edgeStatuses: flow?.edgeStatuses ?? const [],
-                                obstacles: obstacles,
                                 showFlowOverlay: forecastVisible || flowVisible,
                                 showEdgeStatus: edgeStatusVisible,
                                 bottlenecks: bottlenecks,
@@ -660,6 +696,25 @@ class _MapPageState extends ConsumerState<MapPage>
     );
   }
 
+  int? _defaultUserPositionFromNodes(List<MapPoi> nodes) {
+    for (final poi in nodes) {
+      if (poi.poiCode.toUpperCase().startsWith('ENT')) {
+        return poi.gridLocation;
+      }
+    }
+    for (final poi in nodes) {
+      if (poi.poiName.toLowerCase().contains('entrance')) {
+        return poi.gridLocation;
+      }
+    }
+    for (final poi in nodes) {
+      if (poi.isLandmark) {
+        return poi.gridLocation;
+      }
+    }
+    return null;
+  }
+
   void _handleTap(Offset scenePosition, int rows, int cols, double cellSize) {
     final mapId = _activeMapId();
     if (mapId == null) return;
@@ -837,11 +892,16 @@ class _MapPageState extends ConsumerState<MapPage>
     setState(() {});
   }
 
-  void _refreshMapDataOnReconnect() {
+  Future<void> _refreshMapDataOnReconnect() async {
     if (ref.read(navPhaseProvider) == NavPhase.navigating) {
       return;
     }
     final id = _defaultMapId;
+    // Clear the in-memory + on-disk edge cache first; otherwise invalidating
+    // mapEdgesProvider is a no-op because loadEdges short-circuits on the cache
+    // and edge geometry never refreshes until the next app launch.
+    await ref.read(mapCacheProvider).forgetEdges(mapId: id);
+    if (!mounted) return;
     ref
       ..invalidate(mapMetaProvider(id))
       ..invalidate(mapNodesProvider(id))
@@ -948,17 +1008,6 @@ class _MapPageState extends ConsumerState<MapPage>
     ref.read(routeDestProvider.notifier).state = poi;
     if (start == poi.gridLocation) {
       ref.read(routeDestProvider.notifier).state = null;
-    } else {
-      // Freshen crowd data once, here, for this new route. This must NOT live
-      // inside routeResultProvider's build: invalidating providers it also
-      // watches there causes an infinite rebuild loop (see
-      // route_result_loop_test.dart).
-      final mapId = _activeMapId();
-      if (mapId != null) {
-        ref
-          ..invalidate(flowSnapshotProvider(mapId))
-          ..invalidate(bottlenecksProvider(mapId));
-      }
     }
     setState(() {});
   }
