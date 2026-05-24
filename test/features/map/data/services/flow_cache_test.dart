@@ -127,6 +127,58 @@ void main() {
   );
 
   test(
+    'MapCacheService clearAll wipes cached map data and memory edges',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('clear-cache-test-');
+      Hive.init(dir.path);
+      addTearDown(() async {
+        await Hive.close();
+        await dir.delete(recursive: true);
+      });
+
+      final service = MapCacheService();
+      const meta = MapFloor(mapId: 9, mapName: 'Floor 9', rows: 10, cols: 10);
+      const nodes = [
+        MapPoi(
+          poiId: 90,
+          mapId: 9,
+          poiCode: 'N',
+          poiName: 'Node',
+          poiType: 'room',
+          gridRow: 1,
+          gridCol: 1,
+          gridLocation: 11,
+          isLandmark: false,
+          isAccessible: true,
+          wheelchairAccessible: false,
+        ),
+      ];
+      const edges = [
+        MapEdge(
+          fromRow: 1,
+          fromCol: 1,
+          fromLocation: 11,
+          toRow: 1,
+          toCol: 2,
+          toLocation: 12,
+        ),
+      ];
+
+      await service.saveFloors(const [meta]);
+      await service.saveMeta(mapId: 9, meta: meta);
+      await service.saveNodes(mapId: 9, nodes: nodes);
+      await service.saveEdges(mapId: 9, edges: edges);
+
+      await service.clearAll();
+
+      expect(await service.loadFloors(), isEmpty);
+      expect(await service.loadMeta(mapId: 9), isNull);
+      expect(await service.loadNodes(mapId: 9), isEmpty);
+      expect(await service.loadEdges(mapId: 9), isEmpty);
+    },
+  );
+
+  test(
     'MapCacheService round-trips a large edge set via the parse isolate',
     () async {
       final dir = await Directory.systemTemp.createTemp('large-edges-test-');

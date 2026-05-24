@@ -1,7 +1,8 @@
 part of '../../pages/map_page.dart';
 
-// ignore: unused_element
 class _RouteHistorySheet extends StatelessWidget {
+  static const int _displayLimit = 15;
+
   final AsyncValue<RouteHistory> history;
   final VoidCallback onRetry;
   final Future<void> Function() onClearAll;
@@ -66,13 +67,16 @@ class _RouteHistorySheet extends StatelessWidget {
                       title: 'No completed routes yet',
                     );
                   }
+                  final routes = data.routes
+                      .take(_displayLimit)
+                      .toList(growable: false);
                   return ListView.separated(
                     shrinkWrap: true,
-                    itemCount: data.routes.length,
+                    itemCount: routes.length,
                     separatorBuilder: (_, _) =>
                         const Divider(height: AppSpacing.sm),
                     itemBuilder: (context, index) {
-                      final entry = data.routes[index];
+                      final entry = routes[index];
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(

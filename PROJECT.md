@@ -80,7 +80,8 @@ Done (major capabilities)
 - [x] Offline: `map/sync_full` + granular meta/nodes/edges/obstacles cache (Hive), offline route cache, in-memory edge cache + isolate parse.
 - [x] Flow analytics: density heatmap, bottlenecks, alerts, client-derived corridor congestion, hourly forecast chart.
 - [x] Obstacle reporting (`flow/report_obstacle` + `flow/get_obstacles`) with offline queue; obstacle-aware routing.
-- [x] Tests under `test/features/map/` (85 passing); `flutter analyze` clean.
+- [x] Route history modal (re-navigate + clear via `route/clear_history`) and offline clear-cache modal.
+- [x] Tests under `test/features/map/` (91 passing); `flutter analyze` clean.
 
 Backlog (remaining)
 
@@ -88,7 +89,6 @@ Genuinely still missing (code):
 
 | Gap | Evidence |
 |-----|----------|
-| Route history UI unwired | `routeHistoryProvider` + `_RouteHistorySheet` exist but the sheet is never shown anywhere |
 | Voice guidance unwired | `voice_service.dart` exists but zero call sites in navigation |
 | `pass_node` / `ping_location` | `PassNodeReporter` + `pingLocation()` exist but are a queued stub (TODO: pending backend) |
 
