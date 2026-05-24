@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
+import 'package:hospital_app/features/map/presentation/utils/distance_format.dart';
 
 class MapNavigationSheet extends ConsumerWidget {
   final String destinationName;
-  final VoidCallback onDone;
   final VoidCallback onStop;
   final VoidCallback onCollapse;
 
   const MapNavigationSheet({
     super.key,
     required this.destinationName,
-    required this.onDone,
     required this.onStop,
     required this.onCollapse,
   });
@@ -145,15 +145,6 @@ class MapNavigationSheet extends ConsumerWidget {
                     color: context.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: onDone,
-                    icon: const Icon(Icons.done_rounded),
-                    label: const Text('Done'),
-                  ),
-                ),
               ],
             ],
           ),
@@ -171,43 +162,31 @@ class _RemainingMetrics {
 }
 
 _RemainingMetrics _remainingMetrics({
-  required AsyncValue<dynamic> routeResult,
+  required AsyncValue<RouteResult?> routeResult,
   required double progress,
   required double speed,
   required double fallbackMeters,
   required double fallbackSeconds,
 }) {
-  final data = routeResult.valueOrNull;
-  final distance = _readNumber(data, 'distance');
-  final estimatedTime = _readNumber(data, 'estimated_time');
-  if (distance != null || estimatedTime != null) {
+  // Prefer the route's own distance/ETA (backend `route/preview` values when
+  // online, engine cell-based values offline); fall back to the controller's
+  // mode-speed estimate only while the route is still loading.
+  final route = routeResult.valueOrNull;
+  if (route != null && route.path.isNotEmpty) {
     final remaining = (1 - progress).clamp(0.0, 1.0).toDouble();
+    // `meters` holds grid-cell distance here; it is converted to real units at
+    // display time in _formatDistance via formatDistanceFromCells.
     return _RemainingMetrics(
-      meters: distance == null
-          ? fallbackMeters
-          : (distance * remaining).toDouble(),
-      seconds: estimatedTime == null
-          ? fallbackSeconds
-          : (estimatedTime * remaining / speed).toDouble(),
+      meters: route.distance * remaining,
+      seconds: speed > 0
+          ? route.estimatedTime * remaining / speed
+          : route.estimatedTime * remaining,
     );
   }
   return _RemainingMetrics(meters: fallbackMeters, seconds: fallbackSeconds);
 }
 
-num? _readNumber(dynamic data, String key) {
-  if (data is! Map) {
-    return null;
-  }
-  final value = data[key];
-  return value is num ? value : null;
-}
-
-String _formatDistance(num distance) {
-  if (distance >= 1000) {
-    return '${(distance / 1000).toStringAsFixed(1)} km';
-  }
-  return '${distance.toStringAsFixed(0)} m';
-}
+String _formatDistance(num cells) => formatDistanceFromCells(cells);
 
 String _formatSeconds(num seconds) {
   if (seconds < 60) {

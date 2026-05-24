@@ -1,6 +1,7 @@
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 
 class NavDot {
@@ -165,10 +166,10 @@ class NavigationController {
     return baseSpeedFor(_modeId) * mult;
   }
 
-  double? _readEstimatedTime(dynamic data) {
-    if (data is! Map) return null;
-    final value = data['estimated_time'];
-    return value is num && value > 0 ? value.toDouble() : null;
+  double? _readEstimatedTime(RouteResult? data) {
+    if (data == null) return null;
+    final value = data.estimatedTime;
+    return value > 0 ? value : null;
   }
 }
 
