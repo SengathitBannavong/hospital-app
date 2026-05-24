@@ -32,11 +32,33 @@ class NotificationCard extends StatelessWidget {
         ),
         title: Text(
           notification.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: context.textTheme.titleSmall?.copyWith(
             fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.bold,
           ),
         ),
-        subtitle: Text(notification.message),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              notification.message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (notification.createdAt.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                notification.createdAt,
+                style: context.textTheme.bodySmall?.copyWith(
+                  color: context.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline_rounded),
           onPressed: onDelete,

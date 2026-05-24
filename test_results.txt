@@ -1,0 +1,559 @@
+00:00 +0: loading C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart
+00:00 +0: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier initializes with null state
+00:00 +0 -1: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier initializes with null state [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/provider_base.dart 105:26                                                ProviderBase.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 18:24                                 main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                              _CustomZone.registerBinaryCallback
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:19                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/provider_base.dart 105:26                                                ProviderBase.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 18:24                                 main.<fn>.<fn>
+  
+00:00 +0 -1: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier checkAuthStatus returns null when no token is saved
+00:00 +0 -2: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier checkAuthStatus returns null when no token is saved [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 28:23                                 main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                              _CustomZone.registerBinaryCallback
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:19                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 28:23                                 main.<fn>.<fn>
+  
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  test\features\auth\presentation\providers\auth_provider_test.dart 28:56                                 main.<fn>.<fn>
+  
+00:00 +0 -2: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier signup returns OtpResponse with userId
+00:00 +0 -3: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier signup returns OtpResponse with userId [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 40:12                                 main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                              _CustomZone.registerBinaryCallback
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:19                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 40:12                                 main.<fn>.<fn>
+  
+00:00 +0 -3: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier verifyOtp completes successfully
+00:00 +0 -4: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier verifyOtp completes successfully [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 60:12                                 main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                              _CustomZone.registerBinaryCallback
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:19                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 60:12                                 main.<fn>.<fn>
+  
+00:00 +0 -4: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier forgotPassword returns OtpResponse
+00:00 +0 -5: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier forgotPassword returns OtpResponse [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 77:12                                 main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                              _CustomZone.registerBinaryCallback
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:19                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 77:12                                 main.<fn>.<fn>
+  
+00:00 +0 -5: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier resetPassword completes successfully
+00:00 +0 -6: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier resetPassword completes successfully [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 90:12                                 main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                              _CustomZone.registerBinaryCallback
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:19                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 90:12                                 main.<fn>.<fn>
+  
+00:00 +0 -6: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier changePassword completes successfully
+00:00 +0 -7: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier changePassword completes successfully [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 107:12                                main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                              _CustomZone.registerBinaryCallback
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:19                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 107:12                                main.<fn>.<fn>
+  
+00:00 +0 -7: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier deleteAccount clears auth state
+00:00 +0 -8: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier deleteAccount clears auth state [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 121:12                                main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                              _CustomZone.registerBinaryCallback
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:19                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 121:12                                main.<fn>.<fn>
+  
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 41:16  MethodChannelFlutterSecureStorage.delete
+  package:flutter_secure_storage/flutter_secure_storage.dart 214:21                                       FlutterSecureStorage.delete
+  package:hospital_app/core/network/token_repository.dart 16:20                                           TokenRepository.deleteToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 48:27                      AuthNotifier.logout
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 150:11                     AuthNotifier.deleteAccount
+  
+00:00 +0 -8: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier checkVersion returns VersionCheckResponse
+00:00 +0 -9: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier checkVersion returns VersionCheckResponse [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 147:12                                main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                              _CustomZone.registerBinaryCallback
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:19                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 147:12                                main.<fn>.<fn>
+  
+00:00 +0 -9: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateName returns error when name is empty
+00:00 +0 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateName returns error when name is empty
+00:00 +0 -10: C:/Users/Vongphet/hospital-app/test/features/auth/presentation/providers/auth_provider_test.dart: AuthNotifier resendOtp completes successfully [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                       BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                       BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                         ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                               _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                               MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                               MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                               MethodChannel.invokeMethod
+  package:flutter_secure_storage_platform_interface/src/method_channel_flutter_secure_storage.dart 65:16  MethodChannelFlutterSecureStorage.read
+  package:flutter_secure_storage/flutter_secure_storage.dart 150:17                                       FlutterSecureStorage.read
+  package:hospital_app/core/network/token_repository.dart 12:27                                           TokenRepository.getToken
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:41                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 161:12                                main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                              _CustomZone.registerBinaryCallback
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 54:19                      AuthNotifier.checkAuthStatus
+  package:hospital_app/features/auth/presentation/providers/auth_provider.dart 12:36                      authStateProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                           StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                           StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                                  Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                           StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                                       ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                                       ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                                     _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                                     _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                                    ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                                     ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                                    ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                                    ProviderContainer.read
+  test\features\auth\presentation\providers\auth_provider_test.dart 161:12                                main.<fn>.<fn>
+  
+00:00 +1 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateName returns error when name is less than 2 characters
+00:00 +2 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateName returns null when name is valid
+00:00 +3 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePhoneNumber returns error when phone is empty
+00:00 +4 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePhoneNumber returns error when phone is less than 8 digits
+00:00 +5 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePhoneNumber returns error when phone is more than 11 digits
+00:00 +6 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePhoneNumber returns error when phone contains non-digits
+00:00 +7 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePhoneNumber returns null when phone is valid
+00:00 +8 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePassword returns error when password is empty
+00:00 +9 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePassword returns error when password is less than 6 characters
+00:00 +10 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePassword returns null when password is valid
+00:00 +11 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePasswordConfirmation returns error when confirmation is empty
+00:00 +12 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePasswordConfirmation returns error when passwords do not match
+00:00 +13 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validatePasswordConfirmation returns null when passwords match
+00:00 +14 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateOtp returns error when OTP is empty
+00:00 +15 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateOtp returns error when OTP is not 6 digits
+00:00 +16 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateOtp returns error when OTP contains non-digits
+00:00 +17 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateOtp returns null when OTP is valid
+00:00 +18 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateEmail returns error when email is empty
+00:00 +19 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateEmail returns error for invalid email formats
+00:00 +20 -10: C:/Users/Vongphet/hospital-app/test/core/utils/form_validators_test.dart: FormValidators validateEmail returns null for valid email formats
+00:00 +21 -10: Some tests failed.

@@ -134,8 +134,8 @@ Scope: notification list, mark read, delete, profile edit.
 - [x] Delete notification action is wired to UI/API.
 - [x] Notification route or bottom-nav entry is configured.
 - [x] Notification parsing is defensive for `id/notif_id/notification_id`, `message/content/body`, `time/created_at`, and `is_read/read/isRead`.
-- [ ] Confirm `DELETE /notification/delete` accepts JSON body in production.
-- [ ] Use `total/page/limit` to implement pagination or load-more.
+- [ x] Confirm `DELETE /notification/delete` accepts JSON body in production.
+- [ x] Use `total/page/limit` to implement pagination or load-more.
 - [ ] Show notification time in UI (use `created_at`).
 - [ ] Add global unread badge count (tab/app bar).
 - [ ] Register device token with `user/set_devtoken` and update via push.
