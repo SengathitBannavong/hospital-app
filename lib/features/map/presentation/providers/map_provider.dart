@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
+import 'package:hospital_app/features/map/data/models/flow_forecast_bucket.dart';
 import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
@@ -143,7 +145,7 @@ final bottleneckWeightsProvider = FutureProvider.autoDispose
       return result;
     });
 
-final forecastProvider = FutureProvider.family<List<FlowCell>, int>((
+final forecastProvider = FutureProvider.family<List<FlowForecastBucket>, int>((
   ref,
   mapId,
 ) async {
@@ -151,12 +153,14 @@ final forecastProvider = FutureProvider.family<List<FlowCell>, int>((
   final hours = ref.watch(forecastHoursProvider);
   final isOnline = ref.watch(mapConnectivityProvider).valueOrNull ?? false;
   if (!isOnline) {
-    return const <FlowCell>[];
+    return const <FlowForecastBucket>[];
   }
   try {
+    // TODO(map-flow): backend flow overlays are not floor-scoped yet; do not
+    // send map_id unless the API contract changes.
     return await repository.getFlowForecast(hours: hours);
   } catch (_) {
-    return const <FlowCell>[];
+    return const <FlowForecastBucket>[];
   }
 });
 
@@ -164,6 +168,8 @@ final flowSnapshotProvider = FutureProvider.family<FlowSnapshot, int>((
   ref,
   mapId,
 ) {
+  // TODO(map-flow): backend flow overlays are not floor-scoped yet; do not
+  // send map_id unless the API contract changes.
   return ref.watch(flowServiceProvider).snapshot(mapId: mapId);
 });
 
@@ -378,6 +384,45 @@ final adjacencyProvider = Provider.family<Map<int, List<int>>, int>((
     result.putIfAbsent(edge.toLocation, () => <int>[]).add(edge.fromLocation);
   }
   return result;
+});
+
+final corridorStatusProvider = Provider.family<List<EdgeStatus>, int>((
+  ref,
+  mapId,
+) {
+  final snapshot = ref.watch(flowSnapshotProvider(mapId)).valueOrNull;
+  final densityByLocation = {
+    for (final cell in snapshot?.cells ?? const <FlowCell>[])
+      cell.location: cell.density,
+  };
+  final adjacency = ref.watch(adjacencyProvider(mapId));
+  final obstacles =
+      ref.watch(mapObstaclesProvider(mapId)).valueOrNull ??
+      const <MapObstacle>[];
+  final blockedLocations = {
+    for (final obstacle in obstacles) obstacle.gridLocation,
+  };
+
+  final statuses = <String, EdgeStatus>{};
+  for (final entry in adjacency.entries) {
+    final from = entry.key;
+    for (final to in entry.value) {
+      final key = edgeStatusKey(from, to);
+      if (statuses.containsKey(key)) continue;
+      statuses[key] = EdgeStatus(
+        fromLocation: from,
+        toLocation: to,
+        congestion: math.max(
+          densityByLocation[from] ?? 0,
+          densityByLocation[to] ?? 0,
+        ),
+        blocked:
+            blockedLocations.contains(from) || blockedLocations.contains(to),
+      );
+    }
+  }
+
+  return statuses.values.toList(growable: false);
 });
 
 // Search results by keyword + mapId

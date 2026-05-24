@@ -7,6 +7,7 @@ import '../../auth/data/models/auth_api_response.dart';
 import 'models/edge_status.dart';
 import 'models/flow_alert.dart';
 import 'models/flow_cell.dart';
+import 'models/flow_forecast_bucket.dart';
 import 'models/map_department.dart';
 import 'models/map_edges_response.dart';
 import 'models/map_floor.dart';
@@ -294,14 +295,14 @@ class MapRepository {
     return cells ?? const <FlowCell>[];
   }
 
-  Future<List<FlowCell>> getFlowForecast({int hours = 24}) async {
-    final cells = await _request<List<FlowCell>>(
+  Future<List<FlowForecastBucket>> getFlowForecast({int hours = 24}) async {
+    final buckets = await _request<List<FlowForecastBucket>>(
       method: _MapHttpMethod.get,
       endpoint: ApiEndpoints.flowGetForecast,
       queryParameters: {'hours': hours},
-      fromJson: _parseFlowCells,
+      fromJson: _parseFlowForecastBuckets,
     );
-    return cells ?? const <FlowCell>[];
+    return buckets ?? const <FlowForecastBucket>[];
   }
 
   Future<List<FlowAlert>> getFlowAlerts() async {
@@ -399,6 +400,22 @@ class MapRepository {
   List<FlowCell> _parseFlowCells(dynamic json) {
     final rows = _extractRows(json, keys: const ['cells', 'heatmap', 'data']);
     return rows.map(_flowCellFromRaw).whereType<FlowCell>().toList();
+  }
+
+  List<FlowForecastBucket> _parseFlowForecastBuckets(dynamic json) {
+    final rows = _extractRows(json, keys: const ['data', 'forecast', 'items']);
+    return rows
+        .map(_flowForecastBucketFromRaw)
+        .whereType<FlowForecastBucket>()
+        .toList();
+  }
+
+  FlowForecastBucket? _flowForecastBucketFromRaw(Map<String, dynamic> json) {
+    final hour = _readInt(json['hour']);
+    if (hour == null) {
+      return null;
+    }
+    return FlowForecastBucket(hour: hour, count: _readInt(json['count']) ?? 0);
   }
 
   FlowCell? _flowCellFromRaw(Map<String, dynamic> json) {
@@ -580,5 +597,10 @@ class MapRepository {
   @visibleForTesting
   List<FlowAlert> parseFlowAlertsForTesting(dynamic json) {
     return _parseFlowAlerts(json);
+  }
+
+  @visibleForTesting
+  List<FlowForecastBucket> parseFlowForecastBucketsForTesting(dynamic json) {
+    return _parseFlowForecastBuckets(json);
   }
 }

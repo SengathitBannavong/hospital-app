@@ -10,6 +10,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
   final bool noLiveHeatmapData;
   final bool noLiveBottlenecksData;
   final bool noLiveForecastData;
+  final List<FlowForecastBucket> forecastBuckets;
   final ValueChanged<bool> onHeatmapChanged;
   final ValueChanged<bool> onEdgeStatusChanged;
   final ValueChanged<bool> onBottlenecksChanged;
@@ -26,6 +27,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
     required this.noLiveHeatmapData,
     required this.noLiveBottlenecksData,
     required this.noLiveForecastData,
+    required this.forecastBuckets,
     required this.onHeatmapChanged,
     required this.onEdgeStatusChanged,
     required this.onBottlenecksChanged,
@@ -191,7 +193,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
             ),
             if (forecastActive) ...[
               const SizedBox(height: AppSpacing.xs),
-              if (noLiveForecastData) ...[
+              if (noLiveForecastData)
                 Row(
                   children: [
                     Icon(
@@ -207,11 +209,12 @@ class _FlowAnalyticsPanel extends StatelessWidget {
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-              ],
+                )
+              else
+                _HourlyForecastChart(buckets: forecastBuckets),
+              const SizedBox(height: AppSpacing.xs),
               Text(
-                'Offset: $forecastHours hr${forecastHours > 1 ? 's' : ''}',
+                'Lookback: $forecastHours hr${forecastHours > 1 ? 's' : ''}',
                 style: context.textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -242,6 +245,67 @@ class _FlowAnalyticsPanel extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HourlyForecastChart extends StatelessWidget {
+  final List<FlowForecastBucket> buckets;
+
+  const _HourlyForecastChart({required this.buckets});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    var maxCount = 0;
+    for (final bucket in buckets) {
+      if (bucket.count > maxCount) maxCount = bucket.count;
+    }
+
+    return SizedBox(
+      height: 76,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (final bucket in buckets) ...[
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FractionallySizedBox(
+                        heightFactor: maxCount == 0
+                            ? 0
+                            : (bucket.count / maxCount).clamp(0.0, 1.0),
+                        child: Container(
+                          width: 10,
+                          decoration: BoxDecoration(
+                            color: scheme.primary.withValues(alpha: 0.72),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    bucket.hour.toString().padLeft(2, '0'),
+                    style: context.textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (bucket != buckets.last) const SizedBox(width: 3),
+          ],
+        ],
       ),
     );
   }

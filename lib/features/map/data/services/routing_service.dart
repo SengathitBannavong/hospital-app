@@ -33,11 +33,9 @@ class RoutingService {
     required String modeId,
     required Map<int, List<int>> adjacency,
     required int cols,
-    Map<String, EdgeStatus> edgeStatuses =
-        const <String, EdgeStatus>{},
+    Map<String, EdgeStatus> edgeStatuses = const <String, EdgeStatus>{},
     Set<int> poiCells = const <int>{},
-    Map<int, double> bottleneckWeights =
-        const <int, double>{},
+    Map<int, double> bottleneckWeights = const <int, double>{},
   }) async {
     // ── 1. Engine (crowd-aware) — primary authority ──
     if (adjacency.isNotEmpty) {
@@ -92,14 +90,12 @@ class RoutingService {
     // ── 3. Preview fallback (online, crowd-blind) ──
     if (await _hasNetwork()) {
       try {
-        final preview =
-            await _repository.previewRoute(
+        final preview = await _repository.previewRoute(
           startLocation: startLocation,
           destLocation: destLocation,
           modeId: modeId,
         );
-        final result =
-            _mapper.fromPreviewJson(preview);
+        final result = _mapper.fromPreviewJson(preview);
         if (result.path.isNotEmpty) {
           await _cache.saveRoute(
             mapId: mapId,
@@ -138,8 +134,7 @@ class RoutingService {
     required Map<String, EdgeStatus> edgeStatuses,
     String? routeId,
     Set<int> poiCells = const <int>{},
-    Map<int, double> bottleneckWeights =
-        const <int, double>{},
+    Map<int, double> bottleneckWeights = const <int, double>{},
   }) async {
     // ── 1. Engine (crowd-aware) — primary ──
     if (adjacency.isNotEmpty) {
@@ -196,13 +191,11 @@ class RoutingService {
     // provides a stable route_id from route/order.
     if (routeId != null && await _hasNetwork()) {
       try {
-        final preview =
-            await _repository.recalculateRoute(
+        final preview = await _repository.recalculateRoute(
           routeId: routeId,
           currentLocation: currentLocation,
         );
-        final result =
-            _mapper.fromPreviewJson(preview);
+        final result = _mapper.fromPreviewJson(preview);
         if (result.path.isNotEmpty) {
           await _cache.saveRoute(
             mapId: mapId,

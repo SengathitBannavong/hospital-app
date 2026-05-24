@@ -25,11 +25,10 @@ class FlowService {
               .toList();
         }
       }
-      final edgeStatuses = await _repository.getFlowEdgeStatus();
       final alerts = await _repository.getFlowAlerts();
       final snapshot = FlowSnapshot(
         cells: cells,
-        edgeStatuses: edgeStatuses,
+        edgeStatuses: const [],
         alerts: alerts,
         updatedAt: DateTime.now().toUtc(),
       );

@@ -20,8 +20,7 @@ class RoutingEngine {
     required int cols,
     Map<String, EdgeStatus> edgeStatuses = const <String, EdgeStatus>{},
     Set<int> poiCells = const <int>{},
-    Map<int, double> bottleneckWeights =
-        const <int, double>{},
+    Map<int, double> bottleneckWeights = const <int, double>{},
   }) {
     var path = _shortestPath(
       startLocation: startLocation,
@@ -72,8 +71,7 @@ class RoutingEngine {
     required int cols,
     required Map<String, EdgeStatus> edgeStatuses,
     Set<int> poiCells = const <int>{},
-    Map<int, double> bottleneckWeights =
-        const <int, double>{},
+    Map<int, double> bottleneckWeights = const <int, double>{},
   }) {
     if (startLocation == destLocation) {
       return [startLocation];
@@ -112,8 +110,7 @@ class RoutingEngine {
           cols: cols,
           modeId: modeId,
           congestion: edgeStatus?.congestion ?? 0,
-          bottleneck:
-              bottleneckWeights[next] ?? 0,
+          bottleneck: bottleneckWeights[next] ?? 0,
         );
         final nextCost = current.priority + cost;
         if (nextCost >= (costs[next] ?? double.infinity)) {

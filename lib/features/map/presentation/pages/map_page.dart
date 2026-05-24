@@ -5,7 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
+import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
+import 'package:hospital_app/features/map/data/models/flow_forecast_bucket.dart';
 import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
@@ -282,8 +284,11 @@ class _MapPageState extends ConsumerState<MapPage>
     final needsForecast = _showAnalyticsPanel || forecastVisible;
     final forecast = needsForecast
         ? ref.watch(forecastProvider(activeMapId)).valueOrNull ??
-              const <FlowCell>[]
-        : const <FlowCell>[];
+              const <FlowForecastBucket>[]
+        : const <FlowForecastBucket>[];
+    final corridorStatuses = edgeStatusVisible
+        ? ref.watch(corridorStatusProvider(activeMapId))
+        : const <EdgeStatus>[];
     final nodes =
         ref.watch(mapNodesProvider(activeMapId)).value ?? const <MapPoi>[];
     final walkable = _loadWalkableLayer
@@ -364,11 +369,10 @@ class _MapPageState extends ConsumerState<MapPage>
             cols: cols,
             walkable: walkable,
             nodes: nodes,
-            forecastVisible: forecastVisible,
-            forecast: forecast,
             flow: flow,
             flowVisible: flowVisible,
             edgeStatusVisible: edgeStatusVisible,
+            corridorStatuses: corridorStatuses,
             bottlenecks: bottlenecks,
             bottlenecksVisible: bottlenecksVisible,
             routeLocations: routeLocations,
@@ -444,11 +448,10 @@ class _MapPageState extends ConsumerState<MapPage>
     required int cols,
     required Set<int> walkable,
     required List<MapPoi> nodes,
-    required bool forecastVisible,
-    required List<FlowCell> forecast,
     required FlowSnapshot? flow,
     required bool flowVisible,
     required bool edgeStatusVisible,
+    required List<EdgeStatus> corridorStatuses,
     required List<FlowCell> bottlenecks,
     required bool bottlenecksVisible,
     required List<int> routeLocations,
@@ -515,11 +518,9 @@ class _MapPageState extends ConsumerState<MapPage>
                           cols: cols,
                           walkableLocations: walkable,
                           pois: nodes,
-                          flowCells: forecastVisible
-                              ? forecast
-                              : (flow?.cells ?? const []),
-                          edgeStatuses: flow?.edgeStatuses ?? const [],
-                          showFlowOverlay: forecastVisible || flowVisible,
+                          flowCells: flow?.cells ?? const [],
+                          edgeStatuses: corridorStatuses,
+                          showFlowOverlay: flowVisible,
                           showEdgeStatus: edgeStatusVisible,
                           bottlenecks: bottlenecks,
                           showBottlenecks: bottlenecksVisible,
@@ -687,7 +688,7 @@ class _MapPageState extends ConsumerState<MapPage>
     required bool forecastVisible,
     required int forecastHours,
     required List<FlowCell> bottlenecks,
-    required List<FlowCell> forecast,
+    required List<FlowForecastBucket> forecast,
   }) {
     if (_showAnalyticsPanel) {
       return Positioned(
@@ -703,6 +704,7 @@ class _MapPageState extends ConsumerState<MapPage>
           noLiveHeatmapData: flow == null || flow.cells.isEmpty,
           noLiveBottlenecksData: bottlenecks.isEmpty,
           noLiveForecastData: forecast.isEmpty,
+          forecastBuckets: forecast,
           onHeatmapChanged: (active) {
             ref.read(flowOverlayVisibleProvider.notifier).state = active;
           },

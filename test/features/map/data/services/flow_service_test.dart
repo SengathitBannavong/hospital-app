@@ -6,6 +6,7 @@ import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_alert.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
+import 'package:hospital_app/features/map/data/models/flow_forecast_bucket.dart';
 import 'package:hospital_app/features/map/data/services/flow_service.dart';
 import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
 
@@ -32,7 +33,7 @@ void main() {
           FlowCell(location: 101, density: 3.0),
           FlowCell(location: 102, density: 0.0),
         ],
-        onGetEdgeStatus: () async => const [],
+        onGetEdgeStatus: () async => throw StateError('must not call'),
         onGetAlerts: () async => const [],
       );
 
@@ -46,6 +47,8 @@ void main() {
       expect(snapshot.cells[1].density, 0.25);
       // Normalized: 0.0 / 12.0 = 0.0
       expect(snapshot.cells[2].density, 0.0);
+      expect(snapshot.edgeStatuses, isEmpty);
+      expect(fakeRepo.edgeStatusCalls, 0);
     });
 
     test('FlowService handles zero-density cases gracefully', () async {
@@ -114,6 +117,27 @@ void main() {
       expect(alerts[1].id, 'a2');
       expect(alerts[1].level, 'warning');
     });
+
+    test('MapRepository parses hourly forecast buckets', () {
+      final repository = MapRepository();
+
+      final buckets = repository.parseFlowForecastBucketsForTesting(const {
+        'data': [
+          {'hour': 8, 'count': 12},
+          {'hour': 9, 'count': 0},
+        ],
+      });
+
+      expect(buckets, const [
+        FlowForecastBucket(hour: 8, count: 12),
+        FlowForecastBucket(hour: 9, count: 0),
+      ]);
+      expect(repository.parseFlowForecastBucketsForTesting(null), isEmpty);
+      expect(
+        repository.parseFlowForecastBucketsForTesting(const {'data': null}),
+        isEmpty,
+      );
+    });
   });
 }
 
@@ -121,6 +145,7 @@ class FakeFlowMapRepository extends MapRepository {
   final Future<List<FlowCell>> Function()? onGetHeatmap;
   final Future<List<EdgeStatus>> Function()? onGetEdgeStatus;
   final Future<List<FlowAlert>> Function()? onGetAlerts;
+  int edgeStatusCalls = 0;
 
   FakeFlowMapRepository({
     this.onGetHeatmap,
@@ -136,6 +161,7 @@ class FakeFlowMapRepository extends MapRepository {
 
   @override
   Future<List<EdgeStatus>> getFlowEdgeStatus() async {
+    edgeStatusCalls++;
     if (onGetEdgeStatus != null) return onGetEdgeStatus!();
     return const [];
   }
