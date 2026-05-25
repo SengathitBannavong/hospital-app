@@ -1,46 +1,96 @@
+// lib/features/sos/presentation/providers/sos_provider.dart
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/models/sos_detail.dart';
+import '../../data/repository/sos_repository.dart';
 
 class SosState {
-  const SosState({this.isSending = false, this.wasSent = false, this.message});
+  const SosState({
+    this.detail,
+    this.isLoading = false,
+    this.isSending = false,
+    this.errorMessage,
+    this.successMessage,
+  });
 
+  final SosDetail? detail;
+  final bool isLoading;
   final bool isSending;
-  final bool wasSent;
-  final String? message;
+  final String? errorMessage;
+  final String? successMessage;
 
-  SosState copyWith({bool? isSending, bool? wasSent, String? message}) {
+  bool get hasActiveSos => detail != null && detail!.status == SosStatus.active;
+
+  SosState copyWith({
+    SosDetail? detail,
+    bool? isLoading,
+    bool? isSending,
+    String? errorMessage,
+    String? successMessage,
+    bool clearDetail = false,
+    bool clearError = false,
+    bool clearSuccess = false,
+  }) {
     return SosState(
+      detail: clearDetail ? null : (detail ?? this.detail),
+      isLoading: isLoading ?? this.isLoading,
       isSending: isSending ?? this.isSending,
-      wasSent: wasSent ?? this.wasSent,
-      message: message ?? this.message,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      successMessage: clearSuccess
+          ? null
+          : (successMessage ?? this.successMessage),
     );
   }
 }
 
+final sosRepositoryProvider = Provider<SosRepository>((_) => SosRepository());
+
 class SosNotifier extends StateNotifier<SosState> {
-  SosNotifier() : super(const SosState());
+  SosNotifier(this._repository) : super(const SosState());
 
-  Future<void> sendRequest({required String reason}) async {
-    state = state.copyWith(isSending: true, wasSent: false, message: null);
+  final SosRepository _repository;
 
+  Future<void> loadDetail() async {
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 900));
-      state = state.copyWith(
-        isSending: false,
-        wasSent: true,
-        message: reason.isEmpty
-            ? 'Đã gửi SOS khẩn cấp.'
-            : 'Đã gửi SOS: $reason',
-      );
-    } catch (error) {
-      state = state.copyWith(
-        isSending: false,
-        wasSent: false,
-        message: error.toString(),
-      );
+      final detail = await _repository.getSosDetail();
+      state = state.copyWith(detail: detail, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: _fmt(e));
     }
   }
+
+  Future<bool> sendSos() async {
+    state = state.copyWith(
+      isSending: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    try {
+      await _repository.createSos();
+      final detail = await _repository.getSosDetail();
+      state = state.copyWith(
+        isSending: false,
+        detail: detail,
+        successMessage: 'Đã gửi tín hiệu SOS. Nhân viên đang trên đường đến!',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSending: false, errorMessage: _fmt(e));
+      return false;
+    }
+  }
+
+  void clearMessages() {
+    state = state.copyWith(clearError: true, clearSuccess: true);
+  }
+
+  String _fmt(Object e) => e.toString().replaceFirst('Exception: ', '');
 }
 
 final sosProvider = StateNotifierProvider<SosNotifier, SosState>((ref) {
-  return SosNotifier();
+  final repo = ref.watch(sosRepositoryProvider);
+  final notifier = SosNotifier(repo);
+  notifier.loadDetail();
+  return notifier;
 });

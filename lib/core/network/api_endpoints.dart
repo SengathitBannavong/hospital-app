@@ -80,3 +80,7 @@ class ApiEndpoints {
   static const String weather = 'util/weather';
   static const String parking = 'util/parking';
 }
+
+  // SOS
+  static const String sosCreate = 'sos/create';
+  static const String sosGetDetail = 'sos/get_detail';
