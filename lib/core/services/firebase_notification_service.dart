@@ -10,7 +10,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hospital_app/features/notification/data/models/notification_model.dart';
+import 'package:hospital_app/features/notification/data/models/app_notification.dart';
 import 'package:hospital_app/features/notification/presentation/providers/notification_provider.dart';
 
 // ─── Background handler (must be top-level function) ─────────────────────────
@@ -179,15 +179,16 @@ class FirebaseNotificationService {
     );
 
     // Also add to in-memory notification list
-    final model = NotificationModel(
+    final appNotification = AppNotification(
       id: message.hashCode,
-      title: notification.title ?? '',
-      content: notification.body ?? '',
+      title: notification.title ?? 'Thông báo',
+      message: notification.body ?? '',
+      createdAt: DateTime.now().toIso8601String(),
       isRead: false,
-      createdAt: DateTime.now(),
-      notifType: message.data['notif_type'] as String?,
     );
-    _ref?.read(notificationProvider.notifier).addFirebaseNotification(model);
+    _ref
+        ?.read(notificationProvider.notifier)
+        .addFirebaseNotification(appNotification);
   }
 
   void _handleNotificationTap(RemoteMessage message) {

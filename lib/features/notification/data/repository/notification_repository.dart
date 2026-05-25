@@ -1,72 +1,42 @@
 // lib/features/notification/data/repository/notification_repository.dart
 
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
-import '../models/notification_model.dart';
-import '../models/notification_list_response.dart';
+import '../datasources/notification_remote_data_source.dart';
+import '../models/notification_page_response.dart';
 import '../models/notification_settings_model.dart';
 
 class NotificationRepository {
+  NotificationRepository({NotificationRemoteDataSource? remoteDataSource})
+      : _remoteDataSource = remoteDataSource ?? NotificationRemoteDataSource();
+
+  final NotificationRemoteDataSource _remoteDataSource;
   final Dio _dio = ApiClient.instance;
 
-  /// GET notification/get_list?page=1&limit=20
-  Future<NotificationListResponse> getNotifications({
+  // ── List / read / delete (paginated, via remote data source) ──────────────
+
+  /// GET notification/get_list?page=&limit=
+  Future<NotificationPageResponse> getNotifications({
     int page = 1,
     int limit = 20,
-  }) async {
-    try {
-      final response = await _dio.get(
-        ApiEndpoints.notificationGetList,
-        queryParameters: {'page': page, 'limit': limit},
-      );
-      debugPrint('NOTIFICATION RESPONSE: ${response.data}');
-      return NotificationListResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-    } on DioException catch (e) {
-      debugPrint('NOTIFICATION ERROR: ${e.response?.data}');
-      throw Exception(_parseError(e));
-    }
+  }) {
+    return _remoteDataSource.getNotifications(page: page, limit: limit);
   }
 
-  /// POST notification/set_read  { notif_id: xxx }
-  /// Backend repo uses notif_id as primary key
-  Future<void> markAsRead(int notificationId) async {
-    try {
-      await _dio.post(
-        ApiEndpoints.notificationSetRead,
-        data: {'notif_id': notificationId},
-      );
-    } on DioException catch (e) {
-      throw Exception(_parseError(e));
-    }
+  /// POST notification/set_read { notif_id }
+  Future<void> markAsRead({required int notificationId}) {
+    return _remoteDataSource.markAsRead(notificationId: notificationId);
   }
 
-  /// Mark ALL as read
-  Future<void> markAllAsRead() async {
-    try {
-      await _dio.post(
-        ApiEndpoints.notificationSetRead,
-        data: {'all': true},
-      );
-    } on DioException catch (e) {
-      throw Exception(_parseError(e));
-    }
+  /// DELETE notification/delete { notif_id: [...] }
+  Future<void> deleteNotifications({required List<int> notificationIds}) {
+    return _remoteDataSource.deleteNotifications(
+      notificationIds: notificationIds.map((id) => id.toString()).toList(),
+    );
   }
 
-  /// DELETE notification/delete — JSON body { notif_id: xxx }
-  Future<void> deleteNotification(int notificationId) async {
-    try {
-      await _dio.delete(
-        ApiEndpoints.notificationDelete,
-        data: {'notif_id': notificationId},
-      );
-    } on DioException catch (e) {
-      throw Exception(_parseError(e));
-    }
-  }
+  // ── Device token (Firebase push) ──────────────────────────────────────────
 
   /// POST user/set_devtoken
   Future<void> registerDeviceToken(String fcmToken) async {
@@ -79,6 +49,8 @@ class NotificationRepository {
       throw Exception(_parseError(e));
     }
   }
+
+  // ── Notification settings ─────────────────────────────────────────────────
 
   /// GET user/get_settings
   Future<NotificationSettingsModel> getSettings() async {
@@ -102,11 +74,6 @@ class NotificationRepository {
     } on DioException catch (e) {
       throw Exception(_parseError(e));
     }
-  }
-
-  /// Count unread from a loaded list
-  int countUnread(List<NotificationModel> notifications) {
-    return notifications.where((n) => !n.isRead).length;
   }
 
   String _parseError(DioException e) {

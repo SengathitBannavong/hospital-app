@@ -1,53 +1,70 @@
 // lib/features/notification/presentation/providers/notification_state.dart
 
-import '../../data/models/notification_model.dart';
-
-enum NotificationStatus { initial, loading, loaded, error }
+import '../../data/models/app_notification.dart';
 
 class NotificationState {
-  final List<NotificationModel> notifications;
-  final NotificationStatus status;
-  final String? errorMessage;
-  final int currentPage;
-  final int totalCount;
-  final int limit;
-  final bool isLoadingMore;
-  final int unreadCount;
-
   const NotificationState({
-    this.notifications = const [],
-    this.status = NotificationStatus.initial,
-    this.errorMessage,
-    this.currentPage = 1,
-    this.totalCount = 0,
-    this.limit = 20,
-    this.isLoadingMore = false,
-    this.unreadCount = 0,
+    required this.items,
+    required this.total,
+    required this.page,
+    required this.limit,
+    required this.isInitialLoading,
+    required this.isRefreshing,
+    required this.isLoadingMore,
+    required this.errorMessage,
   });
 
-  bool get hasMore => (currentPage * limit) < totalCount;
-  bool get isLoading => status == NotificationStatus.loading;
+  factory NotificationState.initial({int limit = 20}) {
+    return NotificationState(
+      items: const <AppNotification>[],
+      total: 0,
+      page: 1,
+      limit: limit,
+      isInitialLoading: true,
+      isRefreshing: false,
+      isLoadingMore: false,
+      errorMessage: null,
+    );
+  }
+
+  final List<AppNotification> items;
+  final int total;
+  final int page;
+  final int limit;
+  final bool isInitialLoading;
+  final bool isRefreshing;
+  final bool isLoadingMore;
+  final String? errorMessage;
+
+  bool get hasItems => items.isNotEmpty;
+  bool get hasMore => items.length < total;
+  bool get isEmpty => !isInitialLoading && items.isEmpty;
+
+  /// Loading flag for simple consumers (e.g. home summary card).
+  bool get isLoading => isInitialLoading || isRefreshing;
+
+  /// Unread badge count, derived from the loaded items.
+  int get unreadCount => items.where((item) => !item.isRead).length;
 
   NotificationState copyWith({
-    List<NotificationModel>? notifications,
-    NotificationStatus? status,
-    String? errorMessage,
-    int? currentPage,
-    int? totalCount,
+    List<AppNotification>? items,
+    int? total,
+    int? page,
     int? limit,
+    bool? isInitialLoading,
+    bool? isRefreshing,
     bool? isLoadingMore,
-    int? unreadCount,
-    bool clearError = false,
+    String? errorMessage,
   }) {
     return NotificationState(
-      notifications: notifications ?? this.notifications,
-      status: status ?? this.status,
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      currentPage: currentPage ?? this.currentPage,
-      totalCount: totalCount ?? this.totalCount,
+      items: items ?? this.items,
+      total: total ?? this.total,
+      page: page ?? this.page,
       limit: limit ?? this.limit,
+      isInitialLoading: isInitialLoading ?? this.isInitialLoading,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-      unreadCount: unreadCount ?? this.unreadCount,
+      errorMessage: errorMessage,
     );
   }
 }
