@@ -9,6 +9,7 @@ import '../../../../core/widgets/medical_info_card.dart';
 import '../../../../core/widgets/fade_slide_transition.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
+import '../../../notification/presentation/widgets/notification_badge.dart';
 import '../../data/home_repository.dart';
 import 'package:go_router/go_router.dart';
 
@@ -23,7 +24,6 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   final _homeRepository = HomeRepository();
-  int _counter = 0;
   int _taskCount = 0;
   bool _isLoadingTasks = false;
 
@@ -49,10 +49,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     } finally {
       if (mounted) setState(() => _isLoadingTasks = false);
     }
-  }
-
-  void _incrementCounter() {
-    setState(() => _counter++);
   }
 
   Future<void> _logout() async {
@@ -106,6 +102,15 @@ class _HomePageState extends ConsumerState<HomePage> {
             onPressed: () => themeController.toggleTheme(),
           ),
           IconButton(
+            icon: const NotificationBadge(
+              top: -6,
+              right: -6,
+              child: Icon(Icons.notifications_outlined),
+            ),
+            tooltip: 'Thông báo',
+            onPressed: () => context.push('/notification'),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout_rounded),
             tooltip: 'Đăng xuất',
             onPressed: _logout,
@@ -153,8 +158,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 150),
-                child:
-                    Text('Tổng quan', style: context.textTheme.titleMedium),
+                child: Text('Tổng quan', style: context.textTheme.titleMedium),
               ),
               const SizedBox(height: AppSpacing.md),
 
@@ -167,30 +171,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                       : '$_taskCount Hoạt động',
                   icon: Icons.assignment_rounded,
                   onTap: _fetchTasks,
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.md),
-
-              FadeSlideTransition(
-                delay: const Duration(milliseconds: 250),
-                child: MedicalInfoCard(
-                  label: 'Lịch hẹn hôm nay',
-                  value: '$_counter Lịch hẹn',
-                  icon: Icons.calendar_month_rounded,
-                  onTap: () => debugPrint('Tapped appointments card'),
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.md),
-
-              const FadeSlideTransition(
-                delay: Duration(milliseconds: 300),
-                child: MedicalInfoCard(
-                  label: 'Bác sĩ sẵn sàng',
-                  value: '42 Chuyên gia',
-                  icon: Icons.medical_services_rounded,
-                  color: AppColors.secondary,
                 ),
               ),
 
@@ -229,8 +209,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 minWidth: 14,
                                 minHeight: 14,
                               ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: context.colorScheme.error,
                                 borderRadius: BorderRadius.circular(7),
@@ -253,15 +234,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                       notifState.isLoading
                           ? 'Đang tải thông báo...'
                           : unreadCount > 0
-                              ? 'Bạn có $unreadCount thông báo mới'
-                              : 'Không có thông báo mới',
+                          ? 'Bạn có $unreadCount thông báo mới'
+                          : 'Không có thông báo mới',
                     ),
                     subtitle: const Text('Nhấn để xem danh sách thông báo'),
                     trailing: const Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 16,
                     ),
-                    onTap: () => context.go('/notification'),
+                    onTap: () => context.push('/notification'),
                   ),
                 ),
               ),
@@ -285,36 +266,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   runSpacing: AppSpacing.md,
                   children: [
                     _QuickActionCard(
-                      title: 'Bản đồ',
-                      icon: Icons.map_rounded,
-                      onTap: () => context.go('/map'),
-                    ),
-                    _QuickActionCard(
-                      title: 'Y tế',
-                      icon: Icons.local_hospital_rounded,
-                      onTap: () => context.go('/medical'),
-                    ),
-                    _QuickActionCard(
-                      title: 'Hồ sơ',
-                      icon: Icons.person_rounded,
-                      onTap: () => context.go('/profile'),
-                    ),
-                    _QuickActionCard(
-                      title: 'FAQ',
-                      icon: Icons.help_outline_rounded,
-                      onTap: () => context.go('/faq'),
-                    ),
-
-                    _QuickActionCard(
-                      title: 'Giới thiệu',
+                      title: 'Thông tin',
                       icon: Icons.info_outline_rounded,
-                      onTap: () => context.go('/about'),
-                    ),
-
-                    _QuickActionCard(
-                      title: 'Liên hệ',
-                      icon: Icons.contact_phone_rounded,
-                      onTap: () => context.go('/contact'),
+                      onTap: () => context.push('/info'),
                     ),
                   ],
                 ),
@@ -353,15 +307,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),
-        ),
-      ),
-      floatingActionButton: FadeSlideTransition(
-        delay: const Duration(milliseconds: 500),
-        slideOffset: const Offset(0, 50),
-        child: FloatingActionButton(
-          onPressed: _incrementCounter,
-          tooltip: 'Thêm lịch hẹn',
-          child: const Icon(Icons.add_rounded),
         ),
       ),
     );
