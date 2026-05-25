@@ -5,6 +5,27 @@ Last checked: 2026-05-25 (Notification, Home, Navigation, Firebase)
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
 
+## Current State (2026-05-25)
+
+Overall user-facing progress ≈ **68%**.
+
+**In `main`** (PR #29): notifications with pagination/load-more, unread bell,
+notification settings, device-token registration, and **optional** Firebase push
+(off by default); an Info hub (FAQ / About / Contact); a cleaned home dashboard;
+and a **4-tab bottom nav** (Home · Medical · Map · Profile) with Notification /
+Info / FAQ / About / Contact as pushed routes.
+
+**Open PR `add-setting-page → main`:** a unified `/settings` page (theme,
+notification, language — persisted via `user/get_settings` / `user/set_settings`;
+theme restored on launch) reached from the Home, Profile, and Notification gears,
+plus backend API-contract fixes (notification list parsing, single-id delete).
+
+**Known limitations:** the backend stores device tokens but does **not** send
+pushes yet and has no real notification triggers, so notifications are seed-only
+in practice; `auth/logout` is local-only; `auth/resend_otp` has no backend route.
+Not yet in the app: SOS, chat, asset/wheelchair, staff request, dynamic utility
+content.
+
 ## Overall Status
 
 - [x] Flutter feature-first structure is in place: `auth`, `map`, `medical`, `profile`, `home`, `main`.
