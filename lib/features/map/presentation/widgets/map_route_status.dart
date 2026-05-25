@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
+import 'package:hospital_app/features/map/data/models/route_result.dart';
+import 'package:hospital_app/features/map/presentation/utils/distance_format.dart';
+import 'package:hospital_app/features/map/presentation/widgets/map_async_message.dart';
 
 class MapRouteStatus extends StatelessWidget {
-  final AsyncValue<dynamic> routeResult;
+  final AsyncValue<RouteResult?> routeResult;
   final List<int> routeLocations;
   final bool hasStart;
   final bool hasDestination;
+  final VoidCallback onRetry;
 
   const MapRouteStatus({
     super.key,
@@ -14,6 +18,7 @@ class MapRouteStatus extends StatelessWidget {
     required this.routeLocations,
     required this.hasStart,
     required this.hasDestination,
+    required this.onRetry,
   });
 
   @override
@@ -42,10 +47,12 @@ class MapRouteStatus extends StatelessWidget {
         message: 'Calculating route...',
         color: context.colorScheme.primary,
       ),
-      error: (error, _) => _StatusMessage(
+      error: (_, _) => MapAsyncMessage(
         icon: Icons.error_outline_rounded,
-        message: 'Route error: ${error.toString()}',
-        color: context.colorScheme.error,
+        title: 'Route preview failed',
+        actionLabel: 'Retry',
+        onAction: onRetry,
+        compact: true,
       ),
     );
   }
@@ -62,16 +69,13 @@ class MapRouteStatus extends StatelessWidget {
 }
 
 class _RouteSummary extends StatelessWidget {
-  final dynamic data;
+  final RouteResult data;
   final List<int> routeLocations;
 
   const _RouteSummary({required this.data, required this.routeLocations});
 
   @override
   Widget build(BuildContext context) {
-    final distance = _readNumber(data, 'distance');
-    final estimatedTime = _readNumber(data, 'estimated_time');
-
     return Wrap(
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.sm,
@@ -80,42 +84,29 @@ class _RouteSummary extends StatelessWidget {
           icon: Icons.route_rounded,
           label: '${routeLocations.length} points',
         ),
-        if (distance != null)
-          _MetricChip(
-            icon: Icons.straighten_rounded,
-            label: _formatDistance(distance),
-          ),
-        if (estimatedTime != null)
-          _MetricChip(
-            icon: Icons.schedule_rounded,
-            label: _formatSeconds(estimatedTime),
-          ),
+        _MetricChip(
+          icon: Icons.straighten_rounded,
+          label: formatDistanceFromCells(data.distance),
+        ),
+        _MetricChip(
+          icon: Icons.schedule_rounded,
+          label: _formatEta(data.estimatedTime),
+        ),
       ],
     );
   }
+}
 
-  num? _readNumber(dynamic data, String key) {
-    if (data is! Map) {
-      return null;
-    }
-
-    final value = data[key];
-    return value is num ? value : null;
+String _formatEta(num eta) {
+  final seconds = eta.round().clamp(0, 1 << 31);
+  if (seconds < 60) {
+    return '$seconds sec';
   }
-
-  String _formatDistance(num distance) {
-    if (distance >= 1000) {
-      return '${(distance / 1000).toStringAsFixed(1)} km';
-    }
-    return '${distance.toStringAsFixed(0)} m';
+  final minutes = seconds / 60;
+  if (minutes < 10) {
+    return '~${minutes.toStringAsFixed(1)} min';
   }
-
-  String _formatSeconds(num seconds) {
-    if (seconds < 60) {
-      return '${seconds.toStringAsFixed(0)} sec';
-    }
-    return '${(seconds / 60).toStringAsFixed(0)} min';
-  }
+  return '~${minutes.round()} min';
 }
 
 class _MetricChip extends StatelessWidget {

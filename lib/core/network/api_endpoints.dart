@@ -47,10 +47,29 @@ class ApiEndpoints {
   static const String routeOrder = 'route/order';
   static const String routeOrderMulti = 'route/order_multi';
   static const String routeOrderUnordered = 'route/order_unordered';
+  static const String routeGetSteps = 'route/get_steps';
+  static const String routeGetNext = 'route/get_next';
+  static const String routeRecalculate = 'route/recalculate';
+  static const String routePassNode = 'route/pass_node';
   static const String routeHistory = 'route/get_history';
   static const String routeClearHistory = 'route/clear_history';
 
-  // Notification (existing)
+  // Flow
+  static const String flowGetDensity = 'flow/get_density';
+  static const String flowGetHeatmap = 'flow/get_heatmap';
+  static const String flowGetBottlenecks = 'flow/get_bottlenecks';
+  static const String flowGetForecast = 'flow/get_forecast';
+  static const String flowGetAlerts = 'flow/get_alerts';
+  static const String flowEdgeStatus = 'flow/edge_status';
+  static const String flowPingLocation = 'flow/ping_location';
+  static const String flowReportObstacle = 'flow/report_obstacle';
+  static const String flowGetObstacles = 'flow/get_obstacles';
+
+  // System
+  static const String sysGetVoiceKey = 'sys/get_voice_key';
+  static const String sysGetVoiceFiles = 'sys/get_voice_files';
+
+  // Notification
   static const String notificationGetList = 'notification/get_list';
   static const String notificationSetRead = 'notification/set_read';
   static const String notificationDelete = 'notification/delete';

@@ -1,10 +1,27 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/features/map/data/models/edge_status.dart';
+import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
+import 'package:hospital_app/features/map/data/models/flow_cell.dart';
+import 'package:hospital_app/features/map/data/models/flow_forecast_bucket.dart';
 import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
+import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
+import 'package:hospital_app/features/map/data/models/route_history.dart';
+import 'package:hospital_app/features/map/data/models/route_result.dart';
+import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
+import 'package:hospital_app/features/map/data/services/flow_service.dart';
+import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
+import 'package:hospital_app/features/map/data/services/report_queue.dart';
+import 'package:hospital_app/features/map/data/services/routing_engine.dart';
+import 'package:hospital_app/features/map/data/services/routing_service.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 
@@ -12,27 +29,250 @@ final mapRepositoryProvider = Provider<MapRepository>((ref) {
   return MapRepository();
 });
 
+final mapCacheProvider = Provider<MapCacheService>((ref) {
+  return MapCacheService();
+});
+
+final mapLastSyncedAtProvider = FutureProvider.family<DateTime?, int>((
+  ref,
+  mapId,
+) {
+  final cache = ref.watch(mapCacheProvider);
+  return cache.lastSyncedAt(mapId: mapId);
+});
+
+final selectedFloorProvider = StateProvider<int?>((ref) => null);
+
+final floorsProvider = FutureProvider<List<MapFloor>>((ref) async {
+  final repository = ref.watch(mapRepositoryProvider);
+  final cache = ref.watch(mapCacheProvider);
+  List<MapFloor> floors;
+  try {
+    floors = await repository.getFloors();
+    if (floors.isNotEmpty) {
+      await cache.saveFloors(floors);
+    }
+  } catch (_) {
+    floors = await cache.loadFloors();
+  }
+
+  final selected = ref.read(selectedFloorProvider);
+  if (floors.isNotEmpty &&
+      (selected == null || !floors.any((floor) => floor.mapId == selected))) {
+    ref.read(selectedFloorProvider.notifier).state = floors.first.mapId;
+  }
+  return floors;
+});
+
+final routingServiceProvider = Provider<RoutingService>((ref) {
+  return RoutingService(
+    repository: ref.watch(mapRepositoryProvider),
+    engine: RoutingEngine(),
+    cache: ref.watch(mapCacheProvider),
+  );
+});
+
+final flowServiceProvider = Provider<FlowService>((ref) {
+  return FlowService(
+    repository: ref.watch(mapRepositoryProvider),
+    cache: ref.watch(mapCacheProvider),
+  );
+});
+
+final reportQueueProvider = Provider<ReportQueue>((ref) {
+  return ReportQueue(repository: ref.watch(mapRepositoryProvider));
+});
+
+final mapConnectivityProvider = StreamProvider<bool>((ref) async* {
+  final connectivity = Connectivity();
+  bool isOnline(List<ConnectivityResult> results) {
+    return !results.contains(ConnectivityResult.none);
+  }
+
+  yield isOnline(await connectivity.checkConnectivity());
+  await for (final results in connectivity.onConnectivityChanged) {
+    yield isOnline(results);
+  }
+});
+
+final mapInlineNoticeProvider = StateProvider<String?>((ref) => null);
+
+final flowOverlayVisibleProvider = StateProvider<bool>((ref) => false);
+
+final edgeStatusVisibleProvider = StateProvider<bool>((ref) => false);
+
+final bottlenecksVisibleProvider = StateProvider<bool>((ref) => false);
+
+final forecastVisibleProvider = StateProvider<bool>((ref) => false);
+
+final forecastHoursProvider = StateProvider<int>((ref) => 2);
+
+final bottlenecksProvider = FutureProvider.autoDispose
+    .family<List<FlowCell>, int>((ref, mapId) async {
+      final repository = ref.watch(mapRepositoryProvider);
+      final isOnline = ref.watch(mapConnectivityProvider).valueOrNull ?? false;
+      if (!isOnline) {
+        return const <FlowCell>[];
+      }
+      try {
+        return await repository.getFlowBottlenecks();
+      } catch (_) {
+        return const <FlowCell>[];
+      }
+    });
+
+/// Normalized bottleneck weights (0..1) for the current
+/// floor.  Cells outside the floor grid are dropped.
+final bottleneckWeightsProvider = FutureProvider.autoDispose
+    .family<Map<int, double>, int>((ref, mapId) async {
+      final cells = await ref.watch(bottlenecksProvider(mapId).future);
+      if (cells.isEmpty) return const <int, double>{};
+
+      final meta = await ref.watch(mapMetaProvider(mapId).future);
+      final maxCell = meta.rows * meta.cols;
+
+      double maxDensity = 0;
+      for (final c in cells) {
+        if (c.density > maxDensity) maxDensity = c.density;
+      }
+      if (maxDensity <= 0) return const <int, double>{};
+
+      final result = <int, double>{};
+      for (final c in cells) {
+        if (c.location >= maxCell) continue; // off-floor
+        result[c.location] = c.density / maxDensity;
+      }
+      return result;
+    });
+
+final forecastProvider = FutureProvider.family<List<FlowForecastBucket>, int>((
+  ref,
+  mapId,
+) async {
+  final repository = ref.watch(mapRepositoryProvider);
+  final hours = ref.watch(forecastHoursProvider);
+  final isOnline = ref.watch(mapConnectivityProvider).valueOrNull ?? false;
+  if (!isOnline) {
+    return const <FlowForecastBucket>[];
+  }
+  try {
+    // TODO(map-flow): backend flow overlays are not floor-scoped yet; do not
+    // send map_id unless the API contract changes.
+    return await repository.getFlowForecast(hours: hours);
+  } catch (_) {
+    return const <FlowForecastBucket>[];
+  }
+});
+
+final flowSnapshotProvider = FutureProvider.family<FlowSnapshot, int>((
+  ref,
+  mapId,
+) {
+  // TODO(map-flow): backend flow overlays are not floor-scoped yet; do not
+  // send map_id unless the API contract changes.
+  return ref.watch(flowServiceProvider).snapshot(mapId: mapId);
+});
+
+final mapObstaclesProvider = FutureProvider.family<List<MapObstacle>, int>((
+  ref,
+  mapId,
+) {
+  return _loadObstacles(
+    repository: ref.watch(mapRepositoryProvider),
+    cache: ref.watch(mapCacheProvider),
+    queue: ref.watch(reportQueueProvider),
+    mapId: mapId,
+  );
+});
+
+final routeHistoryProvider = FutureProvider.autoDispose<RouteHistory>((ref) {
+  return ref.watch(mapRepositoryProvider).getRouteHistory();
+});
+
 // Fetch map metadata by mapId. Rows and cols must come from the backend,
 // otherwise POI coordinates can be outside the painted grid.
-final mapMetaProvider = FutureProvider.family<MapFloor, int>((ref, mapId) {
+final mapMetaProvider = FutureProvider.family<MapFloor, int>((
+  ref,
+  mapId,
+) async {
   final repository = ref.watch(mapRepositoryProvider);
-  return repository.getMeta(mapId: mapId);
+  final cache = ref.read(mapCacheProvider);
+  try {
+    final meta = await repository.getMeta(mapId: mapId);
+    await cache.saveMeta(mapId: mapId, meta: meta);
+    return meta;
+  } catch (_) {
+    final cached = await cache.loadMeta(mapId: mapId);
+    if (cached != null) {
+      return cached;
+    }
+    final syncFull = await _cachedOrOnlineSyncFull(ref, mapId);
+    final meta = syncFull.maps.where((map) => map.mapId == mapId).firstOrNull;
+    if (meta != null) {
+      return meta;
+    }
+    rethrow;
+  }
 });
 
 // Fetch nodes by mapId
-final mapNodesProvider = FutureProvider.family<List<MapPoi>, int>((ref, mapId) {
+final mapNodesProvider = FutureProvider.family<List<MapPoi>, int>((
+  ref,
+  mapId,
+) async {
   final repository = ref.watch(mapRepositoryProvider);
-  return repository.getNodes(mapId: mapId);
+  final cache = ref.read(mapCacheProvider);
+  try {
+    final nodes = await repository.getNodes(mapId: mapId);
+    await cache.saveNodes(mapId: mapId, nodes: nodes);
+    return nodes;
+  } catch (_) {
+    final cached = await cache.loadNodes(mapId: mapId);
+    if (cached.isNotEmpty) {
+      return cached;
+    }
+    final syncFull = await _cachedOrOnlineSyncFull(ref, mapId);
+    return syncFull.pois.where((poi) => poi.mapId == mapId).toList();
+  }
 });
 
 // Fetch edges by mapId
+const _edgeAsyncDiskSaveThreshold = 1000;
+
 final mapEdgesProvider = FutureProvider.family<List<MapEdge>, int>((
   ref,
   mapId,
 ) async {
   final repository = ref.watch(mapRepositoryProvider);
-  final response = await repository.getEdges(mapId: mapId);
-  return response.edges;
+  final cache = ref.read(mapCacheProvider);
+
+  final cached = await cache.loadEdges(mapId: mapId);
+  if (cached.isNotEmpty) {
+    return cached;
+  }
+
+  try {
+    final response = await repository.getEdges(mapId: mapId);
+    if (response.edges.isNotEmpty) {
+      cache.rememberEdges(mapId: mapId, edges: response.edges);
+      if (response.edges.length > _edgeAsyncDiskSaveThreshold) {
+        unawaited(
+          cache
+              .saveEdges(mapId: mapId, edges: response.edges)
+              .catchError((_) {}),
+        );
+      } else {
+        await cache.saveEdges(mapId: mapId, edges: response.edges);
+      }
+    }
+    return response.edges;
+  } catch (_) {
+    final syncFull = await _cachedOrOnlineSyncFull(ref, mapId);
+    if (syncFull.edges.isNotEmpty) {
+      cache.rememberEdges(mapId: mapId, edges: syncFull.edges);
+    }
+    return syncFull.edges;
+  }
 });
 
 // Search keyword
@@ -146,6 +386,45 @@ final adjacencyProvider = Provider.family<Map<int, List<int>>, int>((
   return result;
 });
 
+final corridorStatusProvider = Provider.family<List<EdgeStatus>, int>((
+  ref,
+  mapId,
+) {
+  final snapshot = ref.watch(flowSnapshotProvider(mapId)).valueOrNull;
+  final densityByLocation = {
+    for (final cell in snapshot?.cells ?? const <FlowCell>[])
+      cell.location: cell.density,
+  };
+  final adjacency = ref.watch(adjacencyProvider(mapId));
+  final obstacles =
+      ref.watch(mapObstaclesProvider(mapId)).valueOrNull ??
+      const <MapObstacle>[];
+  final blockedLocations = {
+    for (final obstacle in obstacles) obstacle.gridLocation,
+  };
+
+  final statuses = <String, EdgeStatus>{};
+  for (final entry in adjacency.entries) {
+    final from = entry.key;
+    for (final to in entry.value) {
+      final key = edgeStatusKey(from, to);
+      if (statuses.containsKey(key)) continue;
+      statuses[key] = EdgeStatus(
+        fromLocation: from,
+        toLocation: to,
+        congestion: math.max(
+          densityByLocation[from] ?? 0,
+          densityByLocation[to] ?? 0,
+        ),
+        blocked:
+            blockedLocations.contains(from) || blockedLocations.contains(to),
+      );
+    }
+  }
+
+  return statuses.values.toList(growable: false);
+});
+
 // Search results by keyword + mapId
 final searchResultsProvider = FutureProvider.family<List<MapPoi>, int>((
   ref,
@@ -193,9 +472,11 @@ List<MapPoi> _filterPois(
 final routeDestProvider = StateProvider<MapPoi?>((ref) => null);
 final routeModeProvider = StateProvider<String>((ref) => 'walking');
 
-// Route result based on start + dest + mode
-final routeResultProvider = FutureProvider.autoDispose<dynamic>((ref) async {
-  final repository = ref.watch(mapRepositoryProvider);
+// Route result based on start + dest + mode.
+final routeResultProvider = FutureProvider.autoDispose<RouteResult?>((
+  ref,
+) async {
+  final service = ref.watch(routingServiceProvider);
   final start = ref.watch(userPositionProvider);
   final dest = ref.watch(routeDestProvider);
   final mode = ref.watch(routeModeProvider);
@@ -204,20 +485,124 @@ final routeResultProvider = FutureProvider.autoDispose<dynamic>((ref) async {
     return null;
   }
 
-  return repository.previewRoute(
+  // While a trip is in progress, replay the frozen active route so a mid-trip
+  // recompute (e.g. a connection drop or a flow/obstacle refresh) can't swap the
+  // drawn path out from under the moving dot. Cleared when navigation ends.
+  final navPhase = ref.watch(navPhaseProvider);
+  final navActive =
+      navPhase == NavPhase.navigating ||
+      navPhase == NavPhase.paused ||
+      navPhase == NavPhase.arrived;
+  if (navActive) {
+    final activeRoute = await ref.read(mapCacheProvider).loadActiveRoute();
+    if (activeRoute != null && activeRoute.path.isNotEmpty) {
+      return activeRoute;
+    }
+  }
+
+  final selectedMapId = ref.watch(selectedFloorProvider);
+  final floors = await ref.watch(floorsProvider.future);
+  final mapId = selectedMapId ?? floors.firstOrNull?.mapId;
+
+  if (mapId == null) {
+    return null;
+  }
+
+  // NOTE: do NOT ref.invalidate(flowSnapshotProvider/bottlenecksProvider) here.
+  // Invalidating a provider that is then watched in the same build creates an
+  // infinite rebuild loop (invalidate -> re-emit -> rebuild -> invalidate ...),
+  // which recomputes the route and re-fetches bottlenecks continuously.
+  // autoDispose already refetches these when the route panel re-subscribes;
+  // freshen them imperatively at the destination-selection action if needed.
+  // Regression guard: route_result_loop_test.dart.
+  final meta = await ref.watch(mapMetaProvider(mapId).future);
+  final adjacency = ref.watch(adjacencyProvider(mapId));
+
+  // Crowd inputs are fetched on demand with read()+await — NOT watch. Watching
+  // flow/obstacles/bottlenecks here reintroduces the infinite rebuild loop
+  // (guard: route_result_loop_test.dart); read(...future) triggers and awaits
+  // the fetch without creating a reactive dependency, so the engine gets live
+  // congestion/obstacle/bottleneck data even when the analytics overlays are
+  // closed (previously these used .read().valueOrNull and were null unless an
+  // overlay had already fetched them, so routing fell back to plain shortest
+  // path). Best-effort: a crowd-input failure must never block routing, so
+  // swallow errors and route with whatever resolved. Started together so they
+  // resolve concurrently.
+  try {
+    await Future.wait([
+      ref.read(flowSnapshotProvider(mapId).future),
+      ref.read(mapObstaclesProvider(mapId).future),
+    ]);
+  } catch (_) {
+    // Route without flow/obstacle data if it fails to load.
+  }
+  List<FlowCell> bottleneckCells = const <FlowCell>[];
+  try {
+    bottleneckCells = await ref.read(bottlenecksProvider(mapId).future);
+  } catch (_) {
+    // Route without bottleneck weighting if it fails to load.
+  }
+
+  // corridorStatusProvider derives per-edge congestion (heatmap density) and
+  // blocked flags (obstacles) — the same source the overlay draws, so what the
+  // user sees is what the router avoids.
+  final edgeStatuses = {
+    for (final status in ref.read(corridorStatusProvider(mapId)))
+      edgeStatusKey(status.fromLocation, status.toLocation): status,
+  };
+  final poiCells = ref.watch(poiByCellProvider(mapId)).keys.toSet();
+  final bottleneckWeights = _bottleneckWeightsFromCells(
+    bottleneckCells,
+    meta.rows * meta.cols,
+  );
+
+  return service.route(
+    mapId: mapId,
     startLocation: start,
     destLocation: dest.gridLocation,
     modeId: mode,
+    adjacency: adjacency,
+    cols: meta.cols,
+    edgeStatuses: edgeStatuses,
+    poiCells: poiCells,
+    bottleneckWeights: bottleneckWeights,
   );
 });
 
-// Extracted route locations memoized off routeResultProvider.
+Map<int, double> _bottleneckWeightsFromCells(
+  List<FlowCell> cells,
+  int maxCell,
+) {
+  if (cells.isEmpty) return const <int, double>{};
+
+  double maxDensity = 0;
+  for (final cell in cells) {
+    if (cell.density > maxDensity) maxDensity = cell.density;
+  }
+  if (maxDensity <= 0) return const <int, double>{};
+
+  final result = <int, double>{};
+  for (final cell in cells) {
+    if (cell.location >= maxCell) continue;
+    result[cell.location] = cell.density / maxDensity;
+  }
+  return result;
+}
+
+final activeRouteResultProvider = routeResultProvider;
+
+// Extracted route locations memoized off the typed RouteResult.
+//
+// Uses valueOrNull (not maybeWhen) so the path is RETAINED while the result
+// reloads. routeResultProvider reloads whenever its deps change (e.g. on
+// arrival: navPhase -> arrived, then userPosition -> dest), and a
+// dependency-driven reload reports AsyncLoading. maybeWhen(orElse: []) would
+// blink the route to empty during each reload, which re-triggers the route
+// draw animation and redraws it ~twice before it clears. valueOrNull keeps the
+// last path through the reload. Regression: route_result_loop_test.dart.
 final routeLocationsProvider = Provider.autoDispose<List<int>>((ref) {
-  final result = ref.watch(routeResultProvider);
-  return result.maybeWhen(
-    data: extractRouteLocations,
-    orElse: () => const <int>[],
-  );
+  final result = ref.watch(activeRouteResultProvider);
+  return result.valueOrNull?.path ?? const <int>[];
 });
 
 final navDotProvider = Provider.autoDispose<NavDot?>((ref) {
@@ -244,6 +629,10 @@ final navDotProvider = Provider.autoDispose<NavDot?>((ref) {
 List<int> extractRouteLocations(dynamic data) {
   if (data == null) {
     return const [];
+  }
+
+  if (data is RouteResult) {
+    return data.path;
   }
 
   if (data is List) {
@@ -296,4 +685,89 @@ List<int> _coerceLocationsList(List<dynamic> raw) {
     }
   }
   return locations;
+}
+
+Map<String, EdgeStatus> mergeObstacleEdgeStatuses({
+  required Map<String, EdgeStatus> edgeStatuses,
+  required List<MapObstacle> obstacles,
+  required Map<int, List<int>> adjacency,
+}) {
+  final result = Map<String, EdgeStatus>.of(edgeStatuses);
+  for (final obstacle in obstacles) {
+    final neighbors = adjacency[obstacle.gridLocation] ?? const <int>[];
+    for (final neighbor in neighbors) {
+      final key = edgeStatusKey(obstacle.gridLocation, neighbor);
+      final existing = result[key];
+      result[key] = EdgeStatus(
+        fromLocation: obstacle.gridLocation,
+        toLocation: neighbor,
+        congestion: existing?.congestion ?? 1,
+        blocked: true,
+      );
+
+      final reverseKey = edgeStatusKey(neighbor, obstacle.gridLocation);
+      final reverseExisting = result[reverseKey];
+      result[reverseKey] = EdgeStatus(
+        fromLocation: neighbor,
+        toLocation: obstacle.gridLocation,
+        congestion: reverseExisting?.congestion ?? existing?.congestion ?? 1,
+        blocked: true,
+      );
+    }
+  }
+  return result;
+}
+
+Future<MapSyncFull> _cachedOrOnlineSyncFull(Ref ref, int mapId) async {
+  final cache = ref.read(mapCacheProvider);
+  final cached = await cache.loadSyncFull(mapId: mapId);
+  if (cached != null) {
+    return cached;
+  }
+  return _refreshSyncFull(ref, mapId);
+}
+
+Future<MapSyncFull> _refreshSyncFull(Ref ref, int mapId) async {
+  final repository = ref.read(mapRepositoryProvider);
+  final cache = ref.read(mapCacheProvider);
+  final syncFull = await repository.syncFull(mapId: mapId);
+  if (syncFull.edges.isEmpty && syncFull.pois.isEmpty) {
+    return syncFull; // stubbed/empty — do not overwrite cache or stamp lastSyncedAt
+  }
+  await cache.saveSyncFull(mapId: mapId, syncFull: syncFull);
+  ref.invalidate(mapLastSyncedAtProvider(mapId));
+  return syncFull;
+}
+
+Future<List<MapObstacle>> _loadObstacles({
+  required MapRepository repository,
+  required MapCacheService cache,
+  required ReportQueue queue,
+  required int mapId,
+}) async {
+  final queued = await queue.queuedObstacles();
+  try {
+    await queue.flush();
+    final remote = await repository.getObstacles();
+    final refreshedQueued = await queue.queuedObstacles();
+    final merged = _mergeObstacles(remote, refreshedQueued);
+    await cache.saveObstacles(mapId: mapId, obstacles: merged);
+    return merged;
+  } catch (_) {
+    final cached = await cache.loadObstacles(mapId: mapId);
+    return _mergeObstacles(cached, queued);
+  }
+}
+
+List<MapObstacle> _mergeObstacles(
+  List<MapObstacle> primary,
+  List<MapObstacle> secondary,
+) {
+  final byId = <String, MapObstacle>{
+    for (final obstacle in primary) obstacle.id: obstacle,
+  };
+  for (final obstacle in secondary) {
+    byId[obstacle.id] = obstacle;
+  }
+  return byId.values.toList(growable: false);
 }

@@ -1,6 +1,6 @@
 # Hospital App Project Checklist
 
-Last checked: 2026-05-22
+Last checked: 2026-05-24 (Map module)
 
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
@@ -66,41 +66,35 @@ Scope: mobile dashboard, patient summary cards, quick actions, and public/patien
 
 ## Chat 3: Map + Route Module
 
-Scope: grid-based map rendering, route preview/navigation, floor switching.
+Scope: grid map rendering, route preview/navigation, floor switching, offline
+routing, and patient-facing flow analytics. Major backlog tracking only.
 
-- [x] Map page exists: `lib/features/map/presentation/pages/map_page.dart`.
-- [x] Grid painter exists: `lib/features/map/presentation/widgets/map_grid_painter.dart`.
-- [x] Map search UI exists: top bar and search results panel.
-- [x] POI metadata panel exists.
-- [x] Route panel exists.
-- [x] Route state providers exist for current position (you-are-here), destination, mode, result, and route locations.
-- [x] Route preview is wired to `route/preview`.
-- [x] Map repository supports floors, nodes, edges, metadata, departments, landmarks, full sync, route modes, route preview/order/history.
-- [x] Map provider tests exist under `test/features/map/`.
-- [x] Current user position ("you are here") with entrance-default anchor (ENT code / name / landmark / first walkable cell).
-- [x] Set current position via long-press pin, QR scan (`mobile_scanner`, payload = `poi_code`), and "I'm here" on landmark POIs.
-- [x] Simulated active navigation: animated dot walks start→destination with mode-based speed, traveled/remaining route split, and camera follow.
-- [x] Navigation sheet with live distance/ETA, pause/resume/stop, ×1/×2 speed; collapsible and shows an arrival state.
-- [x] One-tap Start FAB once destination + route are ready; on arrival the user position moves to the destination.
-- [x] `route/order` is logged on arrival (success silent, failure shows a snackbar).
-- [x] Debug grid painter available as a dev tool (`map_debug_grid_painter.dart`, wired via commented import).
-- [x] QR poster generator script for demo (`scripts/make_qr.py`).
-- [ ] Floor switching UI is not complete; current map page uses `_defaultMapId = 1`.
-- [x] Active navigation built as a client-side simulation (no real indoor positioning); backend turn-by-turn APIs are still unused — see below.
-- [ ] Voice route support is not wired; Swagger exposes `sys/get_voice_key` and `sys/get_voice_files`.
-- [ ] Turn-by-turn route APIs are not wired in UI/repository: `route/get_steps`, `route/get_next`, `route/get_eta`, `route/pass_node`, and `route/recalculate`.
-- [x] `route/order` is wired (logged on arrival).
-- [ ] Dynamic rerouting: when an edge is blocked or heavily congested (`edge_status` / `flow/get_alerts` / obstacles), push an alert and offer an alternative detour route — via `route/recalculate` online, or a client-side reroute over the cached graph when offline.
-- [ ] Verify non-walking modes against backend: `route/preview` returns a `speed_factor` (walking = 1); confirm the wheelchair/stretcher/hospital-cart values and that they flow into the displayed ETA.
-- [ ] Patient-side traffic/flow data is not surfaced: `flow/get_density`, `flow/get_heatmap`, `flow/get_bottlenecks`, `flow/get_forecast`, `flow/get_alerts`, and `flow/edge_status`.
-- [ ] Patient-side location/obstacle reporting is not wired: `flow/ping_location`, `flow/report_obstacle`, and `flow/get_obstacles`.
-- [ ] Offline support (required by teacher): cache the map via `map/sync_full` and add client-side routing (Dijkstra/A* over the edge graph) so route preview, steps, and rerouting work with no signal.
-- [ ] Wire route history/clear-history into UI if needed for demo (`route/order` is already wired on arrival).
-- [ ] Add loading/error UI polish for route preview failures.
-- [x] `route/preview` response shape confirmed (live test): `data.steps[]` of `{step_order, grid_row, grid_col, grid_location}`, plus `distance`, `estimated_time`, `mode_id`, `speed_factor`. Already parsed by `extractRouteLocations` + nav sheet; the cell-based ETA fallback now only matters offline.
-- [ ] Confirm meters-per-cell with backend so distance/ETA labels ("m"/"sec") are truthful — `distance` is a cell count and `estimated_time` is cells ÷ `speed_factor` (grid units, not real meters/seconds).
+Done (major capabilities)
 
-### Map — out of scope (optional do for this project)
+- [x] Grid map: rendering, POI search + metadata sheet, legend, zoom/pan, recenter; first-paint-fast deferred walkable layer.
+- [x] Multi-floor: floor switcher; meta/nodes/edges/search/POI follow the active floor; route + search reset on floor change.
+- [x] Positioning: "you are here" (entrance default), long-press pin, QR scan (`poi_code`), "I'm here" on landmark POIs.
+- [x] Navigation (simulated): animated dot, mode-based speed, traveled/remaining split, camera follow, live distance/ETA, pause/resume/stop, ×1/×2, arrival; `route/order` logged on arrival.
+- [x] Routing: typed RouteResult, `route/preview`, client-side A*/Dijkstra engine as crowd-aware authority.
+- [x] Dynamic rerouting around blocked/congested edges (`route/recalculate` online, cached-graph reroute offline).
+- [x] Offline: `map/sync_full` + granular meta/nodes/edges/obstacles cache (Hive), offline route cache, in-memory edge cache + isolate parse.
+- [x] Flow analytics: density heatmap, bottlenecks, alerts, client-derived corridor congestion, hourly forecast chart.
+- [x] Obstacle reporting (`flow/report_obstacle` + `flow/get_obstacles`) with offline queue; obstacle-aware routing.
+- [x] Route history modal (re-navigate + clear via `route/clear_history`) and offline clear-cache modal.
+- [x] Tests under `test/features/map/` (91 passing); `flutter analyze` clean.
+
+Backlog (remaining)
+
+Genuinely still missing (code):
+
+| Gap | Evidence |
+|-----|----------|
+| Voice guidance unwired | `voice_service.dart` exists but zero call sites in navigation |
+| `pass_node` / `ping_location` | `PassNodeReporter` + `pingLocation()` exist but are a queued stub (TODO: pending backend) |
+
+Verify-only (not code, backend confirmation): non-walking `speed_factor` and meters-per-cell label truthfulness.
+
+### Map — out of scope (optional)
 
 - `route/order_multi`, `route/order_unordered` — multi-stop routing.
 - `route/share`, `route/rate` — route sharing / rating.

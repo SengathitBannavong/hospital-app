@@ -16,12 +16,55 @@ class MapQrScannerPage extends ConsumerStatefulWidget {
 
 class _MapQrScannerPageState extends ConsumerState<MapQrScannerPage> {
   bool _handlingCode = false;
+  String? _message;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Scan QR code')),
-      body: MobileScanner(onDetect: _handleDetection),
+      body: Stack(
+        children: [
+          MobileScanner(onDetect: _handleDetection),
+          if (_message != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 24,
+              child: Material(
+                color: Theme.of(context).colorScheme.errorContainer,
+                elevation: 2,
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _message!,
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onErrorContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -83,8 +126,6 @@ class _MapQrScannerPageState extends ConsumerState<MapQrScannerPage> {
   }
 
   void _showFailure(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    setState(() => _message = message);
   }
 }
