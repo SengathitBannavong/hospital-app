@@ -7,7 +7,7 @@ import '../../data/models/notification_settings_model.dart';
 import '../../data/repository/notification_repository.dart';
 import 'notification_state.dart';
 
-// ─── Repository Provider ──────────────────────────────────────────────────────
+// Repository provider.
 
 final notificationRepositoryProvider = Provider(
   (ref) => NotificationRepository(),
@@ -17,13 +17,13 @@ final notificationRepositoryProvider = Provider(
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  final repository = ref.watch(notificationRepositoryProvider);
-  final notifier = NotificationNotifier(repository);
-  notifier.loadNotifications().catchError((_) {});
-  return notifier;
-});
+      final repository = ref.watch(notificationRepositoryProvider);
+      final notifier = NotificationNotifier(repository);
+      notifier.loadNotifications().catchError((_) {});
+      return notifier;
+    });
 
-// ─── Global Unread Badge Count ────────────────────────────────────────────────
+// Global unread badge count.
 // Use this anywhere in the app (e.g. home app bar bell, badges).
 
 final unreadCountProvider = Provider<int>((ref) {
@@ -32,13 +32,16 @@ final unreadCountProvider = Provider<int>((ref) {
 
 // ─── Notification Settings Provider ──────────────────────────────────────────
 
-final notificationSettingsProvider = StateNotifierProvider<
-    NotificationSettingsNotifier, AsyncValue<NotificationSettingsModel>>((ref) {
-  final repo = ref.watch(notificationRepositoryProvider);
-  return NotificationSettingsNotifier(repo);
-});
+final notificationSettingsProvider =
+    StateNotifierProvider<
+      NotificationSettingsNotifier,
+      AsyncValue<NotificationSettingsModel>
+    >((ref) {
+      final repo = ref.watch(notificationRepositoryProvider);
+      return NotificationSettingsNotifier(repo);
+    });
 
-// ─── Notifier ─────────────────────────────────────────────────────────────────
+// Notifier.
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
   NotificationNotifier(this._repository) : super(NotificationState.initial());
@@ -159,10 +162,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
     await _repository.deleteNotifications(notificationIds: ids);
 
-    final remainingItems =
-        state.items.where((item) => !ids.contains(item.id)).toList(
-              growable: false,
-            );
+    final remainingItems = state.items
+        .where((item) => !ids.contains(item.id))
+        .toList(growable: false);
 
     state = state.copyWith(
       items: remainingItems,
@@ -218,14 +220,14 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   }
 }
 
-// ─── Settings Notifier ────────────────────────────────────────────────────────
+// Settings notifier.
 
 class NotificationSettingsNotifier
     extends StateNotifier<AsyncValue<NotificationSettingsModel>> {
   final NotificationRepository _repository;
 
   NotificationSettingsNotifier(this._repository)
-      : super(const AsyncValue.loading());
+    : super(const AsyncValue.loading());
 
   Future<void> loadSettings() async {
     state = const AsyncValue.loading();

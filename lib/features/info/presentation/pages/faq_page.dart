@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hospital_theme.dart';
 
 class FaqPage extends StatelessWidget {
@@ -32,7 +33,14 @@ class FaqPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('FAQ')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/info'),
+        ),
+        title: const Text('FAQ'),
+      ),
       body: ListView.separated(
         padding: AppSpacing.pageWithTop,
         itemCount: faqs.length,

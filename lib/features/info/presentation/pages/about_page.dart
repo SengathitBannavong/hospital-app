@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hospital_theme.dart';
 
 class AboutPage extends StatelessWidget {
@@ -7,7 +8,14 @@ class AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Giới thiệu')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/info'),
+        ),
+        title: const Text('Giới thiệu'),
+      ),
       body: SingleChildScrollView(
         padding: AppSpacing.pageWithTop,
         child: Column(

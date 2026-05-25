@@ -118,31 +118,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Notification Branch
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/notification',
-                builder: (context, state) => const NotificationPage(),
-                routes: [
-                  GoRoute(
-                    path: 'settings',
-                    builder: (context, state) =>
-                        const NotificationSettingsPage(),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          // Info Branch
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/info',
-                builder: (context, state) => const InfoPage(),
-              ),
-            ],
-          ),
           // Map Branch
           StatefulShellBranch(
             routes: [
@@ -163,8 +138,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      // FAQ legacy alias
-      GoRoute(path: '/faq', redirect: (context, state) => '/info'),
+      GoRoute(
+        path: '/notification',
+        builder: (context, state) => const NotificationPage(),
+        routes: [
+          GoRoute(
+            path: 'settings',
+            builder: (context, state) => const NotificationSettingsPage(),
+          ),
+        ],
+      ),
+      GoRoute(path: '/info', builder: (context, state) => const InfoPage()),
+      GoRoute(path: '/faq', builder: (context, state) => const FaqPage()),
+      GoRoute(path: '/about', builder: (context, state) => const AboutPage()),
+      GoRoute(
+        path: '/contact',
+        builder: (context, state) => const ContactPage(),
+      ),
       // Auth Routes
       GoRoute(
         path: '/welcome',
@@ -211,12 +201,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/change-password',
         builder: (context, state) => const ChangePasswordPage(),
-      ),
-      GoRoute(path: '/faq', builder: (context, state) => const FaqPage()),
-      GoRoute(path: '/about', builder: (context, state) => const AboutPage()),
-      GoRoute(
-        path: '/contact',
-        builder: (context, state) => const ContactPage(),
       ),
     ],
   );

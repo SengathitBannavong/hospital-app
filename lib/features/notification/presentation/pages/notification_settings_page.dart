@@ -51,8 +51,11 @@ class _NotificationSettingsPageState
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () {
-            if (context.canPop()) context.pop();
-            else context.go('/');
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
           },
         ),
         title: const Text(
@@ -94,7 +97,7 @@ class _NotificationSettingsPageState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Notifications ────────────────────────────────────────────────
-          _SectionHeader(title: 'Thông báo'),
+          const _SectionHeader(title: 'Thông báo'),
           _SettingsTile(
             icon: Icons.notifications_active_rounded,
             iconColor: cs.primary,
@@ -117,7 +120,7 @@ class _NotificationSettingsPageState
           const SizedBox(height: AppSpacing.xl),
 
           // ── Travel Mode ──────────────────────────────────────────────────
-          _SectionHeader(title: 'Chế độ di chuyển'),
+          const _SectionHeader(title: 'Chế độ di chuyển'),
           _TravelModeTile(
             current: settings.travelMode,
             onChanged: (val) => _save(settings.copyWith(travelMode: val)),
@@ -126,7 +129,7 @@ class _NotificationSettingsPageState
           const SizedBox(height: AppSpacing.xl),
 
           // ── Language ─────────────────────────────────────────────────────
-          _SectionHeader(title: 'Ngôn ngữ'),
+          const _SectionHeader(title: 'Ngôn ngữ'),
           _DropdownTile(
             icon: Icons.language_rounded,
             iconColor: cs.tertiary,
@@ -143,7 +146,7 @@ class _NotificationSettingsPageState
   }
 }
 
-// ─── Private Widgets ──────────────────────────────────────────────────────────
+// Private widgets.
 
 class _SectionHeader extends StatelessWidget {
   final String title;
@@ -156,9 +159,9 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -239,26 +242,31 @@ class _TravelModeTile extends StatelessWidget {
         borderRadius: AppRadius.borderMd,
         side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
       ),
-      child: Column(
-        children: modes.entries.map((entry) {
-          final isSelected = current == entry.key;
-          return RadioListTile<String>(
-            value: entry.key,
-            groupValue: current,
-            onChanged: (val) => onChanged(val!),
-            secondary: Icon(
-              entry.value.$2,
-              color: isSelected ? cs.primary : cs.onSurfaceVariant,
-            ),
-            title: Text(
-              entry.value.$1,
-              style: TextStyle(
-                fontWeight:
-                    isSelected ? FontWeight.bold : FontWeight.normal,
+      child: RadioGroup<String>(
+        groupValue: current,
+        onChanged: (value) {
+          if (value != null) {
+            onChanged(value);
+          }
+        },
+        child: Column(
+          children: modes.entries.map((entry) {
+            final isSelected = current == entry.key;
+            return RadioListTile<String>(
+              value: entry.key,
+              secondary: Icon(
+                entry.value.$2,
+                color: isSelected ? cs.primary : cs.onSurfaceVariant,
               ),
-            ),
-          );
-        }).toList(),
+              title: Text(
+                entry.value.$1,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -306,10 +314,7 @@ class _DropdownTile extends StatelessWidget {
           value: value,
           underline: const SizedBox(),
           items: items.entries
-              .map((e) => DropdownMenuItem(
-                    value: e.key,
-                    child: Text(e.value),
-                  ))
+              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
               .toList(),
           onChanged: (val) => onChanged(val!),
         ),

@@ -4,7 +4,9 @@
 //
 //   NavigationDestination(
 //     icon: NotificationBadge(child: Icon(Icons.notifications_outlined)),
-//     selectedIcon: NotificationBadge(child: Icon(Icons.notifications_rounded)),
+//     selectedIcon: NotificationBadge(
+//       child: Icon(Icons.notifications_rounded),
+//     ),
 //     label: 'Thông báo',
 //   )
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hospital_theme.dart';
 
 class InfoPage extends StatelessWidget {
@@ -6,37 +7,53 @@ class InfoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final faqs = [
-      {
-        'q': 'Làm sao để tìm phòng khám?',
-        'a': 'Bạn có thể mở Bản đồ và tìm tên phòng hoặc khoa.',
-      },
-      {
-        'q': 'Làm sao để xem nhiệm vụ y tế?',
-        'a': 'Vào mục Y tế để xem nhiệm vụ, hàng chờ và đơn thuốc.',
-      },
-      {
-        'q': 'Làm sao để xem thông báo?',
-        'a': 'Vào mục Thông báo trên thanh điều hướng.',
-      },
-    ];
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Thông tin')),
-      body: ListView.separated(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+        ),
+        title: const Text('Thông tin'),
+      ),
+      body: ListView(
         padding: AppSpacing.pageWithTop,
-        itemCount: faqs.length,
-        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-        itemBuilder: (context, index) {
-          final item = faqs[index];
-          return Card(
-            child: ExpansionTile(
-              title: Text(item['q']!),
-              childrenPadding: AppSpacing.cardPadding,
-              children: [Text(item['a']!)],
+        children: [
+          Card(
+            child: ListTile(
+              leading: Icon(
+                Icons.help_outline_rounded,
+                color: context.colorScheme.primary,
+              ),
+              title: const Text('FAQ'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => context.push('/faq'),
             ),
-          );
-        },
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Card(
+            child: ListTile(
+              leading: Icon(
+                Icons.info_outline_rounded,
+                color: context.colorScheme.primary,
+              ),
+              title: const Text('Giới thiệu'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => context.push('/about'),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Card(
+            child: ListTile(
+              leading: Icon(
+                Icons.contact_support_outlined,
+                color: context.colorScheme.primary,
+              ),
+              title: const Text('Liên hệ'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => context.push('/contact'),
+            ),
+          ),
+        ],
       ),
     );
   }

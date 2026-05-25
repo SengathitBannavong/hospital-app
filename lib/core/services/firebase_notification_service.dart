@@ -13,7 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/notification/data/models/app_notification.dart';
 import 'package:hospital_app/features/notification/presentation/providers/notification_provider.dart';
 
-// ─── Background handler (must be top-level function) ─────────────────────────
+// Background handler.
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -22,7 +22,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // No UI interaction here — the system notification is shown automatically.
 }
 
-// ─── Service ──────────────────────────────────────────────────────────────────
+// Service.
 
 class FirebaseNotificationService {
   FirebaseNotificationService._();
@@ -100,9 +100,7 @@ class FirebaseNotificationService {
 
   Future<void> _registerTokenWithBackend(String token) async {
     try {
-      _ref
-          ?.read(notificationProvider.notifier)
-          .registerDeviceToken(token);
+      _ref?.read(notificationProvider.notifier).registerDeviceToken(token);
     } catch (e) {
       debugPrint('[FCM] Token registration failed: $e');
     }
@@ -144,7 +142,8 @@ class FirebaseNotificationService {
     // Create Android channel
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(_channel);
   }
 
@@ -199,8 +198,9 @@ class FirebaseNotificationService {
   }
 }
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
+// Provider.
 
-final firebaseNotificationServiceProvider = Provider<FirebaseNotificationService>(
-  (ref) => FirebaseNotificationService.instance,
-);
+final firebaseNotificationServiceProvider =
+    Provider<FirebaseNotificationService>(
+      (ref) => FirebaseNotificationService.instance,
+    );
