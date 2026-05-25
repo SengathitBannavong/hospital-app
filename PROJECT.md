@@ -7,7 +7,7 @@ Admin-only web, traffic-control, and algorithm-engine features are intentionally
 
 ## Current State (2026-05-25)
 
-Overall user-facing progress ≈ **68%**.
+Overall user-facing progress ≈ **68%** (per-module table in [`doc/overview_process.md`](doc/overview_process.md)).
 
 **In `main`** (PR #29): notifications with pagination/load-more, unread bell,
 notification settings, device-token registration, and **optional** Firebase push
@@ -253,7 +253,7 @@ home cleanup · 4-tab nav · backend API-contract fixes. _(PRs #29, #31.)_
 | # | Item | Area | Effort | Notes / acceptance |
 |---|------|------|--------|--------------------|
 | 1 | **Push sender + notification triggers** | BE | L | Send via FCM/APNs and fire on real events (queue ready, appointment, prescription, SOS). Until this lands, notifications are seed-only. Unlocks SOS/queue/staff alerts. |
-| 2 | **Fix Flow API contract mismatches** | FE+BE | S | `flow/edge_status` (app sends no required param + expects a list, backend wants a param + returns one) and `flow/get_density` (missing param, single vs list). Detail in `context/overview_system.md`. |
+| 2 | **Fix Flow API contract mismatches** | FE+BE | S | `flow/edge_status` (app sends no required param + expects a list, backend wants a param + returns one) and `flow/get_density` (missing param, single vs list). Detail in `doc/overview_system.md`. |
 | 3 | **auth/logout (server) + auth/resend_otp route** | BE | S | logout is local-only; `resend_otp` service exists but has no route. |
 | 4 | **Pre-demo QA pass** | FE | S | `dart format`, `dart analyze lib test`, `flutter test`; manually walk auth / map / medical / notification / settings flows. |
 | 5 | **Demo prep** | — | S | seeded test account, backend URL/config, short demo script with an offline fallback. |
@@ -284,5 +284,6 @@ home cleanup · 4-tab nav · backend API-contract fixes. _(PRs #29, #31.)_
 - [ ] Profile update success/error toast feedback.
 - [ ] Map verify-only: non-walking `speed_factor`, meters-per-cell label truthfulness.
 
-> More backend detail in `context/backend-tasks.md`; the full FE↔BE API contract
-> map is in `context/overview_system.md` (local working docs).
+> The full FE↔BE API contract map (responses, requests, and backend mismatches)
+> is in [`doc/overview_system.md`](doc/overview_system.md); per-module feature
+> progress is in [`doc/overview_process.md`](doc/overview_process.md).
