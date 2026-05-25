@@ -18,7 +18,7 @@ class NotificationPageResponse {
       total: _parseInt(json['total']),
       page: _parseInt(json['page']),
       limit: _parseInt(json['limit']),
-      data: _parseList(json['data']),
+      data: _parseList(json['notifications'] ?? json['data']),
     );
   }
 
@@ -47,7 +47,7 @@ class NotificationPageResponse {
     }
 
     if (value is Map<String, dynamic>) {
-      final nested = value['data'];
+      final nested = value['notifications'] ?? value['data'];
       if (nested is List) {
         return nested
             .whereType<Map<String, dynamic>>()

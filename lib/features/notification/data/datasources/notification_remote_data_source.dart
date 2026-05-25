@@ -59,14 +59,12 @@ class NotificationRemoteDataSource {
     }
   }
 
-  Future<void> deleteNotifications({
-    required List<String> notificationIds,
-  }) async {
+  Future<void> deleteNotification({required int notificationId}) async {
     try {
       final response = await ApiClient.instance.delete(
         ApiEndpoints.notificationDelete,
         data: DeleteNotificationRequest(
-          notificationIds: notificationIds,
+          notificationId: notificationId,
         ).toJson(),
         options: Options(contentType: Headers.jsonContentType),
       );

@@ -138,28 +138,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           iconColor: cs.primary,
           title: 'Bật thông báo',
           subtitle: 'Nhận thông báo từ hệ thống',
-          value: settings.notificationEnabled,
+          value: settings.notification,
           onChanged: (value) {
-            _save(settings.copyWith(notificationEnabled: value));
+            _save(settings.copyWith(notification: value));
           },
-        ),
-        _SettingsTile(
-          icon: Icons.record_voice_over_rounded,
-          iconColor: cs.secondary,
-          title: 'Hướng dẫn giọng nói',
-          subtitle: 'Đọc hướng dẫn đường đi bằng giọng nói',
-          value: settings.voiceGuidanceEnabled,
-          onChanged: (value) {
-            _save(settings.copyWith(voiceGuidanceEnabled: value));
-          },
-        ),
-
-        const SizedBox(height: AppSpacing.xl),
-
-        const _SectionHeader(title: 'Chế độ di chuyển'),
-        _TravelModeTile(
-          current: settings.travelMode,
-          onChanged: (value) => _save(settings.copyWith(travelMode: value)),
         ),
 
         const SizedBox(height: AppSpacing.xl),
@@ -373,59 +355,6 @@ class _SettingsTile extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 12,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TravelModeTile extends StatelessWidget {
-  final String current;
-  final ValueChanged<String> onChanged;
-
-  const _TravelModeTile({required this.current, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final modes = {
-      'walk': ('Đi bộ', Icons.directions_walk_rounded),
-      'wheelchair': ('Xe lăn', Icons.accessible_rounded),
-      'stretcher': ('Cáng', Icons.airline_seat_flat_rounded),
-    };
-
-    return Card(
-      elevation: 0,
-      color: cs.surfaceContainerLow,
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      shape: RoundedRectangleBorder(
-        borderRadius: AppRadius.borderMd,
-        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: RadioGroup<String>(
-        groupValue: current,
-        onChanged: (value) {
-          if (value != null) {
-            onChanged(value);
-          }
-        },
-        child: Column(
-          children: modes.entries.map((entry) {
-            final isSelected = current == entry.key;
-            return RadioListTile<String>(
-              value: entry.key,
-              secondary: Icon(
-                entry.value.$2,
-                color: isSelected ? cs.primary : cs.onSurfaceVariant,
-              ),
-              title: Text(
-                entry.value.$1,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            );
-          }).toList(),
         ),
       ),
     );
