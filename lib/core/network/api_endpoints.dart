@@ -1,3 +1,5 @@
+// lib/core/network/api_endpoints.dart  ← REPLACE your existing file
+
 class ApiEndpoints {
   // Auth
   static const String login = 'auth/login';
@@ -71,4 +73,9 @@ class ApiEndpoints {
   static const String notificationGetList = 'notification/get_list';
   static const String notificationSetRead = 'notification/set_read';
   static const String notificationDelete = 'notification/delete';
+
+  // ── NEW: User / Notification Settings & Device Token ────────────────────
+  static const String setDevToken = 'user/set_devtoken';
+  static const String getSettings = 'user/get_settings';
+  static const String setSettings = 'user/set_settings';
 }

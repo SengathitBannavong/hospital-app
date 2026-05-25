@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/hospital_theme.dart';
+import '../../data/models/profile_update_request.dart';
 import '../../data/models/user_profile.dart';
 
 class ProfileForm extends StatefulWidget {
   final UserProfile initialProfile;
-  final Function(String fullName, String dob, int gender) onSave;
+  final Future<void> Function(ProfileUpdateRequest request) onSave;
   final VoidCallback onCancel;
+  final bool isSubmitting;
 
   const ProfileForm({
     super.key,
     required this.initialProfile,
     required this.onSave,
     required this.onCancel,
+    this.isSubmitting = false,
   });
 
   @override
@@ -62,11 +66,13 @@ class _ProfileFormState extends State<ProfileForm> {
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextFormField(
             controller: _fullNameController,
+            enabled: !widget.isSubmitting,
             decoration: const InputDecoration(
               labelText: 'Họ và tên',
               prefixIcon: Icon(Icons.person_outline),
@@ -81,6 +87,7 @@ class _ProfileFormState extends State<ProfileForm> {
           const SizedBox(height: AppSpacing.lg),
           TextFormField(
             controller: _dobController,
+            enabled: !widget.isSubmitting,
             readOnly: true,
             decoration: const InputDecoration(
               labelText: 'Ngày sinh',
@@ -91,6 +98,13 @@ class _ProfileFormState extends State<ProfileForm> {
           const SizedBox(height: AppSpacing.lg),
           DropdownButtonFormField<int>(
             initialValue: _selectedGender,
+            onChanged: widget.isSubmitting
+                ? null
+                : (value) {
+                    setState(() {
+                      _selectedGender = value;
+                    });
+                  },
             decoration: const InputDecoration(
               labelText: 'Giới tính',
               prefixIcon: Icon(Icons.wc_outlined),
@@ -100,34 +114,42 @@ class _ProfileFormState extends State<ProfileForm> {
               DropdownMenuItem(value: 1, child: Text('Nữ')),
               DropdownMenuItem(value: 2, child: Text('Khác')),
             ],
-            onChanged: (value) {
-              setState(() {
-                _selectedGender = value;
-              });
-            },
           ),
           const SizedBox(height: AppSpacing.xl),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: widget.onCancel,
+                  onPressed: widget.isSubmitting ? null : widget.onCancel,
                   child: const Text('Hủy'),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      widget.onSave(
-                        _fullNameController.text,
-                        _dobController.text,
-                        _selectedGender ?? 0,
-                      );
-                    }
-                  },
-                  child: const Text('Lưu'),
+                  onPressed: widget.isSubmitting
+                      ? null
+                      : () async {
+                          if (_formKey.currentState!.validate()) {
+                            await widget.onSave(
+                              ProfileUpdateRequest(
+                                fullName: _fullNameController.text.trim(),
+                                dob: _dobController.text.trim().isEmpty
+                                    ? null
+                                    : _dobController.text.trim(),
+                                gender: _selectedGender,
+                                avatar: widget.initialProfile.avatar,
+                              ),
+                            );
+                          }
+                        },
+                  child: widget.isSubmitting
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Lưu'),
                 ),
               ),
             ],

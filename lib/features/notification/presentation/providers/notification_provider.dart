@@ -1,69 +1,183 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/models/app_notification.dart';
-import '../../data/repository/notification_repository.dart';
+// lib/features/notification/presentation/providers/notification_provider.dart
 
-final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  return NotificationRepository();
-});
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../data/models/app_notification.dart';
+import '../../data/models/notification_settings_model.dart';
+import '../../data/repository/notification_repository.dart';
+import 'notification_state.dart';
+
+// Repository provider.
+
+final notificationRepositoryProvider = Provider(
+  (ref) => NotificationRepository(),
+);
+
+// ─── Main Notification List Provider ─────────────────────────────────────────
 
 final notificationProvider =
-    StateNotifierProvider<
-      NotificationNotifier,
-      AsyncValue<List<AppNotification>>
-    >((ref) {
+    StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
       final repository = ref.watch(notificationRepositoryProvider);
-      return NotificationNotifier(repository)..fetchNotifications();
+      final notifier = NotificationNotifier(repository);
+      notifier.loadNotifications().catchError((_) {});
+      return notifier;
     });
 
-class NotificationNotifier
-    extends StateNotifier<AsyncValue<List<AppNotification>>> {
-  NotificationNotifier(this._repository) : super(const AsyncValue.loading());
+// Global unread badge count.
+// Use this anywhere in the app (e.g. home app bar bell, badges).
+
+final unreadCountProvider = Provider<int>((ref) {
+  return ref.watch(notificationProvider).unreadCount;
+});
+
+// ─── Notification Settings Provider ──────────────────────────────────────────
+
+final notificationSettingsProvider =
+    StateNotifierProvider<
+      NotificationSettingsNotifier,
+      AsyncValue<NotificationSettingsModel>
+    >((ref) {
+      final repo = ref.watch(notificationRepositoryProvider);
+      return NotificationSettingsNotifier(repo);
+    });
+
+// Notifier.
+
+class NotificationNotifier extends StateNotifier<NotificationState> {
+  NotificationNotifier(this._repository) : super(NotificationState.initial());
 
   final NotificationRepository _repository;
 
-  Future<void> fetchNotifications({bool keepPrevious = false}) async {
-    if (keepPrevious) {
-      state = const AsyncValue<List<AppNotification>>.loading()
-          .copyWithPrevious(state);
+  /// Load first page — called on page open or pull-to-refresh.
+  Future<void> loadNotifications({bool refresh = false}) async {
+    final previousItems = state.items;
+
+    if (refresh && previousItems.isNotEmpty) {
+      state = state.copyWith(
+        isRefreshing: true,
+        isInitialLoading: false,
+        isLoadingMore: false,
+        errorMessage: null,
+      );
     } else {
-      state = const AsyncValue<List<AppNotification>>.loading();
+      state = state.copyWith(
+        isInitialLoading: true,
+        isRefreshing: false,
+        isLoadingMore: false,
+        errorMessage: null,
+      );
     }
 
-    state = await AsyncValue.guard(() => _repository.getNotifications());
+    try {
+      final response = await _repository.getNotifications(
+        page: 1,
+        limit: state.limit,
+      );
+
+      state = state.copyWith(
+        items: response.data,
+        total: response.total,
+        page: response.page,
+        limit: response.limit,
+        isInitialLoading: false,
+        isRefreshing: false,
+        isLoadingMore: false,
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        items: previousItems,
+        isInitialLoading: false,
+        isRefreshing: false,
+        isLoadingMore: false,
+        errorMessage: _formatError(error),
+      );
+      rethrow;
+    }
   }
 
-  Future<void> markAsRead(int id) async {
-    final items = state.valueOrNull;
-    if (items == null) return;
+  Future<void> refresh() {
+    return loadNotifications(refresh: true);
+  }
 
-    final index = items.indexWhere((item) => item.id == id);
-    if (index == -1 || items[index].isRead) return;
+  /// Load next page (infinite scroll).
+  Future<void> loadMore() async {
+    if (state.isInitialLoading || state.isRefreshing || state.isLoadingMore) {
+      return;
+    }
+
+    if (!state.hasMore) {
+      return;
+    }
+
+    state = state.copyWith(isLoadingMore: true, errorMessage: null);
+
+    try {
+      final response = await _repository.getNotifications(
+        page: state.page + 1,
+        limit: state.limit,
+      );
+
+      final mergedItems = <AppNotification>[...state.items, ...response.data];
+      final deduplicatedItems = <int, AppNotification>{
+        for (final item in mergedItems) item.id: item,
+      }.values.toList(growable: false);
+
+      state = state.copyWith(
+        items: deduplicatedItems,
+        total: response.total,
+        page: response.page,
+        limit: response.limit,
+        isLoadingMore: false,
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isLoadingMore: false,
+        errorMessage: _formatError(error),
+      );
+      rethrow;
+    }
+  }
+
+  /// Mark single notification as read.
+  Future<void> markAsRead(int id) async {
+    final index = state.items.indexWhere((item) => item.id == id);
+    if (index == -1 || state.items[index].isRead) return;
 
     await _repository.markAsRead(notificationId: id);
 
-    state = AsyncValue.data([
-      for (final item in items)
-        if (item.id == id) item.copyWith(isRead: true) else item,
-    ]);
+    state = state.copyWith(
+      items: [
+        for (final item in state.items)
+          if (item.id == id) item.copyWith(isRead: true) else item,
+      ],
+      errorMessage: null,
+    );
   }
 
-  Future<void> deleteNotification(int id) async {
-    final items = state.valueOrNull;
-    if (items == null) return;
+  /// Delete one or more notifications.
+  Future<void> deleteNotifications(List<int> ids) async {
+    if (ids.isEmpty) return;
 
-    final exists = items.any((item) => item.id == id);
-    if (!exists) return;
+    await _repository.deleteNotifications(notificationIds: ids);
 
-    await _repository.deleteNotification(notificationId: id);
+    final remainingItems = state.items
+        .where((item) => !ids.contains(item.id))
+        .toList(growable: false);
 
-    state = AsyncValue.data(items.where((item) => item.id != id).toList());
+    state = state.copyWith(
+      items: remainingItems,
+      total: (state.total - ids.length).clamp(0, state.total).toInt(),
+      errorMessage: null,
+    );
   }
 
+  /// Mark every loaded notification as read.
   Future<void> markAllAsRead() async {
-    final items = state.valueOrNull;
-    if (items == null || items.isEmpty) return;
+    if (state.items.isEmpty) return;
 
-    final unreadItems = items.where((item) => !item.isRead).toList();
+    final unreadItems = state.items.where((item) => !item.isRead).toList();
     if (unreadItems.isEmpty) return;
 
     await Future.wait(
@@ -72,8 +186,70 @@ class NotificationNotifier
       ),
     );
 
-    state = AsyncValue.data([
-      for (final item in items) item.copyWith(isRead: true),
-    ]);
+    state = state.copyWith(
+      items: [for (final item in state.items) item.copyWith(isRead: true)],
+      errorMessage: null,
+    );
+  }
+
+  /// Register FCM device token with the backend (called by Firebase service).
+  Future<void> registerDeviceToken(String token, String platform) async {
+    try {
+      await _repository.registerDeviceToken(token, platform);
+    } catch (_) {
+      // Silently fail — retried on next token refresh / app launch.
+    }
+  }
+
+  /// Prepend a notification received via FCM while the app is in foreground.
+  void addFirebaseNotification(AppNotification notification) {
+    final merged = <AppNotification>[notification, ...state.items];
+    final deduplicated = <int, AppNotification>{
+      for (final item in merged) item.id: item,
+    }.values.toList(growable: false);
+
+    state = state.copyWith(
+      items: deduplicated,
+      total: state.total + 1,
+      errorMessage: state.errorMessage,
+    );
+  }
+
+  String _formatError(Object error) {
+    return error.toString().replaceFirst('Exception: ', '');
+  }
+}
+
+// Settings notifier.
+
+class NotificationSettingsNotifier
+    extends StateNotifier<AsyncValue<NotificationSettingsModel>> {
+  final NotificationRepository _repository;
+
+  NotificationSettingsNotifier(this._repository)
+    : super(const AsyncValue.loading());
+
+  Future<void> loadSettings() async {
+    state = const AsyncValue.loading();
+    try {
+      final settings = await _repository.getSettings();
+      state = AsyncValue.data(settings);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<bool> saveSettings(NotificationSettingsModel settings) async {
+    try {
+      await _repository.saveSettings(settings);
+      state = AsyncValue.data(settings);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void updateLocal(NotificationSettingsModel settings) {
+    state = AsyncValue.data(settings);
   }
 }

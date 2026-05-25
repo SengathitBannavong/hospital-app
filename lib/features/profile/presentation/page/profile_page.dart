@@ -6,6 +6,7 @@ import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../../../../core/utils/delete_account_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../data/models/profile_update_request.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/profile_form.dart';
@@ -103,6 +104,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
+    final profile = profileState.profile;
 
     return Scaffold(
       appBar: AppBar(
@@ -111,71 +113,143 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           if (!_isEditing)
             IconButton(
               icon: const Icon(Icons.refresh_rounded),
-              onPressed: () =>
-                  ref.read(profileProvider.notifier).fetchProfile(),
+              onPressed: profileState.isBusy
+                  ? null
+                  : () => ref
+                        .read(profileProvider.notifier)
+                        .fetchProfile(isRefresh: true)
+                        .catchError((error) {
+                          AppToast.showError(_formatError(error));
+                        }),
             ),
         ],
       ),
-      body: profileState.when(
-        data: (profile) => SingleChildScrollView(
-          padding: AppSpacing.pageWithTop,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              ProfileAvatar(
-                imageUrl: profile.avatar,
-                isReadOnly: !_isEditing,
-                onImagePicked: (path) {
-                  ref
-                      .read(profileProvider.notifier)
-                      .updateProfile(avatarPath: path);
-                },
+      body: profile == null && profileState.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : profile == null && profileState.errorMessage != null
+          ? _buildErrorState(profileState.errorMessage!)
+          : RefreshIndicator(
+              onRefresh: () => ref
+                  .read(profileProvider.notifier)
+                  .fetchProfile(isRefresh: true)
+                  .catchError((error) {
+                    AppToast.showError(_formatError(error));
+                  }),
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: AppSpacing.pageWithTop,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        ProfileAvatar(
+                          imageUrl: profile?.avatar,
+                          isReadOnly: !_isEditing || profileState.isSaving,
+                          onImagePicked: (path) async {
+                            final currentProfile = ref
+                                .read(profileProvider)
+                                .profile;
+                            if (currentProfile == null) return;
+
+                            final success = await ref
+                                .read(profileProvider.notifier)
+                                .updateProfile(
+                                  ProfileUpdateRequest(
+                                    fullName: currentProfile.fullName,
+                                    dob: currentProfile.dob,
+                                    gender: currentProfile.gender,
+                                    avatar: path,
+                                  ),
+                                );
+
+                            if (!success && mounted) {
+                              AppToast.showError(
+                                ref.read(profileProvider).errorMessage ??
+                                    'Không thể cập nhật ảnh đại diện.',
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        if (_isEditing)
+                          ProfileForm(
+                            key: ValueKey(profile),
+                            initialProfile: profile!,
+                            isSubmitting: profileState.isSaving,
+                            onCancel: () => setState(() => _isEditing = false),
+                            onSave: (request) async {
+                              final success = await ref
+                                  .read(profileProvider.notifier)
+                                  .updateProfile(request);
+                              if (success && mounted) {
+                                setState(() => _isEditing = false);
+                              }
+                              if (!success && mounted) {
+                                AppToast.showError(
+                                  ref.read(profileProvider).errorMessage ??
+                                      'Không thể cập nhật hồ sơ.',
+                                );
+                              }
+                            },
+                          )
+                        else
+                          ProfileInfo(
+                            profile: profile!,
+                            onEdit: () => setState(() => _isEditing = true),
+                            onDeleteAccount: _handleDeleteAccount,
+                            onLogout: _handleLogout,
+                          ),
+                        const SizedBox(height: AppSpacing.xxl),
+                      ],
+                    ),
+                  ),
+                  if (profileState.isSaving)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        alignment: Alignment.center,
+                        child: const CircularProgressIndicator(),
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.xl),
-              if (_isEditing)
-                ProfileForm(
-                  initialProfile: profile,
-                  onCancel: () => setState(() => _isEditing = false),
-                  onSave: (fullName, dob, gender) async {
-                    await ref
-                        .read(profileProvider.notifier)
-                        .updateProfile(
-                          fullName: fullName,
-                          dob: dob,
-                          gender: gender,
-                        );
-                    if (mounted) {
-                      setState(() => _isEditing = false);
-                    }
-                  },
-                )
-              else
-                ProfileInfo(
-                  profile: profile,
-                  onEdit: () => setState(() => _isEditing = true),
-                  onDeleteAccount: _handleDeleteAccount,
-                  onLogout: _handleLogout,
-                ),
-              const SizedBox(height: AppSpacing.xxl),
-            ],
-          ),
-        ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Lỗi: $error'),
-              const SizedBox(height: AppSpacing.md),
-              ElevatedButton(
-                onPressed: () =>
-                    ref.read(profileProvider.notifier).fetchProfile(),
-                child: const Text('Thử lại'),
-              ),
-            ],
-          ),
+            ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: AppSpacing.pageWithTop,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.person_off_outlined, size: 48),
+            const SizedBox(height: AppSpacing.md),
+            const Text('Không thể tải hồ sơ'),
+            const SizedBox(height: AppSpacing.xs),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.md),
+            ElevatedButton.icon(
+              onPressed: () {
+                ref
+                    .read(profileProvider.notifier)
+                    .fetchProfile(isRefresh: true)
+                    .catchError((error) {
+                      AppToast.showError(_formatError(error));
+                    });
+              },
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Thử lại'),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  String _formatError(Object error) {
+    return error.toString().replaceFirst('Exception: ', '');
   }
 }

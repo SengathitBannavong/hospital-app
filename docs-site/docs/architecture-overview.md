@@ -28,4 +28,4 @@ The application code inside `lib/` is strictly separated into two main directori
 
 ## UI Shell & Navigation
 
-The app shell is built using `go_router`. It implements a bottom navigation shell that allows seamless switching between the primary feature branches (Home, Medical, Notification, Info, Map, and Profile) while maintaining navigation state.
+The app shell is built using `go_router`. It implements a 4-tab bottom navigation shell that allows seamless switching between the primary feature branches (Home, Medical, Map, and Profile) while maintaining navigation state. Secondary destinations (Notification, Info, FAQ, About, Contact) are top-level pushed routes rather than tabs.
