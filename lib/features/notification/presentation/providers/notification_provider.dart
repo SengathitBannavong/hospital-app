@@ -137,7 +137,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
     state = state.copyWith(
       items: remainingItems,
-      total: (state.total - ids.length).clamp(0, state.total),
+      total: (state.total - ids.length).clamp(0, state.total).toInt(),
       errorMessage: null,
     );
   }
