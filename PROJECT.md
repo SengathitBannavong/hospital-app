@@ -5,6 +5,27 @@ Last checked: 2026-05-25 (Notification, Home, Navigation, Firebase)
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
 
+## Current State (2026-05-25)
+
+Overall user-facing progress ≈ **68%** (per-module table in [`doc/overview_process.md`](doc/overview_process.md)).
+
+**In `main`** (PR #29): notifications with pagination/load-more, unread bell,
+notification settings, device-token registration, and **optional** Firebase push
+(off by default); an Info hub (FAQ / About / Contact); a cleaned home dashboard;
+and a **4-tab bottom nav** (Home · Medical · Map · Profile) with Notification /
+Info / FAQ / About / Contact as pushed routes.
+
+**Open PR `add-setting-page → main`:** a unified `/settings` page (theme,
+notification, language — persisted via `user/get_settings` / `user/set_settings`;
+theme restored on launch) reached from the Home, Profile, and Notification gears,
+plus backend API-contract fixes (notification list parsing, single-id delete).
+
+**Known limitations:** the backend stores device tokens but does **not** send
+pushes yet and has no real notification triggers, so notifications are seed-only
+in practice; `auth/logout` is local-only; `auth/resend_otp` has no backend route.
+Not yet in the app: SOS, chat, asset/wheelchair, staff request, dynamic utility
+content.
+
 ## Overall Status
 
 - [x] Flutter feature-first structure is in place: `auth`, `map`, `medical`, `profile`, `home`, `main`.
@@ -16,6 +37,7 @@ Admin-only web, traffic-control, and algorithm-engine features are intentionally
 - [x] Firebase Cloud Messaging push is implemented client-side but **optional** (off by default; gated behind the `ENABLE_FIREBASE` dart-define). API keys are sourced from dart-defines, not committed. See `FIREBASE.md`.
 - [ ] SOS endpoints/repositories/pages are not wired into the app shell yet.
 - [x] Static info pages are visible in the current route tree (`/info`).
+- [x] Single Settings page at `/settings`, reached via the gear icon in the Home, Profile, and Notification app bars: theme (persisted to backend), notification + language preferences (via `user/get_settings` / `user/set_settings`), change password, logout, and app info.
 - [ ] Several patient/public Swagger-backed features are not wired into the mobile app yet: voice support, active route guidance, asset booking, staff request, chat/FAQ, utilities, and feedback.
 - [ ] Demo flow and final QA checklist still need execution.
 
@@ -54,7 +76,7 @@ Scope: mobile dashboard, patient summary cards, quick actions, and public/patien
 - [x] Home repository exists: `lib/features/home/data/home_repository.dart`.
 - [x] Home branch is routed in the bottom navigation shell.
 - [x] Home fetches `medical/get_tasks` and displays the current task count.
-- [x] Home includes pull-to-refresh, manual refresh, theme toggle, logout, and animated summary cards.
+- [x] Home includes pull-to-refresh, manual refresh, a Settings gear, a notification bell with unread badge, logout, and animated summary cards.
 - [x] Removed the local appointment counter, the static "doctors available" demo card, and the FAB appointment counter.
 - [x] Home shows live notifications: an unread bell in the app bar (badge from `unreadCountProvider`) and a summary card, both wired to `notification/get_list` and opening `/notification` via push.
 - [x] Home quick actions de-duplicated (Map/Medical/Profile removed since they are tabs); a single "Thông tin" shortcut opens the Info hub. Shortcuts are still missing for SOS, utilities, wheelchair booking, staff request, and chat/support.
@@ -140,7 +162,7 @@ Scope: notification list, mark read, delete, profile edit.
 - [x] Show notification time in UI (`NotificationCard` renders `created_at`).
 - [x] Add global unread badge count (Home app-bar bell via `unreadCountProvider`).
 - [x] Register device token with `user/set_devtoken` (sends `device_token` + `platform`); driven by the optional Firebase service.
-- [x] Add notification settings UI using `user/get_settings` and `user/set_settings` (`notification_settings_page.dart`).
+- [x] Notification settings handled by the unified Settings page via `user/get_settings` / `user/set_settings` (the standalone `notification_settings_page.dart` was removed).
 - [ ] Add repository/provider tests for notification flow.
 - [ ] Manual QA: list load, pull-to-refresh, mark read, delete.
 - [x] App-side push registration is implemented (FCM client) but **optional** via `ENABLE_FIREBASE`. NOTE: the backend stores tokens but does not send pushes yet, so no push arrives until the backend FCM sender ships.
@@ -158,7 +180,7 @@ Scope: static info pages and SOS feature.
 - [x] Define/expand static info pages needed for demo (hospital guide, departments, visiting hours, help/contact).
 - [ ] Public utility APIs are available but not wired: `util/faq`, `util/about`, `util/contact`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather`.
 - [ ] Feedback submission is not wired; Swagger exposes `util/feedback`.
-- [ ] Language list/settings are not wired; Swagger exposes `util/languages`, `user/get_settings`, and `user/set_settings`.
+- [x] Language + notification + theme preferences are wired to `user/get_settings` / `user/set_settings`. (Dynamic `util/languages` list still not used — the picker is static vi/en.)
 - [ ] File upload is not wired; Swagger exposes `util/upload`, useful for feedback/report images if backend accepts attachments.
 - [x] Add navigation entry points for static info pages.
 - [ ] Add navigation entry points for SOS.
@@ -175,7 +197,9 @@ Scope: features available in `swagger.yaml` for patient/public/mobile use, exclu
 - [ ] Feedback UI is missing even though `util/feedback` is available.
 - [ ] Route sharing/rating/history UI is missing even though route APIs exist.
 - [ ] Patient traffic awareness and reporting are missing even though public Flow APIs exist for density, heatmap, alerts, ping location, and obstacle reports.
-- [ ] User settings page is not wired for language/theme/notification preferences even though `user/get_settings` and `user/set_settings` exist in Swagger.
+- [x] User settings page is wired for language/theme/notification preferences via `user/get_settings` and `user/set_settings`.
+
+
 
 ## Chat 8: Polish + Demo Prep
 
@@ -185,7 +209,7 @@ Scope: loading states, animations, error handling, demo script execution.
 - [x] Shared `FadeSlideTransition` widget exists.
 - [x] Toast utility exists.
 - [x] Loading/error states exist in several pages/providers.
-- [x] Home page has refresh, logout, theme toggle, and animated summary cards.
+- [x] Home page has refresh, a Settings gear, a notification bell, logout, and animated summary cards.
 - [ ] Run `dart format` after final code changes.
 - [ ] Run `dart analyze lib test`.
 - [ ] Run `flutter test`.
@@ -195,16 +219,71 @@ Scope: loading states, animations, error handling, demo script execution.
 - [ ] Manually verify profile flow: fetch profile, edit fields, update avatar if supported.
 - [ ] Prepare seeded test account and backend URL/config for demo.
 - [ ] Prepare short demo script with expected screens and fallback plan if backend is unavailable.
+## Chat 9: Settings Module
 
-## Suggested Next Build Order
+Scope: user settings page covering account, appearance, notifications, and app information.
 
-1. ~~Finish Chat 5 notification UI/API wiring.~~ Done (pagination, badge, settings, device token, optional FCM push). Remaining: tests + manual QA.
-2. Finish Chat 6 SOS; static info pages now organised under the Info hub.
-3. Turn Home into the patient dashboard: replace demo cards/actions with real task, notification, utility, route, SOS, and asset entry points.
-4. Add patient utility pages backed by Swagger: FAQ, contact/about, pharmacy, canteen, parking, Wi-Fi, weather, and feedback.
-5. Add device/asset flow: stations, available wheelchairs, booking, release, health, track, report broken, and staff request.
-6. Add active route guidance: order active route, steps, next step, ETA, pass-node, recalculate, cancel, share, and rate.
-7. Add floor switching to the map module.
-8. Replace Home appointment placeholder with real appointment data or remove it from demo scope.
-9. Add focused tests for new Home, notification, SOS, utilities, assets, route guidance, auth, and medical state.
-10. Run full format/analyze/test and execute the demo script.
+
+
+
+- [x] Single Settings page (`/settings`) — consolidated from the old per-feature settings; reached via the gear icon in the Home, Profile, and Notification app bars (the standalone `notification_settings_page.dart` was removed).
+- [x] Backed by `user/get_settings` / `user/set_settings` — theme, notification on/off, and language load and save to the backend (partial updates).
+- [x] Theme: `SegmentedButton<ThemeMode>` (Light / System / Dark); applies live via `themeController` and **persists via the backend `theme` field**; restored on launch/login by `AppInitializer`.
+- [x] `ThemeController.setThemeMode(ThemeMode)` supports direct selection.
+- [x] "Change password" → `/change-password`; "Logout" → confirm dialog → `logout()`.
+- [x] Device push token (`user/set_devtoken`) registered via the optional Firebase service.
+- [x] "Help & Support" → `/help`; "About app" → `showAboutDialog`; "Version" shows `1.0.0`.
+- [ ] Voice-guidance + travel-mode toggles dropped — backend `get/set_settings` does not expose those columns yet.
+- [ ] "Version" still static `1.0.0` (not from `sys/check_version`).
+
+
+
+## Backlog
+
+Prioritised for the team. **Area:** FE = Flutter app · BE = Go backend ·
+FE+BE = both. **Effort:** S ≈ half a day · M ≈ 1–3 days · L ≈ a week+.
+**P0** = do next.
+
+### Recently shipped (context)
+Notifications (pagination, unread bell, settings, device-token, optional push) ·
+unified Settings page (theme/notification/language, backend-persisted) · Info hub ·
+home cleanup · 4-tab nav · backend API-contract fixes. _(PRs #29, #31.)_
+
+### P0 — Correctness, then demo-ready
+| # | Item | Area | Effort | Notes / acceptance |
+|---|------|------|--------|--------------------|
+| 1 | **Push sender + notification triggers** | BE | L | Send via FCM/APNs and fire on real events (queue ready, appointment, prescription, SOS). Until this lands, notifications are seed-only. Unlocks SOS/queue/staff alerts. |
+| 2 | **Fix Flow API contract mismatches** | FE+BE | S | `flow/edge_status` (app sends no required param + expects a list, backend wants a param + returns one) and `flow/get_density` (missing param, single vs list). Detail in `doc/overview_system.md`. |
+| 3 | **auth/logout (server) + auth/resend_otp route** | BE | S | logout is local-only; `resend_otp` service exists but has no route. |
+| 4 | **Pre-demo QA pass** | FE | S | `dart format`, `dart analyze lib test`, `flutter test`; manually walk auth / map / medical / notification / settings flows. |
+| 5 | **Demo prep** | — | S | seeded test account, backend URL/config, short demo script with an offline fallback. |
+
+### P1 — High-value patient features
+| # | Item | Area | Effort | Notes / acceptance |
+|---|------|------|--------|--------------------|
+| 6 | **SOS** | FE+BE | M | Screens exist on `feature/medical-sos-util`. Wire `sos/create` + `sos/get_detail`, add a home entry point, confirm/error states. Should also create a notification (needs #1). |
+| 7 | **Active route guidance** | FE+BE | L | `route/get_steps`, `get_next`, `get_eta`, `pass_node`, `cancel` — turn the simulated dot into backend-synced live guidance. |
+| 8 | **Home dashboard enrichment** | FE | M | Real shortcuts/summaries: SOS, utilities, active-route status, assets (task + notification already wired). |
+| 9 | **Utility pages + dynamic FAQ/About/Contact** | FE+BE | M | `util/faq`, `about`, `contact`, `pharmacy`, `canteen`, `parking`, `wifi`, `weather`, `feedback` — replace the static info pages with backend data. |
+| 10 | **Voice guidance wiring** | FE | S | `voice_service.dart` exists with zero call sites — wire into navigation. |
+
+### P2 — Later
+| # | Item | Area | Effort | Notes |
+|---|------|------|--------|-------|
+| 11 | **Chat / support** | FE+BE | L | `ws/chat` exists; add rooms/messages/send/unread/mark-read + UI. |
+| 12 | **Asset / wheelchair** | FE+BE | L | stations, find, health, track, book, release, report-broken. |
+| 13 | **Staff request** | FE+BE | S | `staff/request_staff` (+ notification on response). |
+| 14 | **Multi-stop navigation UI** | FE | M | repo wrappers exist for `order_multi`/`order_unordered`; needs a destination-picker flow. |
+| 15 | **Medical QR check-in/out** | FE | M | camera scan + treatment/room validation on top of the existing check-in/out APIs. |
+
+### Cross-cutting / tech debt
+- [ ] **Restore voice-guidance + travel-mode** settings toggles once BE exposes those columns in `get/set_settings`.
+- [ ] **Real app version** in Settings from `sys/check_version` (currently static `1.0.0`).
+- [ ] **Tests** for notification, settings, home, and medical providers/repos; expand auth (repo errors, router redirects, widget flows).
+- [ ] **Backend `getEdges` perf** (~17s) — biggest map-load slowdown.
+- [ ] Profile update success/error toast feedback.
+- [ ] Map verify-only: non-walking `speed_factor`, meters-per-cell label truthfulness.
+
+> The full FE↔BE API contract map (responses, requests, and backend mismatches)
+> is in [`doc/overview_system.md`](doc/overview_system.md); per-module feature
+> progress is in [`doc/overview_process.md`](doc/overview_process.md).

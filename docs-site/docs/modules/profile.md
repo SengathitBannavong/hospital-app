@@ -8,6 +8,12 @@ sidebar_position: 6
 
 The **Profile Module** (`lib/features/profile`) allows users to view, manage, and update their personal demographic information and application preferences.
 
+:::note[App preferences live in Settings]
+App preferences (theme, notifications, language) are **not** on the Profile page
+itself — the Profile app bar has a ⚙️ gear that opens the shared
+[Settings page](./settings) (`context.push('/settings')`).
+:::
+
 ## State Management
 
 | Provider | Description |

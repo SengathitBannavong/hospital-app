@@ -23,8 +23,8 @@ import 'package:hospital_app/features/medical/presentation/pages/prescription_pa
 import 'package:hospital_app/features/medical/presentation/pages/queue_page.dart';
 import 'package:hospital_app/features/medical/presentation/pages/task_list_page.dart';
 import 'package:hospital_app/features/notification/presentation/pages/notification_page.dart';
-import 'package:hospital_app/features/notification/presentation/pages/notification_settings_page.dart';
 import 'package:hospital_app/features/profile/presentation/page/profile_page.dart';
+import 'package:hospital_app/features/settings/presentation/pages/settings_page.dart';
 import 'package:hospital_app/features/sos/presentation/pages/sos_page.dart';
 
 class RouterNotifier extends ChangeNotifier {
@@ -131,12 +131,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notification',
         builder: (context, state) => const NotificationPage(),
-        routes: [
-          GoRoute(
-            path: 'settings',
-            builder: (context, state) => const NotificationSettingsPage(),
-          ),
-        ],
       ),
       GoRoute(path: '/info', builder: (context, state) => const InfoPage()),
       GoRoute(path: '/faq', builder: (context, state) => const FaqPage()),
@@ -192,6 +186,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/change-password',
         builder: (context, state) => const ChangePasswordPage(),
       ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsPage(),
+      ),
+      // Standalone help page — used by Settings to avoid shell-push conflict
+      GoRoute(path: '/help', builder: (context, state) => const InfoPage()),
     ],
   );
 });

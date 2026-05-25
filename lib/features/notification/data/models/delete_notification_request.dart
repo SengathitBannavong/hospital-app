@@ -1,9 +1,9 @@
 class DeleteNotificationRequest {
-  const DeleteNotificationRequest({required this.notificationIds});
+  const DeleteNotificationRequest({required this.notificationId});
 
-  final List<String> notificationIds;
+  final int notificationId;
 
   Map<String, dynamic> toJson() {
-    return {'notificationIds': notificationIds};
+    return {'notif_id': notificationId};
   }
 }
