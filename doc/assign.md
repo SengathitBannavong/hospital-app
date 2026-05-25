@@ -1,0 +1,54 @@
+# Contribution Assignment — `main` (29 commits)
+
+_Generated 2026-05-25. HEAD `54ccd02`. Ordered oldest → newest. "#" = PR number
+(or short hash for direct commits). Co-contributors are from `Co-Authored-By`._
+
+| # | Date (UTC+?) | Module | What it does (summary) | Main contributor | Co-contributor |
+|---|---|---|---|---|---|
+| `f744b0f` | 2026-04-07 17:09 | Project setup | Initialise project with clean architecture structure | Bannavong | — |
+| #1 | 2026-04-07 23:24 | Core / Theme / Home | Custom theme system + initial home page UI | Bannavong | — |
+| #2 | 2026-04-12 09:46 | Core | Global API client + Toast utility | Bannavong | — |
+| #3 | 2026-04-12 09:54 | CI | Fix `flutter_ci.yaml` workflow | Bannavong | — |
+| #5 | 2026-04-21 23:11 | Auth / Core / Home | New pages, dependencies, core functions | Samkol Meng Leang | — |
+| #7 | 2026-04-23 09:27 | Auth | Sign-up flow | Vongphet Pasithphone | — |
+| #8 | 2026-04-25 00:48 | Profile | Profile page with mock data | Soumek Xaynguyen (quangngv) | — |
+| #9 | 2026-05-03 18:30 | Auth | Remove OTP from the login flow | Bannavong | — |
+| #10 | 2026-05-04 10:48 | Auth | Show OTP on the OTP page | Bannavong | — |
+| #11 | 2026-05-11 15:12 | Map | Upgrade to full indoor navigation system | Bannavong | — |
+| `bb190b1` | 2026-05-11 15:23 | Docs / API | Add swagger from backend team | Bannavong | — |
+| #12 | 2026-05-12 14:40 | Map | Add indoor navigation map feature (preview) | Bannavong | — |
+| #13 | 2026-05-12 22:24 | Medical | Medical services: queue + prescription | Bannavong | — |
+| #14 | 2026-05-14 16:45 | Map | Map feature work | Bannavong | — |
+| #15 | 2026-05-14 17:29 | Chore / Docs | Add docs, retire unused files | Bannavong | — |
+| #16 | 2026-05-18 22:27 | Docs | Update swagger.yaml + PROJECT.md checklist | Bannavong | — |
+| #17 | 2026-05-19 12:10 | UI / Core | Add async handling + new UI | Vongphet Pasithphone | bannavong |
+| #18 | 2026-05-19 17:46 | Notification | Notification feature UI | Kimheng99 | — |
+| #20 | 2026-05-20 15:10 | Docs / API | Update swagger from backend team | Bannavong | — |
+| #21 | 2026-05-20 20:45 | Map / Navigation | Indoor "You are here" simulated navigation + backlog scope | Bannavong | — |
+| #22 | 2026-05-22 13:16 | Auth | Auth module work | Vongphet Pasithphone | — |
+| #23 | 2026-05-22 16:15 | CI / Docs | Firebase Hosting deploy workflow for docs-site | Bannavong | — |
+| #24 | 2026-05-22 18:13 | Docs | Update docs | Bannavong | — |
+| #25 | 2026-05-22 18:56 | Auth | Fix reset-password flow | Vongphet Pasithiphone | Bannavong |
+| #26 | 2026-05-24 13:36 | Map / Route / Flow | Offline-first indoor navigation, crowd-aware routing, flow analytics | Bannavong | — |
+| #27 | 2026-05-24 15:48 | Map | Fix map bug | Bannavong | — |
+| #29 | 2026-05-25 14:55 | Notification / Home / Nav | Notifications (pagination + optional push + settings + bell), Info hub, home cleanup, 4-tab nav | kimheng99 | Vongphet Pasithiphone, Bannavong |
+| #31 | 2026-05-25 16:58 | Settings / Notification | Unified Settings page (theme/notification/language, backend-persisted) + notification API contract fixes | Soumek Xaynguyen (quangngv) | Bannavong |
+| #32 | 2026-05-25 18:56 | Docs | PROJECT.md current-state summary + prioritised backlog; move overview docs to `doc/` | Bannavong | — |
+
+## Contributor summary
+
+| Person | Lead commits | Also co-contributed |
+|---|---|---|
+| **Bannavong** (bannavong.sa239717) | 20 — core, theme, CI, map, route, flow, medical, docs | #17, #25, #29, #31 |
+| **Vongphet Pasithphone** (pasithphone.v220116) | 4 — auth (#7, #22), async/UI (#17), reset-password (#25) | #29 |
+| **Kimheng99** (nutkimheng000) | 2 — notification UI (#18), notifications/info/nav (#29) | — |
+| **Soumek Xaynguyen** (aka quangngv / quanghot31ao) | 2 — profile page (#8), unified Settings page (#31) | — |
+| **Samkol Meng Leang** | 1 — auth/core/home pages (#5) | — |
+
+> **Reassignment rule applied:** on any commit where Bannavong was the merger but
+> a teammate co-contributed, the teammate is credited as **main** and Bannavong
+> moved to **co** — affects #25 (→ Vongphet), #29 (→ kimheng99, lead author of the
+> kim-heng branch), and #31 (→ Soumek Xaynguyen, who commits as `quangngv` — author of the settings branch).
+>
+> Module labels are inferred from the commit subject + the files each PR touched.
+> Co-contributors come from `Co-Authored-By` trailers on the squash/merge commits.
