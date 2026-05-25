@@ -82,7 +82,8 @@ class SosNotifier extends StateNotifier<SosState> {
   }
 
   void clearMessages() {
-    state = state.copyWith(clearError: true, clearSuccess: true);
+    state = state.copyWith(clearError: true);
+    state = state.copyWith(clearSuccess: true);
   }
 
   String _fmt(Object e) => e.toString().replaceFirst('Exception: ', '');
@@ -90,7 +91,7 @@ class SosNotifier extends StateNotifier<SosState> {
 
 final sosProvider = StateNotifierProvider<SosNotifier, SosState>((ref) {
   final repo = ref.watch(sosRepositoryProvider);
-  final notifier = SosNotifier(repo);
+  final notifier = SosNotifier(repo); // ignore: cascade_invocations
   notifier.loadDetail();
   return notifier;
 });

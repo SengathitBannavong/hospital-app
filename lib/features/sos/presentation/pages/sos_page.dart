@@ -252,7 +252,7 @@ class _SosStatusCard extends StatelessWidget {
                 const Spacer(),
                 Chip(
                   label: Text(statusText),
-                  backgroundColor: color.withOpacity(0.15),
+                  backgroundColor: color.withValues(alpha: 0.15),
                   labelStyle: TextStyle(color: color, fontSize: 12),
                   side: BorderSide.none,
                 ),

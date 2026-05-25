@@ -79,7 +79,18 @@ class ApiEndpoints {
   static const String getSettings = 'user/get_settings';
   static const String setSettings = 'user/set_settings';
 
+  // Utility
+  static const String weather = 'util/weather';
+  static const String parking = 'util/parking';
+  static const String pharmacy = 'util/pharmacy';
+  static const String canteen = 'util/canteen';
+  static const String wifi = 'util/wifi';
+  static const String faq = 'util/faq';
+  static const String feedback = 'util/feedback';
+
   // SOS
   static const String sosCreate = 'sos/create';
   static const String sosGetDetail = 'sos/get_detail';
 }
+
+// Utility (appended)
