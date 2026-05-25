@@ -29,9 +29,13 @@ class FirebaseNotificationService {
   static final FirebaseNotificationService instance =
       FirebaseNotificationService._();
 
+  static const bool isEnabled = bool.fromEnvironment('ENABLE_FIREBASE');
+
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+
+  bool _initialized = false;
 
   // Android notification channel
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
@@ -45,9 +49,13 @@ class FirebaseNotificationService {
 
   void attachRef(WidgetRef ref) => _ref = ref;
 
-  // ─── Initialization ──────────────────────────────────────────────────────
+  // Initialization.
 
   Future<void> initialize() async {
+    if (!isEnabled) {
+      return;
+    }
+
     // 1. Request permission
     await _requestPermission();
 
@@ -71,11 +79,16 @@ class FirebaseNotificationService {
 
     // 7. Listen for token refresh
     _messaging.onTokenRefresh.listen(_onTokenRefresh);
+    _initialized = true;
   }
 
   // ─── Get & Register Token ────────────────────────────────────────────────
 
   Future<String?> getAndRegisterToken() async {
+    if (!isEnabled || !_initialized) {
+      return null;
+    }
+
     try {
       String? token;
 

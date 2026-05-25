@@ -22,12 +22,20 @@ class _AppInitializerState extends ConsumerState<AppInitializer> {
   @override
   void initState() {
     super.initState();
+    if (!FirebaseNotificationService.isEnabled) {
+      return;
+    }
+
     // Attach ref to the FCM service so it can call providers
     FirebaseNotificationService.instance.attachRef(ref);
     _tryRegisterToken();
   }
 
   Future<void> _tryRegisterToken() async {
+    if (!FirebaseNotificationService.isEnabled) {
+      return;
+    }
+
     final user = ref.read(authStateProvider);
     if (user != null && !_tokenRegistered) {
       _tokenRegistered = true;
@@ -39,6 +47,10 @@ class _AppInitializerState extends ConsumerState<AppInitializer> {
   Widget build(BuildContext context) {
     // Re-register token if auth state changes (e.g. after login)
     ref.listen(authStateProvider, (previous, next) {
+      if (!FirebaseNotificationService.isEnabled) {
+        return;
+      }
+
       if (next != null && !_tokenRegistered) {
         _tokenRegistered = true;
         FirebaseNotificationService.instance.getAndRegisterToken();
