@@ -2,9 +2,7 @@ import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TokenRepository {
-  static final FlutterSecureStorage? _storage = Platform.isMacOS
-      ? null
-      : FlutterSecureStorage();
+  static final FlutterSecureStorage _storage = FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
   static final File _macosFallbackFile = File(
     '${Platform.environment['HOME']}/.hospital_app_token',
@@ -15,12 +13,10 @@ class TokenRepository {
       try {
         await _macosFallbackFile.writeAsString(token, flush: true);
       } catch (_) {
-        if (_storage != null) {
-          await _storage!.write(key: _tokenKey, value: token);
-        }
+        await _storage.write(key: _tokenKey, value: token);
       }
     } else {
-      await _storage!.write(key: _tokenKey, value: token);
+      await _storage.write(key: _tokenKey, value: token);
     }
   }
 
@@ -33,13 +29,10 @@ class TokenRepository {
         }
         return null;
       } catch (_) {
-        if (_storage != null) {
-          return await _storage!.read(key: _tokenKey);
-        }
-        return null;
+        return await _storage.read(key: _tokenKey);
       }
     }
-    return await _storage!.read(key: _tokenKey);
+    return await _storage.read(key: _tokenKey);
   }
 
   static Future<void> deleteToken() async {
@@ -49,12 +42,10 @@ class TokenRepository {
           await _macosFallbackFile.delete();
         }
       } catch (_) {
-        if (_storage != null) {
-          await _storage!.delete(key: _tokenKey);
-        }
+        await _storage.delete(key: _tokenKey);
       }
     } else {
-      await _storage!.delete(key: _tokenKey);
+      await _storage.delete(key: _tokenKey);
     }
   }
 
