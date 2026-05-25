@@ -28,8 +28,9 @@ lib/
 │   ├── main/                    # Main shell (Bottom navigation wrapper)
 │   ├── map/                     # 2D Map, routing, POI search
 │   ├── medical/                 # Appointments, medical tasks, prescriptions
-│   ├── notification/            # In-app notifications
-│   └── profile/                 # User settings, profile edit
+│   ├── notification/            # In-app notifications + push (FCM, optional)
+│   ├── profile/                 # Profile view/edit
+│   └── settings/                # Unified settings (theme, notifications, language)
 └── main.dart                    # Application entry point
 ```
 

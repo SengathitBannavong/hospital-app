@@ -28,7 +28,7 @@ The UI is composed of animated, highly-reusable components designed to give a pr
 
 ```text
 📦 HomePage
-├── 🧭 AppBar (refresh · theme toggle · 🔔 notification bell badge · logout)
+├── 🧭 AppBar (refresh · ⚙️ Settings → /settings · 🔔 notification bell badge · logout)
 ├── 🔄 RefreshIndicator
 └── 📜 SingleChildScrollView
     └── 🏗️ Column

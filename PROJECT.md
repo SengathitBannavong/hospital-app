@@ -16,7 +16,7 @@ Admin-only web, traffic-control, and algorithm-engine features are intentionally
 - [x] Firebase Cloud Messaging push is implemented client-side but **optional** (off by default; gated behind the `ENABLE_FIREBASE` dart-define). API keys are sourced from dart-defines, not committed. See `FIREBASE.md`.
 - [ ] SOS endpoints/repositories/pages are not wired into the app shell yet.
 - [x] Static info pages are visible in the current route tree (`/info`).
-- [x] Settings page exists at `/settings`, accessible via gear icon in Profile page AppBar: theme switcher, notification toggles, change-password shortcut, logout, and app info.
+- [x] Single Settings page at `/settings`, reached via the gear icon in the Home, Profile, and Notification app bars: theme (persisted to backend), notification + language preferences (via `user/get_settings` / `user/set_settings`), change password, logout, and app info.
 - [ ] Several patient/public Swagger-backed features are not wired into the mobile app yet: voice support, active route guidance, asset booking, staff request, chat/FAQ, utilities, and feedback.
 - [ ] Demo flow and final QA checklist still need execution.
 
@@ -55,7 +55,7 @@ Scope: mobile dashboard, patient summary cards, quick actions, and public/patien
 - [x] Home repository exists: `lib/features/home/data/home_repository.dart`.
 - [x] Home branch is routed in the bottom navigation shell.
 - [x] Home fetches `medical/get_tasks` and displays the current task count.
-- [x] Home includes pull-to-refresh, manual refresh, theme toggle, logout, and animated summary cards.
+- [x] Home includes pull-to-refresh, manual refresh, a Settings gear, a notification bell with unread badge, logout, and animated summary cards.
 - [x] Removed the local appointment counter, the static "doctors available" demo card, and the FAB appointment counter.
 - [x] Home shows live notifications: an unread bell in the app bar (badge from `unreadCountProvider`) and a summary card, both wired to `notification/get_list` and opening `/notification` via push.
 - [x] Home quick actions de-duplicated (Map/Medical/Profile removed since they are tabs); a single "Thông tin" shortcut opens the Info hub. Shortcuts are still missing for SOS, utilities, wheelchair booking, staff request, and chat/support.
@@ -141,7 +141,7 @@ Scope: notification list, mark read, delete, profile edit.
 - [x] Show notification time in UI (`NotificationCard` renders `created_at`).
 - [x] Add global unread badge count (Home app-bar bell via `unreadCountProvider`).
 - [x] Register device token with `user/set_devtoken` (sends `device_token` + `platform`); driven by the optional Firebase service.
-- [x] Add notification settings UI using `user/get_settings` and `user/set_settings` (`notification_settings_page.dart`).
+- [x] Notification settings handled by the unified Settings page via `user/get_settings` / `user/set_settings` (the standalone `notification_settings_page.dart` was removed).
 - [ ] Add repository/provider tests for notification flow.
 - [ ] Manual QA: list load, pull-to-refresh, mark read, delete.
 - [x] App-side push registration is implemented (FCM client) but **optional** via `ENABLE_FIREBASE`. NOTE: the backend stores tokens but does not send pushes yet, so no push arrives until the backend FCM sender ships.
@@ -159,7 +159,7 @@ Scope: static info pages and SOS feature.
 - [x] Define/expand static info pages needed for demo (hospital guide, departments, visiting hours, help/contact).
 - [ ] Public utility APIs are available but not wired: `util/faq`, `util/about`, `util/contact`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather`.
 - [ ] Feedback submission is not wired; Swagger exposes `util/feedback`.
-- [ ] Language list/settings are not wired; Swagger exposes `util/languages`, `user/get_settings`, and `user/set_settings`.
+- [x] Language + notification + theme preferences are wired to `user/get_settings` / `user/set_settings`. (Dynamic `util/languages` list still not used — the picker is static vi/en.)
 - [ ] File upload is not wired; Swagger exposes `util/upload`, useful for feedback/report images if backend accepts attachments.
 - [x] Add navigation entry points for static info pages.
 - [ ] Add navigation entry points for SOS.
@@ -176,7 +176,7 @@ Scope: features available in `swagger.yaml` for patient/public/mobile use, exclu
 - [ ] Feedback UI is missing even though `util/feedback` is available.
 - [ ] Route sharing/rating/history UI is missing even though route APIs exist.
 - [ ] Patient traffic awareness and reporting are missing even though public Flow APIs exist for density, heatmap, alerts, ping location, and obstacle reports.
-- [ ] User settings page is not wired for language/theme/notification preferences even though `user/get_settings` and `user/set_settings` exist in Swagger.
+- [x] User settings page is wired for language/theme/notification preferences via `user/get_settings` and `user/set_settings`.
 
 
 
@@ -188,7 +188,7 @@ Scope: loading states, animations, error handling, demo script execution.
 - [x] Shared `FadeSlideTransition` widget exists.
 - [x] Toast utility exists.
 - [x] Loading/error states exist in several pages/providers.
-- [x] Home page has refresh, logout, theme toggle, and animated summary cards.
+- [x] Home page has refresh, a Settings gear, a notification bell, logout, and animated summary cards.
 - [ ] Run `dart format` after final code changes.
 - [ ] Run `dart analyze lib test`.
 - [ ] Run `flutter test`.
@@ -205,27 +205,22 @@ Scope: user settings page covering account, appearance, notifications, and app i
 
 
 
-- [x] "Change password" button — navigates to `/change-password` (page already exists).
-- [x] "Logout" button — shows a confirmation AlertDialog, then calls `authStateProvider.notifier.logout()`.
-- [x] Theme selection is shown with `SegmentedButton<ThemeMode>` with 3 options: Light / System / Dark.
-- [x] `ThemeController.setThemeMode(ThemeMode)` was added to `lib/core/theme/theme_controller.dart` to support direct selection (in addition to the existing `toggleTheme()`).
-- [x] Theme state updates in real time through `ListenableBuilder` — `themeController` is a global `ChangeNotifier`.
-- [ ] Theme selection is not persisted across restarts yet (SharedPreferences or Hive needed).
-- [x] Toggle "Enable notifications" — turns all notifications on/off (in-memory state).
-- [x] Toggle "Appointment reminders" — automatically disabled when global notifications are turned off.
-- [ ] Not wired to the `user/get_settings` / `user/set_settings` APIs.
-- [ ] Not wired to the device push token (`user/set_devtoken`).
-- [x] "Help & Support" — navigates to `/info` (FAQ page already exists).
-- [x] "About app" — opens `showAboutDialog` with the app name, version, and a short description.
-- [x] "Version" — shows static `1.0.0`.
-- [ ] Not wired to the real version from `sys/check_version`.
+- [x] Single Settings page (`/settings`) — consolidated from the old per-feature settings; reached via the gear icon in the Home, Profile, and Notification app bars (the standalone `notification_settings_page.dart` was removed).
+- [x] Backed by `user/get_settings` / `user/set_settings` — theme, notification on/off, and language load and save to the backend (partial updates).
+- [x] Theme: `SegmentedButton<ThemeMode>` (Light / System / Dark); applies live via `themeController` and **persists via the backend `theme` field**; restored on launch/login by `AppInitializer`.
+- [x] `ThemeController.setThemeMode(ThemeMode)` supports direct selection.
+- [x] "Change password" → `/change-password`; "Logout" → confirm dialog → `logout()`.
+- [x] Device push token (`user/set_devtoken`) registered via the optional Firebase service.
+- [x] "Help & Support" → `/help`; "About app" → `showAboutDialog`; "Version" shows `1.0.0`.
+- [ ] Voice-guidance + travel-mode toggles dropped — backend `get/set_settings` does not expose those columns yet.
+- [ ] "Version" still static `1.0.0` (not from `sys/check_version`).
 
 
 
 ## Suggested Next Build Order
 
-1. Persist Settings: wire SharedPreferences/Hive for theme and notification toggles in the Settings page.
-2. Wire Settings notifications to `user/get_settings` / `user/set_settings` (device token is already wired).
+1. ~~Persist Settings + wire to `user/get_settings` / `user/set_settings`.~~ Done — theme/notification/language persist server-side; theme restored on launch.
+2. (Backend) Expose `voice_guidance` + `travel_mode` in the settings API to restore those toggles in the app.
 3. ~~Finish Chat 5 notification UI/API wiring.~~ Done (pagination, badge, settings, device token, optional FCM push). Remaining: tests + manual QA.
 4. Finish Chat 6 SOS; static info pages now organised under the Info hub.
 5. Turn Home into the patient dashboard: add utility, route, SOS, and asset entry points (task + notification already wired).

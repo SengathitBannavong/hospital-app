@@ -24,7 +24,7 @@ The Notification module relies on a continuous, paginated scrollable list.
 
 ```text
 📦 NotificationPage  (top-level pushed route, with back button)
-├── 🧭 AppBar (unread badge · "mark all read" · settings)
+├── 🧭 AppBar (unread badge · "mark all read" · ⚙️ Settings → /settings)
 ├── 🔄 RefreshIndicator (pull-to-refresh)
 └── 📜 ListView.builder (infinite scroll → loadMore)
     ├── 📇 NotificationCard
