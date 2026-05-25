@@ -115,7 +115,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Cài đặt thông báo',
-            onPressed: () => context.push('/notification/settings'),
+            onPressed: () => context.push('/settings'),
           ),
         ],
       ),

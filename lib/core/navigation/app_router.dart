@@ -25,7 +25,6 @@ import 'package:hospital_app/features/settings/presentation/pages/settings_page.
 import 'package:hospital_app/features/info/presentation/pages/about_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/contact_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/faq_page.dart';
-import 'package:hospital_app/features/notification/presentation/pages/notification_settings_page.dart';
 
 // RouterNotifier to handle reactive redirection
 class RouterNotifier extends ChangeNotifier {
@@ -142,12 +141,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notification',
         builder: (context, state) => const NotificationPage(),
-        routes: [
-          GoRoute(
-            path: 'settings',
-            builder: (context, state) => const NotificationSettingsPage(),
-          ),
-        ],
       ),
       GoRoute(path: '/info', builder: (context, state) => const InfoPage()),
       GoRoute(path: '/faq', builder: (context, state) => const FaqPage()),
@@ -208,10 +201,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SettingsPage(),
       ),
       // Standalone help page — used by Settings to avoid shell-push conflict
-      GoRoute(
-        path: '/help',
-        builder: (context, state) => const InfoPage(),
-      ),
+      GoRoute(path: '/help', builder: (context, state) => const InfoPage()),
     ],
   );
 });
