@@ -93,13 +93,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             onPressed: _isLoadingTasks ? null : _fetchTasks,
           ),
           IconButton(
-            icon: Icon(
-              context.isDarkMode
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-            ),
-            tooltip: 'Giao diện',
-            onPressed: () => themeController.toggleTheme(),
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Cài đặt',
+            onPressed: () => context.push('/settings'),
           ),
           IconButton(
             icon: const NotificationBadge(
