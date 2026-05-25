@@ -64,8 +64,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> _refreshDashboard() async {
     await _fetchTasks();
-    ref.invalidate(weatherSummaryProvider);
-    ref.invalidate(parkingSummaryProvider);
+    ref
+      ..invalidate(weatherSummaryProvider)
+      ..invalidate(parkingSummaryProvider);
   }
 
   void _openSos() {

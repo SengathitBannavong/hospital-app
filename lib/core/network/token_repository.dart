@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TokenRepository {
-  static final FlutterSecureStorage _storage = FlutterSecureStorage();
+  static final FlutterSecureStorage _storage = const FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
   static final File _macosFallbackFile = File(
     '${Platform.environment['HOME']}/.hospital_app_token',
