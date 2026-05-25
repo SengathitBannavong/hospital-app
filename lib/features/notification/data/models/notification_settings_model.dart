@@ -8,11 +8,11 @@
 //   theme                  string
 
 class NotificationSettingsModel {
-  final bool notificationEnabled;   // notification_enabled
-  final bool voiceGuidanceEnabled;  // voice_guidance_enabled
-  final String travelMode;          // travel_mode
-  final String language;            // language
-  final String theme;               // theme
+  final bool notificationEnabled; // notification_enabled
+  final bool voiceGuidanceEnabled; // voice_guidance_enabled
+  final String travelMode; // travel_mode
+  final String language; // language
+  final String theme; // theme
 
   const NotificationSettingsModel({
     required this.notificationEnabled,
@@ -36,10 +36,8 @@ class NotificationSettingsModel {
     // Backend wraps in { code, message, data: { ... } }
     final dataMap = json['data'] as Map<String, dynamic>? ?? json;
     return NotificationSettingsModel(
-      notificationEnabled:
-          dataMap['notification_enabled'] as bool? ?? true,
-      voiceGuidanceEnabled:
-          dataMap['voice_guidance_enabled'] as bool? ?? true,
+      notificationEnabled: dataMap['notification_enabled'] as bool? ?? true,
+      voiceGuidanceEnabled: dataMap['voice_guidance_enabled'] as bool? ?? true,
       travelMode: dataMap['travel_mode'] as String? ?? 'walk',
       language: dataMap['language'] as String? ?? 'vi',
       theme: dataMap['theme'] as String? ?? 'light',

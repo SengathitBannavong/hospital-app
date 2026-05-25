@@ -228,15 +228,9 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
           Icon(Icons.info_outline_rounded, color: cs.onErrorContainer),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(
-              message,
-              style: TextStyle(color: cs.onErrorContainer),
-            ),
+            child: Text(message, style: TextStyle(color: cs.onErrorContainer)),
           ),
-          TextButton(
-            onPressed: _refresh,
-            child: const Text('Thử lại'),
-          ),
+          TextButton(onPressed: _refresh, child: const Text('Thử lại')),
         ],
       ),
     );

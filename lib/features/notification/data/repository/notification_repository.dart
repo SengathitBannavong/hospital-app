@@ -9,7 +9,7 @@ import '../models/notification_settings_model.dart';
 
 class NotificationRepository {
   NotificationRepository({NotificationRemoteDataSource? remoteDataSource})
-      : _remoteDataSource = remoteDataSource ?? NotificationRemoteDataSource();
+    : _remoteDataSource = remoteDataSource ?? NotificationRemoteDataSource();
 
   final NotificationRemoteDataSource _remoteDataSource;
   final Dio _dio = ApiClient.instance;
@@ -67,10 +67,7 @@ class NotificationRepository {
   /// POST user/set_settings
   Future<void> saveSettings(NotificationSettingsModel settings) async {
     try {
-      await _dio.post(
-        ApiEndpoints.setSettings,
-        data: settings.toJson(),
-      );
+      await _dio.post(ApiEndpoints.setSettings, data: settings.toJson());
     } on DioException catch (e) {
       throw Exception(_parseError(e));
     }
