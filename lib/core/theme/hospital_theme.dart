@@ -67,10 +67,7 @@ class HospitalTheme {
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimaryLight,
         ),
-        iconTheme: IconThemeData(
-          color: AppColors.textPrimaryLight,
-          size: 22,
-        ),
+        iconTheme: IconThemeData(color: AppColors.textPrimaryLight, size: 22),
       ),
 
       // ── Bottom Navigation ──
@@ -188,10 +185,7 @@ class HospitalTheme {
       inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceVariantLight,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: AppRadius.borderMd,
           borderSide: BorderSide.none,
@@ -416,10 +410,7 @@ class HospitalTheme {
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimaryDark,
         ),
-        iconTheme: IconThemeData(
-          color: AppColors.textPrimaryDark,
-          size: 22,
-        ),
+        iconTheme: IconThemeData(color: AppColors.textPrimaryDark, size: 22),
       ),
 
       // ── Bottom Navigation ──
@@ -485,10 +476,7 @@ class HospitalTheme {
       inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceVariantDark,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: AppRadius.borderMd,
           borderSide: BorderSide.none,
