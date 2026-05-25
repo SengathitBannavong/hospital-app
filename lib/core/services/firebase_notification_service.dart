@@ -100,7 +100,10 @@ class FirebaseNotificationService {
 
   Future<void> _registerTokenWithBackend(String token) async {
     try {
-      _ref?.read(notificationProvider.notifier).registerDeviceToken(token);
+      final platform = Platform.isIOS ? 'ios' : 'android';
+      _ref
+          ?.read(notificationProvider.notifier)
+          .registerDeviceToken(token, platform);
     } catch (e) {
       debugPrint('[FCM] Token registration failed: $e');
     }

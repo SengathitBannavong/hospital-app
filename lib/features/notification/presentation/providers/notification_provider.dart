@@ -193,9 +193,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   }
 
   /// Register FCM device token with the backend (called by Firebase service).
-  Future<void> registerDeviceToken(String token) async {
+  Future<void> registerDeviceToken(String token, String platform) async {
     try {
-      await _repository.registerDeviceToken(token);
+      await _repository.registerDeviceToken(token, platform);
     } catch (_) {
       // Silently fail — retried on next token refresh / app launch.
     }

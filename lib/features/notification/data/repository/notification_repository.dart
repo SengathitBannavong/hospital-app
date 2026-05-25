@@ -39,11 +39,11 @@ class NotificationRepository {
   // ── Device token (Firebase push) ──────────────────────────────────────────
 
   /// POST user/set_devtoken
-  Future<void> registerDeviceToken(String fcmToken) async {
+  Future<void> registerDeviceToken(String fcmToken, String platform) async {
     try {
       await _dio.post(
         ApiEndpoints.setDevToken,
-        data: {'token': fcmToken},
+        data: {'device_token': fcmToken, 'platform': platform},
       );
     } on DioException catch (e) {
       throw Exception(_parseError(e));
