@@ -91,7 +91,6 @@ class SosNotifier extends StateNotifier<SosState> {
 
 final sosProvider = StateNotifierProvider<SosNotifier, SosState>((ref) {
   final repo = ref.watch(sosRepositoryProvider);
-  final notifier = SosNotifier(repo); // ignore: cascade_invocations
-  notifier.loadDetail();
+  final notifier = SosNotifier(repo)..loadDetail();
   return notifier;
 });

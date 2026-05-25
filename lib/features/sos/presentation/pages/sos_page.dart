@@ -184,8 +184,8 @@ class _SosHeroButton extends StatelessWidget {
                     : Colors.red,
                 boxShadow: [
                   BoxShadow(
-                    color: (isActive ? Colors.orange : Colors.red).withOpacity(
-                      0.4,
+                    color: (isActive ? Colors.orange : Colors.red).withValues(
+                      alpha: 0.4,
                     ),
                     blurRadius: 24,
                     spreadRadius: 4,
