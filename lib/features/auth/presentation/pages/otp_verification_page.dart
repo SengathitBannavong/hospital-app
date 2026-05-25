@@ -6,7 +6,6 @@ import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/otp_pin_input.dart';
-import 'package:hospital_app/features/auth/presentation/widgets/otp_countdown_button.dart';
 
 class OtpVerificationPage extends ConsumerStatefulWidget {
   final String phoneNumber;
@@ -99,17 +98,6 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
     }
   }
 
-  Future<void> _resendOtp() async {
-    try {
-      await ref
-          .read(authRepositoryProvider)
-          .resendOtp(phoneNumber: widget.phoneNumber, otpType: widget.otpType);
-      AppToast.showSuccess('Đã gửi lại mã OTP.');
-    } catch (e) {
-      AppToast.showError('Không thể gửi lại mã.');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.sizeOf(context).height;
@@ -138,6 +126,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+<<<<<<< HEAD
               SizedBox(height: isSmallScreen ? AppSpacing.md : AppSpacing.lg),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 100),
@@ -146,6 +135,31 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                     Container(
                       padding: EdgeInsets.all(
                         isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+=======
+              const SizedBox(height: AppSpacing.xl),
+              Text(
+                'Xác thực OTP',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Mã OTP đã được gửi đến số ${widget.phoneNumber}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Column(
+                    children: [
+                      OtpPinInput(controller: _otpController, length: 6),
+                      const SizedBox(height: AppSpacing.xl),
+                      TextButton(
+                        onPressed: null,
+                        child: const Text('Gửi lại mã hiện chưa hỗ trợ'),
+>>>>>>> 944e912 (Add SOS screen and home utility shortcuts)
                       ),
                       decoration: BoxDecoration(
                         color: context.colorScheme.primaryContainer,

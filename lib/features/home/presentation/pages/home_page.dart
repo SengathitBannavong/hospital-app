@@ -1,17 +1,18 @@
-// lib/features/home/presentation/pages/home_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/app_toast.dart';
-import '../../../../core/widgets/medical_info_card.dart';
 import '../../../../core/widgets/fade_slide_transition.dart';
+import '../../../../core/widgets/medical_info_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 import '../../../notification/presentation/widgets/notification_badge.dart';
+import '../../../util/data/util_repository.dart';
+import '../../../util/presentation/providers/util_providers.dart';
 import '../../data/home_repository.dart';
-import 'package:go_router/go_router.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key, required this.title});
@@ -31,24 +32,44 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
     _fetchTasks();
-    // Load real notifications on home page open
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(notificationProvider.notifier).loadNotifications();
     });
   }
 
   Future<void> _fetchTasks() async {
-    setState(() => _isLoadingTasks = true);
+    setState(() {
+      _isLoadingTasks = true;
+    });
+
     try {
       final tasks = await _homeRepository.getTasks();
-      if (mounted) setState(() => _taskCount = tasks.length);
+      if (mounted) {
+        setState(() {
+          _taskCount = tasks.length;
+        });
+      }
     } catch (error) {
       if (mounted) {
         AppToast.showError(error.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
-      if (mounted) setState(() => _isLoadingTasks = false);
+      if (mounted) {
+        setState(() {
+          _isLoadingTasks = false;
+        });
+      }
     }
+  }
+
+  Future<void> _refreshDashboard() async {
+    await _fetchTasks();
+    ref.invalidate(weatherSummaryProvider);
+    ref.invalidate(parkingSummaryProvider);
+  }
+
+  void _openSos() {
+    context.push('/sos');
   }
 
   Future<void> _logout() async {
@@ -73,13 +94,14 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     if (confirmed == true) {
       await ref.read(authStateProvider.notifier).logout();
-      if (mounted) AppToast.showSuccess('Đã đăng xuất');
+      if (mounted) {
+        AppToast.showSuccess('Đã đăng xuất');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // ── Watch real unread count from provider ──────────────────────────────
     final unreadCount = ref.watch(unreadCountProvider);
     final notifState = ref.watch(notificationProvider);
 
@@ -90,7 +112,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Tải lại',
-            onPressed: _isLoadingTasks ? null : _fetchTasks,
+            onPressed: _isLoadingTasks ? null : _refreshDashboard,
           ),
           IconButton(
             icon: Icon(
@@ -99,7 +121,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   : Icons.dark_mode_rounded,
             ),
             tooltip: 'Giao diện',
-            onPressed: () => themeController.toggleTheme(),
+            onPressed: () {
+              themeController.toggleTheme();
+            },
           ),
           IconButton(
             icon: const NotificationBadge(
@@ -118,7 +142,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _fetchTasks,
+        onRefresh: _refreshDashboard,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: AppSpacing.pagePadding,
@@ -126,8 +150,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.xl),
-
-              // Welcome Card
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 50),
                 child: Card(
@@ -153,15 +175,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: AppSpacing.xl),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 150),
                 child: Text('Tổng quan', style: context.textTheme.titleMedium),
               ),
               const SizedBox(height: AppSpacing.md),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 200),
                 child: MedicalInfoCard(
@@ -170,13 +189,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ? 'Đang tải...'
                       : '$_taskCount Hoạt động',
                   icon: Icons.assignment_rounded,
-                  onTap: _fetchTasks,
+                  onTap: _refreshDashboard,
                 ),
               ),
-
               const SizedBox(height: AppSpacing.md),
-
-              // ── Notification Section ──────────────────────────────────────
               const FadeSlideTransition(
                 delay: Duration(milliseconds: 350),
                 child: Text(
@@ -185,7 +201,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 400),
                 child: Card(
@@ -199,7 +214,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                               : Icons.notifications_outlined,
                           color: context.colorScheme.primary,
                         ),
-                        // Red dot badge if unread > 0
                         if (unreadCount > 0)
                           Positioned(
                             top: -4,
@@ -229,7 +243,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                       ],
                     ),
-                    // Show real count — or loading — or "no notifications"
                     title: Text(
                       notifState.isLoading
                           ? 'Đang tải thông báo...'
@@ -246,38 +259,51 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: AppSpacing.xl),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 450),
                 child: Text(
-                  'Truy cập nhanh',
+                  'Tiện ích nhanh',
                   style: context.textTheme.titleMedium,
                 ),
               ),
-
               const SizedBox(height: AppSpacing.md),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 500),
-                child: Wrap(
-                  spacing: AppSpacing.md,
-                  runSpacing: AppSpacing.md,
+                child: Row(
                   children: [
-                    _QuickActionCard(
-                      title: 'Thông tin',
-                      icon: Icons.info_outline_rounded,
-                      onTap: () => context.push('/info'),
+                    Expanded(
+                      child: _UtilityCard(
+                        snapshot: ref.watch(weatherSummaryProvider),
+                        onRetry: _refreshDashboard,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: _UtilityCard(
+                        snapshot: ref.watch(parkingSummaryProvider),
+                        onRetry: _refreshDashboard,
+                      ),
                     ),
                   ],
                 ),
               ),
-
-              const SizedBox(height: AppSpacing.xl),
-
+              const SizedBox(height: AppSpacing.md),
               FadeSlideTransition(
-                delay: const Duration(milliseconds: 450),
+                delay: const Duration(milliseconds: 550),
+                child: FilledButton.icon(
+                  onPressed: _openSos,
+                  icon: const Icon(Icons.emergency_rounded),
+                  label: const Text('Gửi SOS khẩn cấp'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    minimumSize: const Size.fromHeight(52),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              FadeSlideTransition(
+                delay: const Duration(milliseconds: 600),
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   decoration: BoxDecoration(
@@ -303,7 +329,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),
@@ -313,40 +338,41 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-class _QuickActionCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final VoidCallback onTap;
+class _UtilityCard extends StatelessWidget {
+  const _UtilityCard({required this.snapshot, required this.onRetry});
 
-  const _QuickActionCard({
-    required this.title,
-    required this.icon,
-    required this.onTap,
-  });
+  final AsyncValue<UtilitySnapshot> snapshot;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 150,
-      child: Card(
-        child: InkWell(
-          borderRadius: AppRadius.borderLg,
-          onTap: onTap,
-          child: Padding(
-            padding: AppSpacing.cardPadding,
-            child: Column(
-              children: [
-                Icon(icon, size: 32, color: context.colorScheme.primary),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  title,
-                  style: context.textTheme.labelLarge,
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
+    return snapshot.when(
+      data: (data) => MedicalInfoCard(
+        label: data.title,
+        value: data.value,
+        icon: data.icon,
+        color: AppColors.secondary,
+        onTap: () {
+          AppToast.showSuccess(
+            data.subtitle.isEmpty ? 'Đang cập nhật dữ liệu' : data.subtitle,
+          );
+          onRetry();
+        },
+      ),
+      loading: () => const MedicalInfoCard(
+        label: 'Đang tải',
+        value: '... ',
+        icon: Icons.sync_rounded,
+      ),
+      error: (error, _) => MedicalInfoCard(
+        label: 'Tiện ích',
+        value: 'Không tải được',
+        icon: Icons.error_outline_rounded,
+        color: AppColors.error,
+        onTap: () {
+          AppToast.showError(error.toString().replaceFirst('Exception: ', ''));
+          onRetry();
+        },
       ),
     );
   }

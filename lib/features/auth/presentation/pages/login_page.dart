@@ -51,6 +51,8 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
       await ref.read(authStateProvider.notifier).login(phoneNumber, password);
 
       if (mounted) {
+        // Login is a single-step flow on the current backend.
+        AppToast.showSuccess('Đăng nhập thành công.');
         context.go('/');
       }
     } catch (error) {
@@ -184,7 +186,11 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: () => context.push('/forgot-password'),
+                              onPressed: () {
+                                AppToast.showWarning(
+                                  'Chức năng quên mật khẩu chưa hỗ trợ.',
+                                );
+                              },
                               style: TextButton.styleFrom(
                                 visualDensity: VisualDensity.compact,
                               ),

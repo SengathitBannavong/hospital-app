@@ -5,7 +5,8 @@ import 'package:hospital_app/core/utils/app_toast.dart';
 class ErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    String errorMessage = _mapDioExceptionToMessage(err);
+    String errorMessage =
+        _extractServerMessage(err) ?? _mapDioExceptionToMessage(err);
 
     // Handle global status code actions
     final statusCode = err.response?.statusCode;
@@ -58,5 +59,16 @@ class ErrorInterceptor extends Interceptor {
     } else {
       return 'Received invalid status code: $statusCode';
     }
+  }
+
+  String? _extractServerMessage(DioException dioException) {
+    final data = dioException.response?.data;
+    if (data is Map<String, dynamic>) {
+      final message = data['message'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message;
+      }
+    }
+    return null;
   }
 }

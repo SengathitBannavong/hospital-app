@@ -4,7 +4,6 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 // Import splitted theme components
 import 'app_colors.dart';
@@ -62,7 +61,7 @@ class HospitalTheme {
         elevation: 0,
         scrolledUnderElevation: 0.5,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimaryLight,
@@ -96,13 +95,13 @@ class HospitalTheme {
         indicatorColor: AppColors.primarySurface,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.plusJakartaSans(
+            return TextStyle(fontFamily: 'Plus Jakarta Sans',
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.primary,
             );
           }
-          return GoogleFonts.plusJakartaSans(
+          return TextStyle(fontFamily: 'Plus Jakarta Sans',
             fontSize: 12,
             fontWeight: FontWeight.w400,
             color: AppColors.textTertiaryLight,
@@ -138,7 +137,7 @@ class HospitalTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -152,7 +151,7 @@ class HospitalTheme {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
           side: const BorderSide(color: AppColors.borderLight, width: 1),
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -164,7 +163,7 @@ class HospitalTheme {
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -207,15 +206,15 @@ class HospitalTheme {
           borderRadius: AppRadius.borderMd,
           borderSide: BorderSide(color: AppColors.error, width: 1.5),
         ),
-        hintStyle: GoogleFonts.plusJakartaSans(
+        hintStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 14,
           color: AppColors.textTertiaryLight,
         ),
-        labelStyle: GoogleFonts.plusJakartaSans(
+        labelStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 14,
           color: AppColors.textSecondaryLight,
         ),
-        errorStyle: GoogleFonts.plusJakartaSans(
+        errorStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 12,
           color: AppColors.error,
         ),
@@ -227,12 +226,12 @@ class HospitalTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceVariantLight,
         selectedColor: AppColors.primarySurface,
-        labelStyle: GoogleFonts.plusJakartaSans(
+        labelStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 13,
           fontWeight: FontWeight.w500,
           color: AppColors.textSecondaryLight,
         ),
-        secondaryLabelStyle: GoogleFonts.plusJakartaSans(
+        secondaryLabelStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 13,
           fontWeight: FontWeight.w600,
           color: AppColors.primary,
@@ -249,7 +248,7 @@ class HospitalTheme {
         backgroundColor: AppColors.surfaceLight,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderXl),
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimaryLight,
@@ -271,7 +270,7 @@ class HospitalTheme {
       // ── Snackbar ──
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.textPrimaryLight,
-        contentTextStyle: GoogleFonts.plusJakartaSans(
+        contentTextStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 14,
           color: AppColors.textOnPrimary,
         ),
@@ -291,12 +290,12 @@ class HospitalTheme {
       listTileTheme: ListTileThemeData(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 15,
           fontWeight: FontWeight.w500,
           color: AppColors.textPrimaryLight,
         ),
-        subtitleTextStyle: GoogleFonts.plusJakartaSans(
+        subtitleTextStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 13,
           color: AppColors.textSecondaryLight,
         ),
@@ -308,11 +307,11 @@ class HospitalTheme {
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textTertiaryLight,
         indicatorSize: TabBarIndicatorSize.label,
-        labelStyle: GoogleFonts.plusJakartaSans(
+        labelStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
-        unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+        unselectedLabelStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 14,
           fontWeight: FontWeight.w400,
         ),
@@ -394,7 +393,7 @@ class HospitalTheme {
         elevation: 0,
         scrolledUnderElevation: 0.5,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimaryDark,
@@ -441,7 +440,7 @@ class HospitalTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -455,7 +454,7 @@ class HospitalTheme {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
           side: const BorderSide(color: AppColors.borderDark, width: 1),
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -486,11 +485,11 @@ class HospitalTheme {
           borderRadius: AppRadius.borderMd,
           borderSide: BorderSide(color: Color(0xFFFF6B6B), width: 1),
         ),
-        hintStyle: GoogleFonts.plusJakartaSans(
+        hintStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 14,
           color: AppColors.textTertiaryDark,
         ),
-        labelStyle: GoogleFonts.plusJakartaSans(
+        labelStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 14,
           color: AppColors.textSecondaryDark,
         ),
@@ -502,7 +501,7 @@ class HospitalTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceVariantDark,
         selectedColor: const Color(0xFF0D3B5E),
-        labelStyle: GoogleFonts.plusJakartaSans(
+        labelStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 13,
           fontWeight: FontWeight.w500,
           color: AppColors.textSecondaryDark,
@@ -519,7 +518,7 @@ class HospitalTheme {
         backgroundColor: AppColors.surfaceDark,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderXl),
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimaryDark,
@@ -541,7 +540,7 @@ class HospitalTheme {
       // ── Snackbar ──
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surfaceVariantDark,
-        contentTextStyle: GoogleFonts.plusJakartaSans(
+        contentTextStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 14,
           color: AppColors.textPrimaryDark,
         ),
@@ -560,12 +559,12 @@ class HospitalTheme {
       listTileTheme: ListTileThemeData(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 15,
           fontWeight: FontWeight.w500,
           color: AppColors.textPrimaryDark,
         ),
-        subtitleTextStyle: GoogleFonts.plusJakartaSans(
+        subtitleTextStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 13,
           color: AppColors.textSecondaryDark,
         ),
@@ -577,11 +576,11 @@ class HospitalTheme {
         labelColor: AppColors.primaryLight,
         unselectedLabelColor: AppColors.textTertiaryDark,
         indicatorSize: TabBarIndicatorSize.label,
-        labelStyle: GoogleFonts.plusJakartaSans(
+        labelStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
-        unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+        unselectedLabelStyle: TextStyle(fontFamily: 'Plus Jakarta Sans',
           fontSize: 14,
           fontWeight: FontWeight.w400,
         ),
