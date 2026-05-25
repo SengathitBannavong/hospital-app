@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "787114932879",
+    "project_id": "my-flutter-app-7bb47",
+    "storage_bucket": "my-flutter-app-7bb47.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:787114932879:android:329ba245fec062914a4efa",
+        "android_client_info": {
+          "package_name": "page.hopital.hospital_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "PLACEHOLDER_REAL_FILE_INJECTED_AT_BUILD"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

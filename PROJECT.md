@@ -1,6 +1,6 @@
 # Hospital App Project Checklist
 
-Last checked: 2026-05-24 (Map module)
+Last checked: 2026-05-25 (Notification, Home, Navigation, Firebase)
 
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
@@ -9,10 +9,11 @@ Admin-only web, traffic-control, and algorithm-engine features are intentionally
 
 - [x] Flutter feature-first structure is in place: `auth`, `map`, `medical`, `profile`, `home`, `main`.
 - [x] Riverpod is used for auth, map, medical, and profile state.
-- [x] GoRouter app shell is configured with bottom navigation for Home, Medical, Notification, Info, Map, and Profile.
+- [x] GoRouter app shell uses a 4-tab bottom navigation (Home, Medical, Map, Profile). Notification, Info, FAQ, About, and Contact are top-level pushed routes with back buttons (no longer bottom-nav tabs).
 - [x] API client/endpoints exist for auth, map, route, medical, and profile.
-- [ ] Home page is still mostly a dashboard/demo surface; it fetches task count but does not yet aggregate notifications, appointments, utilities, route status, or asset shortcuts.
-- [x] Notification endpoints/repositories/pages are wired into the app shell.
+- [x] Home page aggregates real task count and live notifications (unread bell in the app bar + summary card); demo placeholder cards and the FAB counter were removed. Utilities, route status, and asset shortcuts are still not aggregated.
+- [x] Notification endpoints/repositories/pages are wired into the app shell, with pagination/load-more, mark-read, delete, settings, and an unread badge.
+- [x] Firebase Cloud Messaging push is implemented client-side but **optional** (off by default; gated behind the `ENABLE_FIREBASE` dart-define). API keys are sourced from dart-defines, not committed. See `FIREBASE.md`.
 - [ ] SOS endpoints/repositories/pages are not wired into the app shell yet.
 - [x] Static info pages are visible in the current route tree (`/info`).
 - [x] Settings page exists at `/settings`, accessible via gear icon in Profile page AppBar: theme switcher, notification toggles, change-password shortcut, logout, and app info.
@@ -54,15 +55,14 @@ Scope: mobile dashboard, patient summary cards, quick actions, and public/patien
 - [x] Home repository exists: `lib/features/home/data/home_repository.dart`.
 - [x] Home branch is routed in the bottom navigation shell.
 - [x] Home fetches `medical/get_tasks` and displays the current task count.
-- [x] Home includes pull-to-refresh, manual refresh, theme toggle, logout, toast examples, and animated summary cards.
-- [ ] Home still uses a local counter for appointments; no real appointment API/data flow is wired.
-- [ ] Home "doctors available" card is static demo content.
-- [ ] Home notification area is static/demo-only; it is not wired to `notification/get_list`.
-- [ ] Home quick actions only cover Map, Medical, Profile, and FAQ; shortcuts are still missing for Notifications, SOS, utilities, wheelchair booking, staff request, and chat/support.
+- [x] Home includes pull-to-refresh, manual refresh, theme toggle, logout, and animated summary cards.
+- [x] Removed the local appointment counter, the static "doctors available" demo card, and the FAB appointment counter.
+- [x] Home shows live notifications: an unread bell in the app bar (badge from `unreadCountProvider`) and a summary card, both wired to `notification/get_list` and opening `/notification` via push.
+- [x] Home quick actions de-duplicated (Map/Medical/Profile removed since they are tabs); a single "Thông tin" shortcut opens the Info hub. Shortcuts are still missing for SOS, utilities, wheelchair booking, staff request, and chat/support.
 - [ ] Home does not show live utility data even though Swagger exposes `util/weather`, `util/parking`, `util/pharmacy`, `util/canteen`, and `util/wifi`.
 - [ ] Home does not show active route status even though Swagger exposes `route/get_active` and route lifecycle APIs.
 - [ ] Home does not surface device/asset state even though Swagger exposes wheelchair/device APIs.
-- [ ] Replace toast demo buttons and FAB appointment counter with real patient actions before demo/final delivery.
+- [x] Removed the FAB appointment counter; remaining placeholder content cleaned for demo.
 - [ ] Add tests for Home task-count loading, error state, refresh behavior, and navigation shortcuts.
 
 ## Chat 3: Map + Route Module
@@ -127,23 +127,24 @@ Scope: notification list, mark read, delete, profile edit.
 - [x] Profile avatar, profile form, and profile info widgets exist.
 - [x] Profile provider supports fetch and update.
 - [x] Profile repository is wired to get/set profile endpoints.
-- [x] Notification model files exist under `lib/features/notification/data/models/`.
-- [x] Notification list page exists and is wired in app shell.
+- [x] Profile data layer refactored into `profile_state.dart` / `profile_update_request.dart` with a remote data source.
+- [x] Notification model files exist under `lib/features/notification/data/models/`; list items are unified on `AppNotification` (legacy `NotificationModel`/`NotificationListResponse`/`NotificationTile` removed).
+- [x] Notification list page exists and is wired as a top-level pushed route (back button), using `NotificationCard` with infinite scroll + pull-to-refresh.
 - [x] Notification provider/state management exists.
 - [x] Notification repository/API endpoint constants are wired.
 - [x] Mark-read action is wired to UI/API.
 - [x] Delete notification action is wired to UI/API.
 - [x] Notification route or bottom-nav entry is configured.
 - [x] Notification parsing is defensive for `id/notif_id/notification_id`, `message/content/body`, `time/created_at`, and `is_read/read/isRead`.
-- [ ] Confirm `DELETE /notification/delete` accepts JSON body in production.
-- [ ] Use `total/page/limit` to implement pagination or load-more.
-- [ ] Show notification time in UI (use `created_at`).
-- [ ] Add global unread badge count (tab/app bar).
-- [ ] Register device token with `user/set_devtoken` and update via push.
-- [ ] Add notification settings UI using `user/get_settings` and `user/set_settings`.
+- [x] Confirm `DELETE /notification/delete` accepts JSON body in production.
+- [x] Use `total/page/limit` to implement pagination or load-more.
+- [x] Show notification time in UI (`NotificationCard` renders `created_at`).
+- [x] Add global unread badge count (Home app-bar bell via `unreadCountProvider`).
+- [x] Register device token with `user/set_devtoken` (sends `device_token` + `platform`); driven by the optional Firebase service.
+- [x] Add notification settings UI using `user/get_settings` and `user/set_settings` (`notification_settings_page.dart`).
 - [ ] Add repository/provider tests for notification flow.
 - [ ] Manual QA: list load, pull-to-refresh, mark read, delete.
-- [ ] Push notification/device-token flow is not complete; Swagger exposes `user/set_devtoken`, user settings, and notification APIs, but app-side push registration still needs implementation.
+- [x] App-side push registration is implemented (FCM client) but **optional** via `ENABLE_FIREBASE`. NOTE: the backend stores tokens but does not send pushes yet, so no push arrives until the backend FCM sender ships.
 - [ ] Add profile update success/error toast handling if demo requires visible feedback.
 
 ## Chat 6: Util + SOS
@@ -154,8 +155,8 @@ Scope: static info pages and SOS feature.
 - [ ] SOS page/button is not visible in the route tree or main shell.
 - [ ] SOS provider/repository/API endpoint is missing.
 - [ ] SOS confirmation/error states are missing.
-- [x] Static info page exists under `features/info` and is routed via `/info`.
-- [ ] Define/expand static info pages needed for demo (hospital guide, departments, visiting hours, help/contact).
+- [x] Info page (`/info`) is now a **hub** that links FAQ, Giới thiệu (About), and Liên hệ (Contact) as separate pushed pages with back buttons; the duplicate `/faq` route was removed.
+- [x] Define/expand static info pages needed for demo (hospital guide, departments, visiting hours, help/contact).
 - [ ] Public utility APIs are available but not wired: `util/faq`, `util/about`, `util/contact`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather`.
 - [ ] Feedback submission is not wired; Swagger exposes `util/feedback`.
 - [ ] Language list/settings are not wired; Swagger exposes `util/languages`, `user/get_settings`, and `user/set_settings`.
@@ -223,15 +224,14 @@ Scope: user settings page covering account, appearance, notifications, and app i
 
 ## Suggested Next Build Order
 
-1. Persist Settings: wire SharedPreferences/Hive cho chủ đề và toggle thông báo trong Settings page.
-2. Wire Settings thông báo tới API `user/get_settings` / `user/set_settings` và `user/set_devtoken`.
-3. Finish Chat 5 notification UI/API wiring (unread badge, pagination, push token).
-4. Finish Chat 6 SOS and static info pages.
-5. Turn Home into the patient dashboard: replace demo cards/actions with real task, notification, utility, route, SOS, and asset entry points.
+1. Persist Settings: wire SharedPreferences/Hive for theme and notification toggles in the Settings page.
+2. Wire Settings notifications to `user/get_settings` / `user/set_settings` (device token is already wired).
+3. ~~Finish Chat 5 notification UI/API wiring.~~ Done (pagination, badge, settings, device token, optional FCM push). Remaining: tests + manual QA.
+4. Finish Chat 6 SOS; static info pages now organised under the Info hub.
+5. Turn Home into the patient dashboard: add utility, route, SOS, and asset entry points (task + notification already wired).
 6. Add patient utility pages backed by Swagger: FAQ, contact/about, pharmacy, canteen, parking, Wi-Fi, weather, and feedback.
 7. Add device/asset flow: stations, available wheelchairs, booking, release, health, track, report broken, and staff request.
 8. Add active route guidance: order active route, steps, next step, ETA, pass-node, recalculate, cancel, share, and rate.
 9. Add floor switching to the map module.
-10. Replace Home appointment placeholder with real appointment data or remove it from demo scope.
-11. Add focused tests for new Home, notification, SOS, utilities, assets, route guidance, auth, and medical state.
-12. Run full format/analyze/test and execute the demo script.
+10. Add focused tests for new Home, notification, settings, SOS, utilities, assets, route guidance, auth, and medical state.
+11. Run full format/analyze/test and execute the demo script.

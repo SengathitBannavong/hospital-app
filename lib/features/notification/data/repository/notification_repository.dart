@@ -1,103 +1,85 @@
+// lib/features/notification/data/repository/notification_repository.dart
+
 import 'package:dio/dio.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
-import 'package:hospital_app/core/network/api_response_codes.dart';
-import '../../../auth/data/models/auth_api_response.dart';
-import '../models/app_notification.dart';
+import '../datasources/notification_remote_data_source.dart';
+import '../models/notification_page_response.dart';
+import '../models/notification_settings_model.dart';
 
 class NotificationRepository {
-  Future<List<AppNotification>> getNotifications({
+  NotificationRepository({NotificationRemoteDataSource? remoteDataSource})
+    : _remoteDataSource = remoteDataSource ?? NotificationRemoteDataSource();
+
+  final NotificationRemoteDataSource _remoteDataSource;
+  final Dio _dio = ApiClient.instance;
+
+  // ── List / read / delete (paginated, via remote data source) ──────────────
+
+  /// GET notification/get_list?page=&limit=
+  Future<NotificationPageResponse> getNotifications({
     int page = 1,
     int limit = 20,
-  }) async {
+  }) {
+    return _remoteDataSource.getNotifications(page: page, limit: limit);
+  }
+
+  /// POST notification/set_read { notif_id }
+  Future<void> markAsRead({required int notificationId}) {
+    return _remoteDataSource.markAsRead(notificationId: notificationId);
+  }
+
+  /// DELETE notification/delete { notif_id: [...] }
+  Future<void> deleteNotifications({required List<int> notificationIds}) {
+    return _remoteDataSource.deleteNotifications(
+      notificationIds: notificationIds.map((id) => id.toString()).toList(),
+    );
+  }
+
+  // ── Device token (Firebase push) ──────────────────────────────────────────
+
+  /// POST user/set_devtoken
+  Future<void> registerDeviceToken(String fcmToken, String platform) async {
     try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.notificationGetList,
-        queryParameters: {'page': page, 'limit': limit},
+      await _dio.post(
+        ApiEndpoints.setDevToken,
+        data: {'device_token': fcmToken, 'platform': platform},
       );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success) {
-        final items = _extractNotificationList(apiResponse.data);
-        return items.map(AppNotification.fromJson).toList();
-      }
-
-      throw Exception(apiResponse.message);
     } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
+      throw Exception(_parseError(e));
     }
   }
 
-  Future<void> markAsRead({required int notificationId}) async {
+  // ── Notification settings ─────────────────────────────────────────────────
+
+  /// GET user/get_settings
+  Future<NotificationSettingsModel> getSettings() async {
     try {
-      final response = await ApiClient.instance.post(
-        ApiEndpoints.notificationSetRead,
-        data: {'notif_id': notificationId},
+      final response = await _dio.get(ApiEndpoints.getSettings);
+      return NotificationSettingsModel.fromJson(
+        response.data as Map<String, dynamic>,
       );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code != ApiResponseCodes.success) {
-        throw Exception(apiResponse.message);
-      }
     } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
+      throw Exception(_parseError(e));
     }
   }
 
-  Future<void> deleteNotification({required int notificationId}) async {
+  /// POST user/set_settings
+  Future<void> saveSettings(NotificationSettingsModel settings) async {
     try {
-      final response = await ApiClient.instance.delete(
-        ApiEndpoints.notificationDelete,
-        data: {'notif_id': notificationId},
-      );
-
-      final apiResponse = AuthApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-
-      if (apiResponse.code != ApiResponseCodes.success) {
-        throw Exception(apiResponse.message);
-      }
+      await _dio.post(ApiEndpoints.setSettings, data: settings.toJson());
     } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
+      throw Exception(_parseError(e));
     }
   }
 
-  List<Map<String, dynamic>> _extractNotificationList(Object? data) {
-    if (data is List) {
-      return data.whereType<Map<String, dynamic>>().toList();
+  String _parseError(DioException e) {
+    final data = e.response?.data;
+    if (data is Map) {
+      return data['message']?.toString() ??
+          data['error']?.toString() ??
+          'An error occurred';
     }
-
-    if (data is Map<String, dynamic>) {
-      final candidates = [
-        data['notifications'],
-        data['items'],
-        data['list'],
-        data['data'],
-      ];
-      for (final candidate in candidates) {
-        if (candidate is List) {
-          return candidate.whereType<Map<String, dynamic>>().toList();
-        }
-      }
-    }
-
-    return [];
-  }
-
-  String _extractErrorMessage(DioException e) {
-    if (e.response?.data is Map<String, dynamic>) {
-      return e.response?.data['message'] ?? e.message ?? 'Unknown error';
-    }
-    return e.message ?? 'Unknown error';
+    return e.message ?? 'An error occurred';
   }
 }

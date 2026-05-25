@@ -20,7 +20,7 @@ Unlike deeply nested features, the Home module relies primarily on localized sta
 | :--- | :--- |
 | **Local State (`StatefulWidget`)** | Manages the `_isLoadingTasks` boolean and `_taskCount` integer directly within `_HomePageState`. |
 | **Direct Repository Access** | Instantiates `HomeRepository` to execute `getTasks()` directly during `initState` and via Pull-to-Refresh. |
-| **Global Consumers** | Consumes `themeController` for dark/light mode toggling, and `authStateProvider` for logging out. |
+| **Global Consumers** | Consumes `themeController` (dark/light), `authStateProvider` (logout), and `notificationProvider` / `unreadCountProvider` (app-bar bell badge + summary card). |
 
 ## Widget Types & Patterns
 
@@ -28,22 +28,28 @@ The UI is composed of animated, highly-reusable components designed to give a pr
 
 ```text
 📦 HomePage
+├── 🧭 AppBar (refresh · theme toggle · 🔔 notification bell badge · logout)
 ├── 🔄 RefreshIndicator
 └── 📜 SingleChildScrollView
-    ├── 🏗️ Column
-    │   ├── 🌟 FadeSlideTransition (Welcome Card)
-    │   ├── 🌟 FadeSlideTransition 
-    │   │   └── 📇 MedicalInfoCard (Active Tasks)
-    │   ├── 🌟 FadeSlideTransition 
-    │   │   └── 📇 MedicalInfoCard (Appointments)
-    │   ├── 🌟 FadeSlideTransition 
-    │   │   └── 📱 _QuickActionCard (Grid Router)
-    │   └── 🌟 FadeSlideTransition
-    │       └── 🚨 Status Badge
-    └── 🔘 FloatingActionButton
+    └── 🏗️ Column
+        ├── 🌟 FadeSlideTransition (Welcome Card)
+        ├── 🌟 FadeSlideTransition
+        │   └── 📇 MedicalInfoCard (Active Tasks — real count)
+        ├── 🌟 FadeSlideTransition
+        │   └── 🔔 Notification summary card → push('/notification')
+        ├── 🌟 FadeSlideTransition
+        │   └── 📱 _QuickActionCard ("Thông tin" → push('/info'))
+        └── 🌟 FadeSlideTransition
+            └── 🚨 Status Badge
 ```
 
-- **Core Reusable Components**: `FadeSlideTransition`, `MedicalInfoCard`.
+:::note[Demo content removed]
+The fake appointment counter (and its `FloatingActionButton`), the static
+"doctors available" card, and the nav-duplicating quick actions (Map / Medical /
+Profile) were removed. The Home screen now shows only real data plus an Info shortcut.
+:::
+
+- **Core Reusable Components**: `FadeSlideTransition`, `MedicalInfoCard`, `NotificationBadge`.
 
 ## State Taxonomy
 

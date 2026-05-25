@@ -12,15 +12,25 @@ These two modules are the structural glue and informational backbone of the appl
 
 ## Info Module (`lib/features/info`)
 
-The **Info Module** contains all static content, regulatory information, and utility pages necessary for a public-facing healthcare application.
+The **Info Module** contains all static content and help pages for the
+public-facing app. `InfoPage` (`/info`) is a **hub** that links three pushed
+sub-pages, each with its own back button:
+
+- **FAQ** (`/faq`) — expansion-panel question list.
+- **Giới thiệu / About** (`/about`) — app description + feature list.
+- **Liên hệ / Contact** (`/contact`) — hospital phone, email, address.
+
+All are reached via `context.push(...)` (so the back arrow works), and the old
+duplicate `/faq` route that shadowed the FAQ page was removed.
 
 ### State Management
-State is minimal and ephemeral. Content is either entirely static or loaded via simple `FutureProvider` instances to fetch FAQ lists or Hospital Guidelines without complex mutability.
+State is minimal and entirely static — plain `StatelessWidget` pages with no
+providers.
 
 ### Widget Types & Patterns
-- **Static Content Views**: Basic `Scaffold` implementations heavily utilizing `SingleChildScrollView`.
-- **Accordions/Expansion Panels**: Used extensively on the FAQ page to cleanly hide and show dense text.
-- **Rich Text Rendering**: Uses packages or HTML rendering tools to display formatted privacy policies or terms of service correctly.
+- **Hub list**: `InfoPage` is a `ListView` of `Card`/`ListTile` entries routing to each page.
+- **Static Content Views**: Basic `Scaffold` + `SingleChildScrollView`.
+- **Accordions/Expansion Panels**: Used on the FAQ page to hide/show dense text.
 
 ---
 
@@ -37,17 +47,23 @@ The Main Shell utilizes `go_router`'s specialized navigation branch wrapper to m
 
 ```text
 📦 MainShell (ScaffoldWithBottomNavBar)
-├── 📄 StatefulNavigationShell (go_router)
+├── 📄 StatefulNavigationShell (go_router) — 4 branches
 │   ├── 📑 Branch (Home)
-│   ├── 📑 Branch (Map)
 │   ├── 📑 Branch (Medical)
-│   ├── 📑 Branch (Notification)
+│   ├── 📑 Branch (Map)
 │   └── 📑 Branch (Profile)
-└── 🧭 BottomNavigationBar
-    ├── 🏠 Home Icon
-    ├── 🗺️ Map Icon
-    └── ...
+└── 🧭 NavigationBar
+    ├── 🏠 Trang chủ
+    ├── 🏥 Y tế
+    ├── 🗺️ Bản đồ
+    └── 👤 Hồ sơ
 ```
+
+:::note[Top-level pushed routes]
+Notification, Info, FAQ, About, and Contact are **not** bottom-nav branches.
+They are top-level routes opened with `context.push(...)`, so they appear as
+full pages with a back button rather than tabs.
+:::
 
 :::warning[Nested Navigation]
 The Main module implements a stateful nested navigation shell. This means that if a user navigates deep into a stack on the "Medical" tab, switches to "Home", and then switches back to "Medical", their deep stack state is perfectly preserved.

@@ -1,34 +1,59 @@
 class AppNotification {
-  final int id;
-  final String title;
-  final String message;
-  final String time;
-  final bool isRead;
-
-  AppNotification({
+  const AppNotification({
     required this.id,
     required this.title,
     required this.message,
-    required this.time,
+    required this.createdAt,
     required this.isRead,
   });
 
+  final int id;
+  final String title;
+  final String message;
+  final String createdAt;
+  final bool isRead;
+
   factory AppNotification.fromJson(Map<String, dynamic> json) {
+    final title = _parseString(
+      json['title'] ?? json['subject'] ?? json['name'],
+    );
+    final message = _parseString(
+      json['message'] ?? json['content'] ?? json['body'] ?? json['description'],
+    );
+
     return AppNotification(
       id: _parseInt(json['id'] ?? json['notif_id'] ?? json['notification_id']),
-      title: _parseString(json['title']),
-      message: _parseString(json['message'] ?? json['content'] ?? json['body']),
-      time: _parseString(json['time'] ?? json['created_at']),
+      title: title.isEmpty ? 'Thông báo' : title,
+      message: message,
+      createdAt: _parseString(
+        json['created_at'] ?? json['time'] ?? json['createdAt'],
+      ),
       isRead: _parseBool(json['is_read'] ?? json['read'] ?? json['isRead']),
     );
   }
 
-  AppNotification copyWith({bool? isRead}) {
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'message': message,
+      'created_at': createdAt,
+      'is_read': isRead,
+    };
+  }
+
+  AppNotification copyWith({
+    int? id,
+    String? title,
+    String? message,
+    String? createdAt,
+    bool? isRead,
+  }) {
     return AppNotification(
-      id: id,
-      title: title,
-      message: message,
-      time: time,
+      id: id ?? this.id,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      createdAt: createdAt ?? this.createdAt,
       isRead: isRead ?? this.isRead,
     );
   }

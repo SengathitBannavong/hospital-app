@@ -20,6 +20,11 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- This tells Android:
+            "Use this notification channel when Firebase sends notifications." -->
+            <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="hospital_high_importance" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

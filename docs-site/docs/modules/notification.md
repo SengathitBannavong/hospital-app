@@ -14,31 +14,45 @@ Notification state is managed by `notification_provider.dart`.
 
 | Provider | Description |
 | :--- | :--- |
-| **`notificationProvider`** | Manages the list of notifications, the unread badge count, and handles cursor-based pagination state for infinite scrolling. |
+| **`notificationProvider`** | Manages the `AppNotification` list, page/total/limit pagination state, and derives the unread badge count and loading flags. |
+| **`unreadCountProvider`** | Exposes the derived unread count for the Home app-bar bell and other badges. |
+| **`notificationSettingsProvider`** | Loads/saves notification preferences via `user/get_settings` and `user/set_settings`. |
 
 ## Widget Types & Patterns
 
-The Notification module relies on a continuous scrollable list capable of handling interactive gestures.
+The Notification module relies on a continuous, paginated scrollable list.
 
 ```text
-📦 NotificationListPage
-├── 🔄 RefreshIndicator
-└── 📜 ListView.separated
-    └── 👆 Dismissible (Swipe to delete)
-        └── 📇 NotificationTile
-            ├── 🔤 Title & Subtitle
-            ├── 🕒 Timestamp
-            └── 🔴 Unread Indicator Dot
+📦 NotificationPage  (top-level pushed route, with back button)
+├── 🧭 AppBar (unread badge · "mark all read" · settings)
+├── 🔄 RefreshIndicator (pull-to-refresh)
+└── 📜 ListView.builder (infinite scroll → loadMore)
+    ├── 📇 NotificationCard
+    │   ├── 🔤 Title & Message
+    │   ├── 🕒 created_at timestamp
+    │   ├── 🔵 Read/unread leading avatar
+    │   └── 🗑️ Delete IconButton
+    └── ⏳ Footer (spinner / "Đã tải hết thông báo")
 ```
 
-:::note[Swipe-to-Delete Implementation]
-The module utilizes Flutter's native `Dismissible` widget on each `NotificationTile`, allowing users to intuitively swipe away read messages.
+:::note[Delete & Pagination]
+Each `NotificationCard` exposes an explicit delete button (not swipe). The list
+pages via `loadMore()` when the scroll nears the bottom, dedupes items by `id`,
+and supports pull-to-refresh.
 :::
+
+## Push Notifications (optional)
+
+Firebase Cloud Messaging is wired on the client (`FirebaseNotificationService`)
+but **disabled by default** behind the `ENABLE_FIREBASE` dart-define. When
+enabled, it requests permission, registers the device token via
+`user/set_devtoken` (sending `device_token` + `platform`), and prepends
+foreground messages into the list. See `FIREBASE.md` at the repo root.
 
 ## State Taxonomy
 
 - **Server State (Cached)**: `notificationProvider` holds the paginated list of notifications and handles the unread badge count. It is the primary source of truth.
-- **Transient UI State**: The `Dismissible` widget manages internal swipe offsets during the swipe animation before triggering the provider.
+- **Transient UI State**: A `ScrollController` drives infinite scroll (triggering `loadMore()` near the bottom); `RefreshIndicator` drives pull-to-refresh.
 
 ## The Execution Lifecycle (Optimistic Deletion)
 
@@ -51,32 +65,32 @@ import NotificationFlowDiagram from '@site/static/img/diagrams/notification-flow
 The Notification module heavily employs optimistic UI updates to ensure the interface feels snappy.
 
 ### 1. 💻 Trigger (UI Layer)
-The user intuitively swipes away a `NotificationTile`. The native `Dismissible` widget captures the gesture and triggers the `onDismissed` callback.
+The user taps the delete button on a `NotificationCard`, which calls the notifier.
 ```dart
-onDismissed: (direction) {
-  ref.read(notificationProvider.notifier).deleteNotification(notification.id);
-}
+onDelete: () => ref
+    .read(notificationProvider.notifier)
+    .deleteNotifications([item.id]),
 ```
 
-### 2. ⚡ Optimism (Provider Layer)
-Before any network request is fired, the `notificationProvider` immediately filters the notification out of its local state array. The UI re-renders instantly.
+### 2. 🌐 Execution (Repository Layer)
+The notifier calls the repository (via the remote data source) to delete on the server first.
 ```dart
-// Inside NotificationNotifier
-final previousState = state;
-state = AsyncData(state.value!.where((n) => n.id != id).toList());
+await _repository.deleteNotifications(notificationIds: ids);
 ```
 
-### 3. 🌐 Execution (Repository Layer)
-The provider then triggers the actual HTTP DELETE request in the background.
+### 3. ⚡ State Update (Provider Layer)
+On success, the removed items are filtered out of `state.items` and `total` is decremented.
 ```dart
-await dioClient.delete('/notification/$id');
+state = state.copyWith(
+  items: state.items.where((item) => !ids.contains(item.id)).toList(),
+  total: (state.total - ids.length).clamp(0, state.total).toInt(),
+);
 ```
 
-### 4. 🛡️ Fallback (Provider & UI)
-If the backend throws an error (e.g., no internet connection), the provider catches the exception, restores the `previousState`, and alerts the user.
+### 4. 🛡️ Error handling (UI)
+If the request throws, the page shows a toast and the list is left unchanged.
 ```dart
-} catch (e) {
-  state = previousState; // Restore the UI
-  AppToast.showError('Failed to delete notification');
+} catch (error) {
+  AppToast.showError(_formatError(error));
 }
 ```

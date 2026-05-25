@@ -22,6 +22,10 @@ import 'package:hospital_app/features/medical/presentation/pages/prescription_pa
 import 'package:hospital_app/features/notification/presentation/pages/notification_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/info_page.dart';
 import 'package:hospital_app/features/settings/presentation/pages/settings_page.dart';
+import 'package:hospital_app/features/info/presentation/pages/about_page.dart';
+import 'package:hospital_app/features/info/presentation/pages/contact_page.dart';
+import 'package:hospital_app/features/info/presentation/pages/faq_page.dart';
+import 'package:hospital_app/features/notification/presentation/pages/notification_settings_page.dart';
 
 // RouterNotifier to handle reactive redirection
 class RouterNotifier extends ChangeNotifier {
@@ -115,24 +119,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Notification Branch
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/notification',
-                builder: (context, state) => const NotificationPage(),
-              ),
-            ],
-          ),
-          // Info Branch
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/info',
-                builder: (context, state) => const InfoPage(),
-              ),
-            ],
-          ),
           // Map Branch
           StatefulShellBranch(
             routes: [
@@ -153,8 +139,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      // FAQ legacy alias
-      GoRoute(path: '/faq', redirect: (context, state) => '/info'),
+      GoRoute(
+        path: '/notification',
+        builder: (context, state) => const NotificationPage(),
+        routes: [
+          GoRoute(
+            path: 'settings',
+            builder: (context, state) => const NotificationSettingsPage(),
+          ),
+        ],
+      ),
+      GoRoute(path: '/info', builder: (context, state) => const InfoPage()),
+      GoRoute(path: '/faq', builder: (context, state) => const FaqPage()),
+      GoRoute(path: '/about', builder: (context, state) => const AboutPage()),
+      GoRoute(
+        path: '/contact',
+        builder: (context, state) => const ContactPage(),
+      ),
       // Auth Routes
       GoRoute(
         path: '/welcome',
