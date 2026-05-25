@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/hospital_theme.dart';
-import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../../../../core/widgets/medical_info_card.dart';
 import '../../../../core/widgets/fade_slide_transition.dart';
@@ -93,13 +92,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             onPressed: _isLoadingTasks ? null : _fetchTasks,
           ),
           IconButton(
-            icon: Icon(
-              context.isDarkMode
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-            ),
-            tooltip: 'Giao diện',
-            onPressed: () => themeController.toggleTheme(),
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Cài đặt',
+            onPressed: () => context.push('/settings'),
           ),
           IconButton(
             icon: const NotificationBadge(

@@ -29,11 +29,11 @@ class NotificationRepository {
     return _remoteDataSource.markAsRead(notificationId: notificationId);
   }
 
-  /// DELETE notification/delete { notif_id: [...] }
-  Future<void> deleteNotifications({required List<int> notificationIds}) {
-    return _remoteDataSource.deleteNotifications(
-      notificationIds: notificationIds.map((id) => id.toString()).toList(),
-    );
+  /// DELETE notification/delete { notif_id }
+  Future<void> deleteNotifications({required List<int> notificationIds}) async {
+    for (final id in notificationIds) {
+      await _remoteDataSource.deleteNotification(notificationId: id);
+    }
   }
 
   // ── Device token (Firebase push) ──────────────────────────────────────────

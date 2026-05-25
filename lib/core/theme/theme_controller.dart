@@ -13,6 +13,12 @@ class ThemeController extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void setThemeMode(ThemeMode mode) {
+    if (_themeMode == mode) return;
+    _themeMode = mode;
+    notifyListeners();
+  }
 }
 
 // Global instance for simple access

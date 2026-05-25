@@ -110,7 +110,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       appBar: AppBar(
         title: Text(_isEditing ? 'Chỉnh sửa hồ sơ' : 'Hồ sơ người dùng'),
         actions: [
-          if (!_isEditing)
+          if (!_isEditing) ...[
             IconButton(
               icon: const Icon(Icons.refresh_rounded),
               onPressed: profileState.isBusy
@@ -122,6 +122,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           AppToast.showError(_formatError(error));
                         }),
             ),
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: 'Cài đặt',
+              onPressed: () => context.push('/settings'),
+            ),
+          ],
         ],
       ),
       body: profile == null && profileState.isLoading
