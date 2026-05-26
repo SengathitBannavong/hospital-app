@@ -10,6 +10,8 @@ import '../../../../core/widgets/fade_slide_transition.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 import '../../../notification/presentation/widgets/notification_badge.dart';
+import '../../../util/data/models/weather.dart';
+import '../../../util/presentation/providers/util_providers.dart';
 import '../../data/home_repository.dart';
 import 'package:go_router/go_router.dart';
 
@@ -53,6 +55,11 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
   }
 
+  Future<void> _refreshHome() async {
+    ref.invalidate(weatherProvider);
+    await _fetchTasks();
+  }
+
   Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -83,6 +90,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final unreadCount = ref.watch(unreadCountProvider);
     final notifState = ref.watch(notificationProvider);
+    final weather = ref.watch(weatherProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -91,7 +99,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Tải lại',
-            onPressed: _isLoadingTasks ? null : _fetchTasks,
+            onPressed: _isLoadingTasks ? null : _refreshHome,
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -115,7 +123,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _fetchTasks,
+        onRefresh: _refreshHome,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: AppSpacing.pagePadding,
@@ -163,6 +171,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                       : '$_taskCount Hoạt động',
                   icon: Icons.assignment_rounded,
                   onTap: _fetchTasks,
+                ),
+              ),
+              weather.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.only(top: AppSpacing.md),
+                  child: _WeatherLoadingCard(),
+                ),
+                error: (_, _) => const SizedBox.shrink(),
+                data: (item) => Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  child: _WeatherSummaryCard(weather: item),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -292,6 +311,81 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WeatherLoadingCard extends StatelessWidget {
+  const _WeatherLoadingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: AppSpacing.cardPadding,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: context.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Text('Đang tải thời tiết...', style: context.textTheme.bodyMedium),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WeatherSummaryCard extends StatelessWidget {
+  const _WeatherSummaryCard({required this.weather});
+
+  final Weather weather;
+
+  @override
+  Widget build(BuildContext context) {
+    final description = weather.descriptions.isEmpty
+        ? 'Thời tiết hiện tại'
+        : weather.descriptions.first;
+
+    return Card(
+      child: Padding(
+        padding: AppSpacing.cardPadding,
+        child: Row(
+          children: [
+            Icon(
+              Icons.wb_sunny_outlined,
+              color: context.colorScheme.primary,
+              size: 32,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${weather.city} • ${weather.tempC.round()}°C',
+                    style: context.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '$description • Độ ẩm ${weather.humidity}% • '
+                    'Gió ${weather.windSpeed.round()} km/h',
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: context.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
