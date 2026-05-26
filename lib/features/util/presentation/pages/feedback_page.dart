@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/util/presentation/providers/util_providers.dart';
-import 'package:image_picker/image_picker.dart';
 
 class FeedbackPage extends ConsumerStatefulWidget {
   const FeedbackPage({super.key});
@@ -15,8 +14,6 @@ class FeedbackPage extends ConsumerStatefulWidget {
 
 class _FeedbackPageState extends ConsumerState<FeedbackPage> {
   final _commentController = TextEditingController();
-  final _picker = ImagePicker();
-  final List<XFile> _images = [];
   int _rating = 0;
   bool _isSubmitting = false;
 
@@ -24,12 +21,6 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
   void dispose() {
     _commentController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickImage() async {
-    final image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image == null || !mounted) return;
-    setState(() => _images.add(image));
   }
 
   Future<void> _submit() async {
@@ -135,22 +126,14 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    OutlinedButton.icon(
-                      onPressed: _isSubmitting ? null : _pickImage,
-                      icon: const Icon(Icons.image_outlined),
-                      label: const Text('Chọn ảnh'),
+                    Tooltip(
+                      message: 'Tính năng đính kèm ảnh sẽ sớm có mặt',
+                      child: OutlinedButton.icon(
+                        onPressed: null,
+                        icon: const Icon(Icons.image_outlined),
+                        label: const Text('Chọn ảnh (Sắp ra mắt)'),
+                      ),
                     ),
-                    if (_images.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      for (final image in _images)
-                        Padding(
-                          padding: const EdgeInsets.only(top: AppSpacing.xs),
-                          child: Text(
-                            image.name,
-                            style: context.textTheme.bodySmall,
-                          ),
-                        ),
-                    ],
                   ],
                 ),
               ),
