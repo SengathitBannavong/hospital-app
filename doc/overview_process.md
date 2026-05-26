@@ -4,9 +4,9 @@ This overview is from the mobile app user's point of view. It measures what a
 patient/user can actually use in the Flutter app, not raw backend endpoint
 coverage.
 
-_Reflects `main` @ `f06aed8` (PR #29 merged: notifications + Info hub + home/nav
-cleanup), 2026-05-25._ Bottom nav is now **4 tabs** — Home · Medical · Map ·
-Profile; Notification, Info, FAQ, About, Contact are top-level pushed routes.
+_Reflects `feat/util-wiring` after util endpoint wiring, 2026-05-26._ Bottom
+nav is now **4 tabs** — Home · Medical · Map · Profile; Notification, Info,
+FAQ, About, Contact, Feedback are top-level pushed routes.
 
 > **Pending PR (not yet in main):** `add-setting-page → main` adds a unified
 > `/settings` page (theme/notification/language, backend-persisted) and the
@@ -39,7 +39,7 @@ missing endpoint count:
 | Multi-stop Navigation | `██░░░░░░░░` 20% | Repository wrappers for ordered/unordered multi-stop calls. | No user flow for choosing multiple destinations or optimizing order. | UI for `POST route/order_multi`, `POST route/order_unordered` |
 | Crowd / Flow Overlay | `██████░░░░` 60% | Heatmap, bottlenecks, forecast, alerts, obstacle reporting/display, crowd-aware local routing. | Point density view, edge-status overlay (request mismatch), location ping during nav, priority controls. | `flow/get_density` (param/shape mismatch), `flow/edge_status` (mismatch), `flow/ping_location`, `flow/set_priority`, `flow/expire_priority` |
 | QR Scanner | `████████░░` 80% | Scan a QR and set current map position. | Robust payload formats, friendlier invalid-code handling. | None beyond current map search. |
-| Info / FAQ / Utility | `█████░░░░░` 50% | **Info hub** linking static FAQ, Giới thiệu (About), and Liên hệ (Contact) pages. | FE wiring for now-available `util/*` endpoints (dynamic FAQ/about/contact, weather, feedback, languages, app update check, upload). Note: a previous FE `util_repository.dart` was deleted because its assumed response shape was wrong (e.g. it expected `parking` to return `{available,total}` numbers — backend actually returns a POI list). Any rebuild must follow the new contracts. | Backend now provides: `util/faq`, `util/about`, `util/contact`, `util/languages`, `util/check_version`, `util/weather`, `util/feedback`, `util/feedback_summary`, `util/upload` — **available, FE not yet wired**. `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi` are POI-list endpoints and belong in the **Map** module as POI categories, not under Info/Utility. |
+| Info / FAQ / Utility | `████████▌░` 85% | **Info hub** with dynamic FAQ/About/Contact via `util/*`, app update check, weather card, and feedback form. | Image attachments on feedback (depends on upload wiring), language picker (depends on Settings PR). | None for Info/Utility. `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi` are POI-list endpoints and belong in the **Map** module as POI categories. |
 | Asset / Wheelchair | `░░░░░░░░░░` 0% | Not available in the current app. | Asset stations, wheelchair finding, health, tracking, booking, release, broken-asset reporting. | `asset/asset_stations`, `asset/find_wheelchairs`, `asset/asset_health`, `asset/track_asset`, `asset/book_asset`, `asset/release_asset`, `asset/report_broken_asset` |
 | Staff Request | `░░░░░░░░░░` 0% | Not available in the current app. | Request staff/help from the app. | `POST /api/staff/request_staff` |
 | SOS | `░░░░░░░░░░` 0% | Not in the app (SOS screens exist on `feature/medical-sos-util`, waiting on backend). | Create SOS request and view own SOS detail. | `POST /api/sos/create`, `GET /api/sos/get_detail` |
@@ -47,18 +47,16 @@ missing endpoint count:
 
 ## Summary
 
-Overall user-facing progress is about `68%`.
+Overall user-facing progress is about `70%`.
 
 The strongest completed areas are authentication, medical tasks, prescriptions,
 **notifications (pagination + settings + optional push)**, profile basics with
-device-token registration, indoor map, QR positioning, the **Info hub**, and
-simulated navigation.
+device-token registration, indoor map, QR positioning, the **dynamic
+Info/Utility hub**, and simulated navigation.
 
 The biggest remaining gaps are SOS, chat, asset/wheelchair booking, staff
-request, **FE wiring for the now-available `util/*` endpoints** (dynamic
-FAQ/about/contact, weather, feedback, languages, app update check, upload —
-backend is live, FE side is not yet built), the unified settings page (pending
-PR), deeper live navigation sync, and — critically on the backend — a real
-**push sender + notification triggers** (without which notifications stay
-seed-only).
+request, feedback image attachments, language picker integration, the unified
+settings page (pending PR), deeper live navigation sync, and — critically on
+the backend — a real **push sender + notification triggers** (without which
+notifications stay seed-only).
 See `context/backend-tasks.md` and `context/overview_system.md`.
