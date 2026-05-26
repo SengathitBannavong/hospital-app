@@ -1,0 +1,96 @@
+name: Flutter iOS Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate models (Freezed/JSON)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Write .env from repo variables
+        run: |
+          cat > .env <<EOF
+          BASE_URL=${{ vars.BASE_URL || 'https://group3.it4788.sukkaito.id.vn/api/' }}
+          APP_NAME=${{ vars.APP_NAME || 'Hospital App' }}
+          EOF
+          echo "::group::.env contents"
+          cat .env
+          echo "::endgroup::"
+
+      - name: Resolve version + build number
+        id: ver
+        run: |
+          # Strip leading 'v' from tag; fall back to pubspec name when manual.
+          TAG_NAME="${GITHUB_REF##*/}"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${TAG_NAME#v}"
+          else
+            VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          fi
+          BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Building $VERSION+$BUILD_NUMBER"
+
+      - name: Build IPA
+        run: |
+          flutter build ipa --release --no-codesign \
+            --build-name=${{ steps.ver.outputs.version }} \
+            --build-number=${{ steps.ver.outputs.build }}
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}
+          path: build/ios/ipa/*.ipa
+
+      # TEMPORARY: bootstrap step to recover the generated Podfile.lock so it
+      # can be committed back to the repo. Once `ios/Podfile.lock` exists in
+      # git, delete this step and the next CocoaPods cache hit will be ~3 min
+      # faster.
+      - name: Upload Podfile.lock (bootstrap only — delete after committing)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-podfile-lock
+          path: ios/Podfile.lock
+          if-no-files-found: warn
