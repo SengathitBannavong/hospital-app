@@ -24,39 +24,6 @@ class _SosPageState extends ConsumerState<SosPage> {
   }
 
   Future<void> _handleSos() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.warning_rounded, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Xác nhận SOS'),
-          ],
-        ),
-        content: const Text(
-          'Bạn có chắc chắn muốn gửi tín hiệu SOS không?\n\n'
-          'Nhân viên y tế sẽ được điều phối đến vị trí của bạn ngay lập tức.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Gửi SOS'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
     final success = await ref.read(sosProvider.notifier).sendSos();
     if (!mounted) return;
 
@@ -106,7 +73,7 @@ class _SosPageState extends ConsumerState<SosPage> {
               _SosHeroButton(
                 isActive: state.hasActiveSos,
                 isSending: state.isSending,
-                onPressed: state.isSending ? null : _handleSos,
+                onConfirm: state.isSending ? null : _handleSos,
               ),
               const SizedBox(height: AppSpacing.xl),
               if (state.isLoading)
@@ -153,73 +120,223 @@ class _SosPageState extends ConsumerState<SosPage> {
   }
 }
 
-class _SosHeroButton extends StatelessWidget {
+class _SosHeroButton extends StatefulWidget {
   const _SosHeroButton({
     required this.isActive,
     required this.isSending,
-    required this.onPressed,
+    required this.onConfirm,
   });
 
   final bool isActive;
   final bool isSending;
-  final VoidCallback? onPressed;
+  final VoidCallback? onConfirm;
+
+  @override
+  State<_SosHeroButton> createState() => _SosHeroButtonState();
+}
+
+class _SosHeroButtonState extends State<_SosHeroButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  bool get _isHolding =>
+      !widget.isActive && !widget.isSending && _controller.value > 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    )..addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _SosHeroButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSending || widget.isActive) {
+      _controller.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleLongPressStart(LongPressStartDetails details) {
+    if (widget.onConfirm == null || widget.isSending || widget.isActive) {
+      return;
+    }
+    _controller.forward(from: 0);
+  }
+
+  void _handleLongPressEnd(LongPressEndDetails details) {
+    if (widget.onConfirm == null || widget.isSending || widget.isActive) {
+      return;
+    }
+    if (_controller.value >= 1.0) {
+      widget.onConfirm!();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  void _handleLongPressCancel() {
+    if (widget.onConfirm == null || widget.isSending || widget.isActive) {
+      return;
+    }
+    _controller.reverse();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+    final roleColor = widget.isActive
+        ? AppColors.emergencyActive
+        : widget.isSending
+        ? AppColors.emergency.withValues(alpha: 0.7)
+        : AppColors.emergency;
+    final helperColor = widget.isActive
+        ? AppColors.emergencyActive
+        : context.colorScheme.onSurface;
+    final helperText = widget.isActive
+        ? 'Đang có yêu cầu khẩn cấp'
+        : widget.isSending
+        ? 'Đang gửi tín hiệu...'
+        : 'Nhấn và giữ để gửi tín hiệu';
+
     return Center(
       child: Column(
         children: [
-          GestureDetector(
-            onTap: onPressed,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isActive
-                    ? Colors.orange
-                    : isSending
-                    ? Colors.red.shade300
-                    : Colors.red,
-                boxShadow: [
-                  BoxShadow(
-                    color: (isActive ? Colors.orange : Colors.red).withValues(
-                      alpha: 0.4,
+          Semantics(
+            button: true,
+            label: 'Gửi tín hiệu SOS',
+            hint: 'Nhấn và giữ trong 1.2 giây để xác nhận',
+            enabled: widget.onConfirm != null,
+            child: GestureDetector(
+              onTap: disableAnimations ? widget.onConfirm : null,
+              onLongPressStart: disableAnimations
+                  ? null
+                  : _handleLongPressStart,
+              onLongPressEnd: disableAnimations ? null : _handleLongPressEnd,
+              onLongPressCancel: disableAnimations
+                  ? null
+                  : _handleLongPressCancel,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (_isHolding)
+                    SizedBox(
+                      width: 196,
+                      height: 196,
+                      child: CircularProgressIndicator(
+                        value: _controller.value,
+                        strokeWidth: 8,
+                        backgroundColor: AppColors.emergencySurface,
+                        color: AppColors.onEmergency,
+                      ),
                     ),
-                    blurRadius: 24,
-                    spreadRadius: 4,
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 180,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: roleColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: roleColor.withValues(alpha: 0.4),
+                          blurRadius: 24,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: _SosHeroContent(
+                      isActive: widget.isActive,
+                      isSending: widget.isSending,
+                    ),
                   ),
                 ],
               ),
-              child: isSending
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    )
-                  : const Center(
-                      child: Text(
-                        'SOS',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 52,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 4,
-                        ),
-                      ),
-                    ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            isActive
-                ? 'Đang có yêu cầu khẩn cấp'
-                : isSending
-                ? 'Đang gửi tín hiệu...'
-                : 'Nhấn để gửi tín hiệu khẩn cấp',
+            helperText,
             style: context.textTheme.bodyMedium?.copyWith(
-              color: isActive ? Colors.orange : context.colorScheme.onSurface,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              color: helperColor,
+              fontWeight: widget.isActive ? FontWeight.bold : FontWeight.normal,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SosHeroContent extends StatelessWidget {
+  const _SosHeroContent({
+    required this.isActive,
+    required this.isSending,
+  });
+
+  final bool isActive;
+  final bool isSending;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSending) {
+      return Semantics(
+        label: 'Đang gửi tín hiệu SOS',
+        liveRegion: true,
+        child: const Center(
+          child: Icon(
+            Icons.hourglass_top_rounded,
+            color: AppColors.onEmergency,
+            size: 52,
+          ),
+        ),
+      );
+    }
+
+    if (isActive) {
+      return Semantics(
+        label: 'Đang có yêu cầu khẩn cấp, nhân viên đang được điều phối',
+        liveRegion: true,
+        child: const Center(
+          child: Icon(
+            Icons.priority_high_rounded,
+            color: AppColors.onEmergency,
+            size: 64,
+          ),
+        ),
+      );
+    }
+
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'SOS',
+            style: TextStyle(
+              color: AppColors.onEmergency,
+              fontSize: 52,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 4,
+            ),
+          ),
+          SizedBox(height: 8),
+          Icon(
+            Icons.emergency_rounded,
+            color: AppColors.onEmergency,
+            size: 28,
           ),
         ],
       ),
@@ -234,7 +351,7 @@ class _SosStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = detail.status == SosStatus.active;
-    final color = isActive ? Colors.orange : Colors.green;
+    final color = isActive ? AppColors.emergencyActive : AppColors.taskDone;
     final icon = isActive ? Icons.pending_rounded : Icons.check_circle_rounded;
     final statusText = isActive ? 'Đang xử lý' : 'Đã giải quyết';
 
