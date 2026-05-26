@@ -76,6 +76,8 @@ class _MapPageState extends ConsumerState<MapPage>
   bool _searchExpanded = true;
   bool _arrivalOrderCommitted = false;
   bool _navCollapsed = false;
+  bool _routePillCollapsed = false;
+  bool _statusCollapsed = false;
   bool _floorSwitchKeepsNavigation = false;
   bool _showAnalyticsPanel = false;
   bool _loadWalkableLayer = false;
@@ -654,11 +656,54 @@ class _MapPageState extends ConsumerState<MapPage>
     return Positioned(
       top: mediaTop + AppSpacing.md + 52,
       left: AppSpacing.md,
-      child: _RoutePill(
-        startName: userPositionPoi?.poiName ?? 'You are here',
-        dest: dest,
-        onTap: _showRoutePanel,
-        onClear: _clearRoute,
+      child: AnimatedSize(
+        duration: MapMotion.medium,
+        curve: MapMotion.resize,
+        child: AnimatedSwitcher(
+          duration: MapMotion.medium,
+          switchInCurve: MapMotion.resize,
+          switchOutCurve: MapMotion.resize,
+          child: _routePillCollapsed
+              ? KeyedSubtree(
+                  key: const ValueKey('route-pill-collapsed'),
+                  child: _MapFab(
+                    icon: Icons.alt_route_rounded,
+                    tooltip: 'Show route pill',
+                    onPressed: () =>
+                        setState(() => _routePillCollapsed = false),
+                  ),
+                )
+              : Row(
+                  key: const ValueKey('route-pill-expanded'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _RoutePill(
+                      startName: userPositionPoi?.poiName ?? 'You are here',
+                      dest: dest,
+                      onTap: _showRoutePanel,
+                      onClear: _clearRoute,
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Semantics(
+                      button: true,
+                      label: 'Ẩn',
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: context.colorScheme.onSurfaceVariant,
+                        ),
+                        padding: EdgeInsets.zero,
+                        splashRadius: 20,
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'Ẩn',
+                        onPressed: () =>
+                            setState(() => _routePillCollapsed = true),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -676,13 +721,57 @@ class _MapPageState extends ConsumerState<MapPage>
     return Positioned(
       top: mediaTop + AppSpacing.md + (hasRoute ? 104 : 52),
       left: AppSpacing.md,
-      child: _MapStatusCluster(
-        snapshot: flowSnapshot,
-        isOnline: isOnline,
-        lastSyncedAt: lastSyncedAt,
-        locationSource: locationSource,
-        notice: inlineNotice,
-        onRetry: () => ref.invalidate(flowSnapshotProvider(activeMapId)),
+      child: AnimatedSize(
+        duration: MapMotion.medium,
+        curve: MapMotion.resize,
+        child: AnimatedSwitcher(
+          duration: MapMotion.medium,
+          switchInCurve: MapMotion.resize,
+          switchOutCurve: MapMotion.resize,
+          child: _statusCollapsed
+              ? KeyedSubtree(
+                  key: const ValueKey('status-collapsed'),
+                  child: _MapFab(
+                    icon: Icons.info_outline_rounded,
+                    tooltip: 'Show status',
+                    onPressed: () => setState(() => _statusCollapsed = false),
+                  ),
+                )
+              : Row(
+                  key: const ValueKey('status-expanded'),
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _MapStatusCluster(
+                      snapshot: flowSnapshot,
+                      isOnline: isOnline,
+                      lastSyncedAt: lastSyncedAt,
+                      locationSource: locationSource,
+                      notice: inlineNotice,
+                      onRetry: () =>
+                          ref.invalidate(flowSnapshotProvider(activeMapId)),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Semantics(
+                      button: true,
+                      label: 'Ẩn',
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: context.colorScheme.onSurfaceVariant,
+                        ),
+                        padding: EdgeInsets.zero,
+                        splashRadius: 20,
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'Ẩn',
+                        onPressed: () =>
+                            setState(() => _statusCollapsed = true),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -823,6 +912,12 @@ class _MapPageState extends ConsumerState<MapPage>
     required AsyncValue<RouteResult?> routeResultAsync,
     required bool hasRoute,
   }) {
+    // Phones (Material breakpoint <600dp) get a compact icon-only FAB so the
+    // route action stops covering map real estate. Only tablets/desktops get
+    // the labeled extended variant.
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+    final scheme = context.colorScheme;
+
     if (showNavigationSheet && dest != null) {
       return Positioned(
         right: AppSpacing.md,
@@ -855,12 +950,21 @@ class _MapPageState extends ConsumerState<MapPage>
               onPressed: _showRoutePanel,
             ),
             const SizedBox(height: AppSpacing.sm),
-            FloatingActionButton.extended(
-              heroTag: 'map-start-fab',
-              onPressed: _startNavigation,
-              icon: const Icon(Icons.navigation_rounded),
-              label: const Text('Start'),
-            ),
+            isCompact
+                ? FloatingActionButton.small(
+                    heroTag: 'map-start-fab',
+                    onPressed: _startNavigation,
+                    tooltip: 'Start',
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
+                    child: const Icon(Icons.navigation_rounded),
+                  )
+                : FloatingActionButton.extended(
+                    heroTag: 'map-start-fab',
+                    onPressed: _startNavigation,
+                    icon: const Icon(Icons.navigation_rounded),
+                    label: const Text('Start'),
+                  ),
           ],
         ),
       );
@@ -869,14 +973,29 @@ class _MapPageState extends ConsumerState<MapPage>
     return Positioned(
       right: AppSpacing.md,
       bottom: mediaBottom + AppSpacing.md,
-      child: FloatingActionButton.extended(
-        heroTag: 'map-route-fab',
-        onPressed: _showRoutePanel,
-        icon: Icon(
-          hasRoute ? Icons.edit_location_alt_rounded : Icons.alt_route_rounded,
-        ),
-        label: Text(hasRoute ? 'Route' : 'Plan route'),
-      ),
+      child: isCompact
+          ? FloatingActionButton.small(
+              heroTag: 'map-route-fab',
+              onPressed: _showRoutePanel,
+              tooltip: hasRoute ? 'Route' : 'Plan route',
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              child: Icon(
+                hasRoute
+                    ? Icons.edit_location_alt_rounded
+                    : Icons.alt_route_rounded,
+              ),
+            )
+          : FloatingActionButton.extended(
+              heroTag: 'map-route-fab',
+              onPressed: _showRoutePanel,
+              icon: Icon(
+                hasRoute
+                    ? Icons.edit_location_alt_rounded
+                    : Icons.alt_route_rounded,
+              ),
+              label: Text(hasRoute ? 'Route' : 'Plan route'),
+            ),
     );
   }
 
