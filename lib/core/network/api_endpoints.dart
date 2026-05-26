@@ -12,9 +12,6 @@ class ApiEndpoints {
   static const String changePassword = 'auth/change_password';
   static const String deleteAccount = 'user/delete_account';
 
-  // System
-  static const String checkVersion = 'sys/check_version';
-
   // Medical
   static const String patients = 'patients';
   static const String appointments = 'appointments';
@@ -82,4 +79,15 @@ class ApiEndpoints {
   // SOS
   static const String sosCreate = 'sos/create';
   static const String sosGetDetail = 'sos/get_detail';
+
+  // Utility
+  static const String utilFaq = 'util/faq';
+  static const String utilAbout = 'util/about';
+  static const String utilContact = 'util/contact';
+  static const String utilLanguages = 'util/languages';
+  static const String utilCheckVersion = 'util/check_version';
+  static const String utilWeather = 'util/weather';
+  static const String utilFeedback = 'util/feedback';
+  static const String utilFeedbackSummary = 'util/feedback_summary';
+  static const String utilUpload = 'util/upload';
 }

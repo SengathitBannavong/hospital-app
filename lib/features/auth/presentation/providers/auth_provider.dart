@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/network/token_repository.dart';
 import 'package:hospital_app/features/auth/data/models/otp_response.dart';
-import 'package:hospital_app/features/auth/data/models/version_check_response.dart';
 import '../../data/auth_repository.dart';
 import '../../data/models/auth_user.dart';
 
@@ -131,17 +130,6 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     );
   }
 
-  // Check app version against backend
-  Future<VersionCheckResponse> checkVersion({
-    required String platform,
-    required String appVersion,
-  }) async {
-    return await _repository.checkVersion(
-      platform: platform,
-      appVersion: appVersion,
-    );
-  }
-
   // Delete user account (requires authentication)
   Future<void> deleteAccount({required String password}) async {
     await _repository.deleteAccount(password: password);
@@ -157,20 +145,6 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     );
   }
 }
-
-// Version check state provider
-final versionCheckProvider =
-    FutureProvider.family<VersionCheckResponse, (String, String)>((
-      ref,
-      params,
-    ) async {
-      final repository = ref.watch(authRepositoryProvider);
-      final (platform, appVersion) = params;
-      return repository.checkVersion(
-        platform: platform,
-        appVersion: appVersion,
-      );
-    });
 
 // Account deletion state provider
 final deleteAccountProvider = FutureProvider.family<void, String>((

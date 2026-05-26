@@ -26,6 +26,7 @@ import 'package:hospital_app/features/notification/presentation/pages/notificati
 import 'package:hospital_app/features/profile/presentation/page/profile_page.dart';
 import 'package:hospital_app/features/settings/presentation/pages/settings_page.dart';
 import 'package:hospital_app/features/sos/presentation/pages/sos_page.dart';
+import 'package:hospital_app/features/util/presentation/pages/feedback_page.dart';
 
 class RouterNotifier extends ChangeNotifier {
   final Ref _ref;
@@ -189,6 +190,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: '/feedback',
+        builder: (context, state) => const FeedbackPage(),
       ),
       // Standalone help page — used by Settings to avoid shell-push conflict
       GoRoute(path: '/help', builder: (context, state) => const InfoPage()),
