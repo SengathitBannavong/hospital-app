@@ -362,12 +362,17 @@ class _MapPageState extends ConsumerState<MapPage>
         navPhase == NavPhase.navigating ||
         navPhase == NavPhase.paused ||
         navPhase == NavPhase.arrived;
+    final mapSemanticLabel = _mapSemanticLabel(
+      dest: dest,
+      route: routeResultAsync.valueOrNull,
+    );
 
     return Scaffold(
       backgroundColor: MapSurface.background,
       body: Stack(
         children: [
           _buildMapViewport(
+            semanticLabel: mapSemanticLabel,
             mediaBottom: mediaBottom,
             rows: rows,
             cols: cols,
@@ -447,6 +452,7 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   Widget _buildMapViewport({
+    required String semanticLabel,
     required double mediaBottom,
     required int rows,
     required int cols,
@@ -469,90 +475,107 @@ class _MapPageState extends ConsumerState<MapPage>
       // Keep the map viewport above the system navigation bar so POIs
       // along the bottom edge stay tappable.
       bottom: mediaBottom,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final cellWidth = constraints.maxWidth / cols;
-          final cellHeight = constraints.maxHeight / rows;
-          final cellSize = math.max(cellWidth, cellHeight);
-          final gridWidth = cols * cellSize;
-          final gridHeight = rows * cellSize;
-          const minScale = _minMapScale;
+      child: Semantics(
+        container: true,
+        label: semanticLabel,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final cellWidth = constraints.maxWidth / cols;
+            final cellHeight = constraints.maxHeight / rows;
+            final cellSize = math.max(cellWidth, cellHeight);
+            final gridWidth = cols * cellSize;
+            final gridHeight = rows * cellSize;
+            const minScale = _minMapScale;
 
-          final controller = _ensureTransformController();
-          _syncTransformToLayout(
-            viewportSize: Size(constraints.maxWidth, constraints.maxHeight),
-            gridSize: Size(gridWidth, gridHeight),
-            minScale: minScale,
-          );
+            final controller = _ensureTransformController();
+            _syncTransformToLayout(
+              viewportSize: Size(constraints.maxWidth, constraints.maxHeight),
+              gridSize: Size(gridWidth, gridHeight),
+              minScale: minScale,
+            );
 
-          return InteractiveViewer(
-            transformationController: controller,
-            alignment: Alignment.topLeft,
-            clipBehavior: Clip.hardEdge,
-            constrained: false,
-            minScale: minScale,
-            maxScale: _maxMapScale,
-            boundaryMargin: EdgeInsets.zero,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapDown: (details) =>
-                  _handleTap(details.localPosition, rows, cols, cellSize),
-              onLongPressStart: (details) => _handleLongPressStart(
-                details.localPosition,
-                rows,
-                cols,
-                cellSize,
-              ),
-              child: SizedBox(
-                width: gridWidth,
-                height: gridHeight,
-                child: RepaintBoundary(
-                  child: AnimatedBuilder(
-                    animation: Listenable.merge([controller, _routeAnim]),
-                    builder: (context, _) {
-                      final visibleRect = _visibleRectFor(
-                        controller.value,
-                        Size(constraints.maxWidth, constraints.maxHeight),
-                        Size(gridWidth, gridHeight),
-                      );
-                      return CustomPaint(
-                        size: Size(gridWidth, gridHeight),
-                        painter: MapGridPainter(
-                          rows: rows,
-                          cols: cols,
-                          walkableLocations: walkable,
-                          pois: nodes,
-                          flowCells: flow?.cells ?? const [],
-                          edgeStatuses: corridorStatuses,
-                          showFlowOverlay: flowVisible,
-                          showEdgeStatus: edgeStatusVisible,
-                          bottlenecks: bottlenecks,
-                          showBottlenecks: bottlenecksVisible,
-                          routeLocations: routeLocations,
-                          routeProgress: _routeAnim.value,
-                          userDot: navDot,
-                          navProgress: navProgress,
-                          visibleRect: visibleRect,
-                          debugTap: _debugTapScene,
-                          debugPoiCenter: _debugPoiCenter,
-                          showDebug: _showDebugHitTest,
-                        ),
-                        // foregroundPainter: MapDebugGridPainter(
-                        //   rows: rows,
-                        //   cols: cols,
-                        //   visibleRect: visibleRect,
-                        //   // labelCells: true,
-                        // ),
-                      );
-                    },
+            return InteractiveViewer(
+              transformationController: controller,
+              alignment: Alignment.topLeft,
+              clipBehavior: Clip.hardEdge,
+              constrained: false,
+              minScale: minScale,
+              maxScale: _maxMapScale,
+              boundaryMargin: EdgeInsets.zero,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (details) =>
+                    _handleTap(details.localPosition, rows, cols, cellSize),
+                onLongPressStart: (details) => _handleLongPressStart(
+                  details.localPosition,
+                  rows,
+                  cols,
+                  cellSize,
+                ),
+                child: SizedBox(
+                  width: gridWidth,
+                  height: gridHeight,
+                  child: RepaintBoundary(
+                    child: AnimatedBuilder(
+                      animation: Listenable.merge([controller, _routeAnim]),
+                      builder: (context, _) {
+                        final visibleRect = _visibleRectFor(
+                          controller.value,
+                          Size(constraints.maxWidth, constraints.maxHeight),
+                          Size(gridWidth, gridHeight),
+                        );
+                        return CustomPaint(
+                          size: Size(gridWidth, gridHeight),
+                          painter: MapGridPainter(
+                            rows: rows,
+                            cols: cols,
+                            walkableLocations: walkable,
+                            pois: nodes,
+                            flowCells: flow?.cells ?? const [],
+                            edgeStatuses: corridorStatuses,
+                            showFlowOverlay: flowVisible,
+                            showEdgeStatus: edgeStatusVisible,
+                            bottlenecks: bottlenecks,
+                            showBottlenecks: bottlenecksVisible,
+                            routeLocations: routeLocations,
+                            routeProgress: _routeAnim.value,
+                            userDot: navDot,
+                            navProgress: navProgress,
+                            visibleRect: visibleRect,
+                            debugTap: _debugTapScene,
+                            debugPoiCenter: _debugPoiCenter,
+                            showDebug: _showDebugHitTest,
+                          ),
+                          // foregroundPainter: MapDebugGridPainter(
+                          //   rows: rows,
+                          //   cols: cols,
+                          //   visibleRect: visibleRect,
+                          //   // labelCells: true,
+                          // ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
+  }
+
+  String _mapSemanticLabel({
+    required MapPoi? dest,
+    required RouteResult? route,
+  }) {
+    if (dest == null || route == null) {
+      return 'Bản đồ bệnh viện. Chọn điểm đến để bắt đầu.';
+    }
+    final steps = route.steps.length;
+    final distance = route.distance.round();
+    return 'Đang chỉ đường đến ${dest.poiName}. '
+        '$steps bước, khoảng $distance mét.';
   }
 
   Widget _buildSearchOverlay({

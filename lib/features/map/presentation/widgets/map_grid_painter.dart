@@ -12,8 +12,8 @@ import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 final Paint _backgroundPaint = Paint()..color = MapSurface.background;
 final Paint _walkablePaint = Paint()..color = MapSurface.walkable;
 final Paint _routeCellPaint = Paint()..color = MapSurface.routeCell;
-final Paint _debugTapPaint = Paint()..color = const Color(0xFFE53935);
-final Paint _debugPoiPaint = Paint()..color = const Color(0xFF43A047);
+final Paint _debugTapPaint = Paint()..color = MapTokens.debugTap;
+final Paint _debugPoiPaint = Paint()..color = MapTokens.debugPoi;
 final Paint _routeHaloPaint = Paint()
   ..color = MapSurface.routeLineHalo
   ..strokeCap = StrokeCap.round;
@@ -33,10 +33,10 @@ final Map<String, Paint> _poiPaints = {
 };
 final Paint _poiFallbackPaint = Paint()..color = MapPoiPalette.fallback;
 final Paint _userDotRingPaint = Paint()
-  ..color = const Color(0xFF0E8A6D).withValues(alpha: 0.22);
-final Paint _userDotPaint = Paint()..color = const Color(0xFF0E8A6D);
+  ..color = MapTokens.userHalo.withValues(alpha: 0.22);
+final Paint _userDotPaint = Paint()..color = MapTokens.userDot;
 final Paint _userDotStrokePaint = Paint()
-  ..color = const Color(0xFFFAFCFE)
+  ..color = MapTokens.paintInk
   ..style = PaintingStyle.stroke;
 
 class MapGridPainter extends CustomPainter {
@@ -231,8 +231,8 @@ class MapGridPainter extends CustomPainter {
       }
       final density = cell.density.clamp(0.0, 1.0).toDouble();
       paint.color = Color.lerp(
-        const Color(0x3343A047),
-        const Color(0x99E53935),
+        MapTokens.debugPoi.withValues(alpha: 0.2),
+        MapTokens.debugTap.withValues(alpha: 0.6),
         density,
       )!;
       canvas.drawRect(
@@ -458,7 +458,7 @@ class MapGridPainter extends CustomPainter {
       final toCenter = _cellCenter(status.toLocation, cellWidth, cellHeight);
 
       if (status.blocked) {
-        paint.color = const Color(0xCCE53935);
+        paint.color = MapTokens.debugTap.withValues(alpha: 0.8);
       } else {
         paint.color = Color.lerp(
           const Color(0x22FFB74D),
@@ -496,16 +496,16 @@ class MapGridPainter extends CustomPainter {
       final radius = math.min(cellWidth, cellHeight) * 0.38;
 
       final pinPaint = Paint()
-        ..color = const Color(0xFFD32F2F)
+        ..color = MapTokens.routeStop
         ..style = PaintingStyle.fill;
 
       final borderPaint = Paint()
-        ..color = const Color(0xFFFAFCFE)
+        ..color = MapTokens.paintInk
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0;
 
       final shadowPaint = Paint()
-        ..color = Colors.black.withValues(alpha: 0.25)
+        ..color = MapTokens.paintInkShadow
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0);
 
       canvas.drawCircle(center + const Offset(0, 1.5), radius, shadowPaint);
@@ -515,7 +515,7 @@ class MapGridPainter extends CustomPainter {
       final textSpan = TextSpan(
         text: '${i + 1}',
         style: TextStyle(
-          color: const Color(0xFFFAFCFE),
+          color: MapTokens.paintInk,
           fontSize: radius * 1.1,
           fontWeight: FontWeight.bold,
         ),
