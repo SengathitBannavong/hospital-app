@@ -1,15 +1,12 @@
 name: Flutter iOS Build
-
 on:
     workflow_dispatch:
     push:
         tags:
             - "v*.*.*"
-
 jobs:
     build-ios:
         runs-on: macos-latest
-
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -52,14 +49,10 @@ jobs:
                   BASE_URL=${{ vars.BASE_URL || 'https://group3.it4788.sukkaito.id.vn/api/' }}
                   APP_NAME=${{ vars.APP_NAME || 'Hospital App' }}
                   EOF
-                  echo "::group::.env contents"
-                  cat .env
-                  echo "::endgroup::"
 
             - name: Resolve version + build number
               id: ver
               run: |
-                  # Strip leading 'v' from tag; fall back to pubspec name when manual.
                   TAG_NAME="${GITHUB_REF##*/}"
                   if [[ "$GITHUB_REF" == refs/tags/* ]]; then
                     VERSION="${TAG_NAME#v}"
@@ -71,19 +64,22 @@ jobs:
                   echo "build=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
                   echo "Building $VERSION+$BUILD_NUMBER"
 
-            - name: Build iOS archive
-              # With --no-codesign, flutter produces the .xcarchive but skips
-              # the IPA export step (export requires signing). We upload the
-              # archive as the artifact — same payload, just not packaged as
-              # an .ipa. Signing + IPA export is out of scope for this demo.
+            - name: Build iOS (no codesign)
               run: |
-                  flutter build ipa --release --no-codesign \
+                  flutter build ios --release --no-codesign \
                     --build-name=${{ steps.ver.outputs.version }} \
                     --build-number=${{ steps.ver.outputs.build }}
 
-            - name: Upload iOS archive
+            - name: Package .app into .ipa
+              run: |
+                  cd build/ios/iphoneos
+                  mkdir Payload
+                  cp -r Runner.app Payload/Runner.app
+                  zip -r app.ipa Payload
+
+            - name: Upload IPA
               uses: actions/upload-artifact@v4
               with:
                   name: ios-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}
-                  path: build/ios/archive/Runner.xcarchive
+                  path: build/ios/iphoneos/app.ipa
                   if-no-files-found: error
