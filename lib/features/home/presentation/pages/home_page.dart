@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/services/version_gate.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../../../../core/widgets/medical_info_card.dart';
@@ -32,6 +33,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     _fetchTasks();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(notificationProvider.notifier).loadNotifications();
+      if (mounted) {
+        checkAndPrompt(context);
+      }
     });
   }
 
