@@ -82,4 +82,15 @@ class ApiEndpoints {
   // SOS
   static const String sosCreate = 'sos/create';
   static const String sosGetDetail = 'sos/get_detail';
+
+  // Utility
+  static const String utilFaq = 'util/faq';
+  static const String utilAbout = 'util/about';
+  static const String utilContact = 'util/contact';
+  static const String utilLanguages = 'util/languages';
+  static const String utilCheckVersion = 'util/check_version';
+  static const String utilWeather = 'util/weather';
+  static const String utilFeedback = 'util/feedback';
+  static const String utilFeedbackSummary = 'util/feedback_summary';
+  static const String utilUpload = 'util/upload';
 }
