@@ -145,14 +145,15 @@ class _SosHeroButtonState extends State<_SosHeroButton>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    )..addListener(() {
-      if (mounted) {
-        setState(() {});
-      }
-    });
+    _controller =
+        AnimationController(
+          duration: const Duration(milliseconds: 1200),
+          vsync: this,
+        )..addListener(() {
+          if (mounted) {
+            setState(() {});
+          }
+        });
   }
 
   @override
@@ -281,10 +282,7 @@ class _SosHeroButtonState extends State<_SosHeroButton>
 }
 
 class _SosHeroContent extends StatelessWidget {
-  const _SosHeroContent({
-    required this.isActive,
-    required this.isSending,
-  });
+  const _SosHeroContent({required this.isActive, required this.isSending});
 
   final bool isActive;
   final bool isSending;
@@ -333,11 +331,7 @@ class _SosHeroContent extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8),
-          Icon(
-            Icons.emergency_rounded,
-            color: AppColors.onEmergency,
-            size: 28,
-          ),
+          Icon(Icons.emergency_rounded, color: AppColors.onEmergency, size: 28),
         ],
       ),
     );
