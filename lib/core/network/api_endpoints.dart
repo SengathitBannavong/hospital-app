@@ -12,9 +12,6 @@ class ApiEndpoints {
   static const String changePassword = 'auth/change_password';
   static const String deleteAccount = 'user/delete_account';
 
-  // System
-  static const String checkVersion = 'sys/check_version';
-
   // Medical
   static const String patients = 'patients';
   static const String appointments = 'appointments';
