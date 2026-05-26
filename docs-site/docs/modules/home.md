@@ -20,7 +20,8 @@ Unlike deeply nested features, the Home module relies primarily on localized sta
 | :--- | :--- |
 | **Local State (`StatefulWidget`)** | Manages the `_isLoadingTasks` boolean and `_taskCount` integer directly within `_HomePageState`. |
 | **Direct Repository Access** | Instantiates `HomeRepository` to execute `getTasks()` directly during `initState` and via Pull-to-Refresh. |
-| **Global Consumers** | Consumes `themeController` (dark/light), `authStateProvider` (logout), and `notificationProvider` / `unreadCountProvider` (app-bar bell badge + summary card). |
+| **Global Consumers** | Consumes `themeController` (dark/light), `authStateProvider` (logout), `notificationProvider` / `unreadCountProvider` (app-bar bell badge + summary card), and `weatherProvider` (Home weather card). |
+| **Startup hooks** | Post-frame callback invokes `checkAndPrompt()` from `lib/core/services/version_gate.dart` — calls `util/check_version` and shows a dismissible update dialog when `status == 'update_available'`, throttled to once per 24h via Hive. |
 
 ## Widget Types & Patterns
 
@@ -38,7 +39,11 @@ The UI is composed of animated, highly-reusable components designed to give a pr
         ├── 🌟 FadeSlideTransition
         │   └── 🔔 Notification summary card → push('/notification')
         ├── 🌟 FadeSlideTransition
-        │   └── 📱 _QuickActionCard ("Thông tin" → push('/info'))
+        │   └── 🌤️ _WeatherSummaryCard (weatherProvider · util/weather)
+        ├── 🌟 FadeSlideTransition
+        │   └── 📱 Wrap of _QuickActionCard
+        │       ├── "Thông tin" → push('/info')
+        │       └── "SOS" (red) → push('/sos')
         └── 🌟 FadeSlideTransition
             └── 🚨 Status Badge
 ```

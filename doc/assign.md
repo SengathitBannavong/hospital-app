@@ -1,6 +1,6 @@
-# Contribution Assignment — `main` (29 commits)
+# Contribution Assignment — `main` (31 commits)
 
-_Generated 2026-05-25. HEAD `54ccd02`. Ordered oldest → newest. "#" = PR number
+_Generated 2026-05-26. HEAD `967615a`. Ordered oldest → newest. "#" = PR number
 (or short hash for direct commits). Co-contributors are from `Co-Authored-By`._
 
 | # | Date (UTC+?) | Module | What it does (summary) | Main contributor | Co-contributor |
@@ -34,21 +34,26 @@ _Generated 2026-05-25. HEAD `54ccd02`. Ordered oldest → newest. "#" = PR numbe
 | #29 | 2026-05-25 14:55 | Notification / Home / Nav | Notifications (pagination + optional push + settings + bell), Info hub, home cleanup, 4-tab nav | kimheng99 | Vongphet Pasithiphone, Bannavong |
 | #31 | 2026-05-25 16:58 | Settings / Notification | Unified Settings page (theme/notification/language, backend-persisted) + notification API contract fixes | Soumek Xaynguyen (quangngv) | Bannavong |
 | #32 | 2026-05-25 18:56 | Docs | PROJECT.md current-state summary + prioritised backlog; move overview docs to `doc/` | Bannavong | — |
+| #30 | 2026-05-26 12:36 | SOS / Home / Core | SOS screen (`POST sos/create`, `GET sos/get_detail`) + red Home quick-action; restored forgot-password flow; dropped dead util scaffolding; gated macOS token fallback behind `kDebugMode`; removed unused `google_fonts`. | Samkol Meng Leang | Bannavong |
+| #37 | 2026-05-26 14:06 | Util / Info / Home / Profile | Dynamic FAQ/About/Contact via `util/*`; startup app-update check (`util/check_version`); Home weather card (`util/weather`); Feedback page reachable from Profile (`util/feedback` + `util/feedback_summary`); consolidated duplicate version-check path. | Punleu-Oun | Bannavong |
 
 ## Contributor summary
 
 | Person | Lead commits | Also co-contributed |
 |---|---|---|
-| **Bannavong** (bannavong.sa239717) | 20 — core, theme, CI, map, route, flow, medical, docs | #17, #25, #29, #31 |
+| **Bannavong** (bannavong.sa239717) | 20 — core, theme, CI, map, route, flow, medical, docs | #17, #25, #29, #31, #30, #37 |
 | **Vongphet Pasithphone** (pasithphone.v220116) | 4 — auth (#7, #22), async/UI (#17), reset-password (#25) | #29 |
 | **Kimheng99** (nutkimheng000) | 2 — notification UI (#18), notifications/info/nav (#29) | — |
 | **Soumek Xaynguyen** (aka quangngv / quanghot31ao) | 2 — profile page (#8), unified Settings page (#31) | — |
-| **Samkol Meng Leang** | 1 — auth/core/home pages (#5) | — |
+| **Samkol Meng Leang** (CodeLeang) | 2 — auth/core/home pages (#5), SOS + home utility shortcuts (#30) | — |
+| **Punleu-Oun** (ounpunleu7975) | 1 — util wiring: Info hub, Home, app update, feedback (#37) | — |
 
 > **Reassignment rule applied:** on any commit where Bannavong was the merger but
 > a teammate co-contributed, the teammate is credited as **main** and Bannavong
 > moved to **co** — affects #25 (→ Vongphet), #29 (→ kimheng99, lead author of the
-> kim-heng branch), and #31 (→ Soumek Xaynguyen, who commits as `quangngv` — author of the settings branch).
+> kim-heng branch), #31 (→ Soumek Xaynguyen, who commits as `quangngv` — author of the settings branch),
+> #30 (→ Samkol Meng Leang, who merged the SOS branch as `CodeLeang`), and #37
+> (→ Punleu-Oun, who merged the util-wiring branch).
 >
 > Module labels are inferred from the commit subject + the files each PR touched.
 > Co-contributors come from `Co-Authored-By` trailers on the squash/merge commits.

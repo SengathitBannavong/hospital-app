@@ -12,20 +12,23 @@ These two modules are the structural glue and informational backbone of the appl
 
 ## Info Module (`lib/features/info`)
 
-The **Info Module** contains all static content and help pages for the
-public-facing app. `InfoPage` (`/info`) is a **hub** that links three pushed
-sub-pages, each with its own back button:
+The **Info Module** is the help hub for the public-facing app. `InfoPage`
+(`/info`) is a **hub** that links three pushed sub-pages, each with its own
+back button:
 
-- **FAQ** (`/faq`) — expansion-panel question list.
-- **Giới thiệu / About** (`/about`) — app description + feature list.
-- **Liên hệ / Contact** (`/contact`) — hospital phone, email, address.
+- **FAQ** (`/faq`) — expansion-panel question list with optional category chip filter, sourced from `util/faq`.
+- **Giới thiệu / About** (`/about`) — hospital name, description, version, sourced from `util/about`.
+- **Liên hệ / Contact** (`/contact`) — hotline, email, address from `util/contact`. Hotline taps open the dialer (`tel:`) and email taps open the mail app (`mailto:`) via `url_launcher`.
 
 All are reached via `context.push(...)` (so the back arrow works), and the old
 duplicate `/faq` route that shadowed the FAQ page was removed.
 
 ### State Management
-State is minimal and entirely static — plain `StatelessWidget` pages with no
-providers.
+The three sub-pages are now backend-driven. Each watches a Riverpod
+`FutureProvider` from `lib/features/util/presentation/providers/util_providers.dart`
+(`aboutProvider`, `contactProvider`, `faqProvider(category)`) and renders via
+`AsyncValue.when(loading, error+retry, data)`. See the [Util Module](./util)
+for repository details.
 
 ### Widget Types & Patterns
 - **Hub list**: `InfoPage` is a `ListView` of `Card`/`ListTile` entries routing to each page.
@@ -60,9 +63,9 @@ The Main Shell utilizes `go_router`'s specialized navigation branch wrapper to m
 ```
 
 :::note[Top-level pushed routes]
-Notification, Info, FAQ, About, and Contact are **not** bottom-nav branches.
-They are top-level routes opened with `context.push(...)`, so they appear as
-full pages with a back button rather than tabs.
+Notification, Info, FAQ, About, Contact, SOS, and Feedback are **not**
+bottom-nav branches. They are top-level routes opened with `context.push(...)`,
+so they appear as full pages with a back button rather than tabs.
 :::
 
 :::warning[Nested Navigation]
