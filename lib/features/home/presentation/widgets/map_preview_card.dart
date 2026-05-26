@@ -18,7 +18,7 @@ class MapPreviewCard extends StatelessWidget {
           hint: 'Tìm đường đến phòng ban',
           child: InkWell(
             borderRadius: AppRadius.borderLg,
-            onTap: () => context.push('/map'),
+            onTap: () => context.go('/map'),
             child: Padding(
               padding: AppSpacing.cardPaddingLarge,
               child: Row(

@@ -185,24 +185,23 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: AppSpacing.md),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 100),
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: AppSpacing.md,
-                  crossAxisSpacing: AppSpacing.md,
-                  childAspectRatio: 1.1,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
+                child: Row(
                   children: [
-                    _QuickActionCard(
-                      title: 'Thông tin',
-                      icon: Icons.info_outline_rounded,
-                      onTap: () => context.push('/info'),
+                    Expanded(
+                      child: _QuickActionCard(
+                        title: 'Thông tin',
+                        icon: Icons.info_outline_rounded,
+                        onTap: () => context.push('/info'),
+                      ),
                     ),
-                    _QuickActionCard(
-                      title: 'SOS',
-                      icon: Icons.emergency_rounded,
-                      color: AppColors.emergency,
-                      onTap: () => context.push('/sos'),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: _QuickActionCard(
+                        title: 'SOS',
+                        icon: Icons.emergency_rounded,
+                        color: AppColors.emergency,
+                        onTap: () => context.push('/sos'),
+                      ),
                     ),
                   ],
                 ),
@@ -401,16 +400,23 @@ class _QuickActionCard extends StatelessWidget {
         borderRadius: AppRadius.borderLg,
         onTap: onTap,
         child: Padding(
-          padding: AppSpacing.cardPadding,
-          child: Column(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 32, color: iconColor),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                title,
-                style: context.textTheme.labelLarge?.copyWith(color: color),
-                textAlign: TextAlign.center,
+              Icon(icon, size: 22, color: iconColor),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: Text(
+                  title,
+                  style: context.textTheme.labelLarge?.copyWith(color: color),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
