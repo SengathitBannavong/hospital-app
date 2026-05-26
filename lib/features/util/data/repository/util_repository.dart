@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
@@ -132,7 +134,14 @@ class UtilRepository {
     try {
       final response = await _dio.post(
         ApiEndpoints.utilFeedback,
-        data: {'rating': rating, 'comment': comment, 'images': images},
+        // Backend contract: `images` is a stringified JSON array, not a real
+        // JSON array. Sending a real List<String> returns "request body
+        // invalid".
+        data: {
+          'rating': rating,
+          'comment': comment,
+          'images': jsonEncode(images),
+        },
       );
       final apiResponse = AuthApiResponse<UtilFeedbackResponse>.fromJson(
         response.data,
