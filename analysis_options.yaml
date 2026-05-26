@@ -29,3 +29,10 @@ linter:
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
+
+# Style rule (manual, not enforced by dart_lint):
+# - Do NOT use `Colors.red/blue/green/orange/white/black/grey/yellow/purple`
+#   outside lib/core/theme/ and lib/features/map/.../theme/.
+# - Do NOT introduce raw `Color(0xFF...)` literals in feature code.
+# - Use AppColors.* role tokens or context.colorScheme.* instead.
+# - See context/ui_audit_fix_plan.md for the role-token vocabulary.
