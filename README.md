@@ -57,6 +57,20 @@ flutter test
 dart analyze lib test
 ```
 
+### Continuous Integration
+
+GitHub Actions workflows in `.github/workflows/`:
+
+- **`flutter_ci.yml`** — quality bot: runs on every push/PR to `main`. Generates Freezed/JSON sources, checks formatting (`dart format`), and runs `flutter analyze`.
+- **`ios_build.yml`** — semver-tag triggered (`v*.*.*`) plus manual dispatch. Caches Flutter pub + CocoaPods, injects build number from CI run, produces an unsigned `.ipa` as an artifact. **Unsigned because production code-signing is out of scope for this academic project** — the artifact is for build-pipeline verification and inspection only, not for device install.
+
+To produce a tagged iOS build:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ## Project Structure
 
 - `lib/app/`: App-level configuration, root widget, and routing
