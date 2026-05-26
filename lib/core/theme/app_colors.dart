@@ -67,4 +67,16 @@ class AppColors {
   static const Color deptPediatrics = Color(0xFFF39C12);
   static const Color deptDermatology = Color(0xFF1ABC9C);
   static const Color deptGeneral = Color(0xFF2ECC71);
+
+  // ── Emergency / Action Roles ──
+  // Use instead of raw Colors.red / Colors.orange / Colors.white
+  static const Color emergency = Color(0xFFD92D20);
+  static const Color emergencyActive = Color(0xFFDC6803);
+  static const Color emergencySurface = Color(0xFFFEE4E2);
+  static const Color onEmergency = Color(0xFFFFFFFF);
+
+  // Task / queue role colors
+  static const Color taskInProgress = Color(0xFF0A6DC2);
+  static const Color taskWaiting = Color(0xFFB54708);
+  static const Color taskDone = Color(0xFF067647);
 }

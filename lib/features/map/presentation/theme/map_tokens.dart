@@ -50,3 +50,16 @@ class MapPoiPalette {
   static Color colorFor(String type) => byType[type] ?? fallback;
   static String labelFor(String type) => labels[type] ?? type;
 }
+
+class MapTokens {
+  MapTokens._();
+
+  // Painter palette
+  static const Color debugTap = Color(0xFFE53935);
+  static const Color debugPoi = Color(0xFF43A047);
+  static const Color userDot = Color(0xFF0E8A6D);
+  static const Color userHalo = Color(0xFF0E8A6D);
+  static const Color routeStop = Color(0xFFD32F2F);
+  static const Color paintInk = Color(0xFFFAFCFE);
+  static const Color paintInkShadow = Color(0x40000000);
+}

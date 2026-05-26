@@ -87,7 +87,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
-      appBar: AppBar(backgroundColor: Colors.transparent),
+      appBar: AppBar(backgroundColor: context.colorScheme.surface),
       body: SafeArea(
         child: Padding(
           padding: AppSpacing.pagePadding,
@@ -124,13 +124,13 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                         child: FilledButton(
                           onPressed: _isVerifying ? null : _verifyOtp,
                           child: _isVerifying
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
+                                      context.colorScheme.onPrimary,
                                     ),
                                   ),
                                 )

@@ -1,12 +1,13 @@
 name: Flutter iOS Build
 on:
-    workflow_dispatch:
     push:
         tags:
             - "v*.*.*"
 jobs:
     build-ios:
         runs-on: macos-latest
+        permissions:
+            contents: write
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -53,12 +54,7 @@ jobs:
             - name: Resolve version + build number
               id: ver
               run: |
-                  TAG_NAME="${GITHUB_REF##*/}"
-                  if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-                    VERSION="${TAG_NAME#v}"
-                  else
-                    VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
-                  fi
+                  VERSION="${GITHUB_REF_NAME#v}"
                   BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
                   echo "version=$VERSION" >> "$GITHUB_OUTPUT"
                   echo "build=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
@@ -77,9 +73,36 @@ jobs:
                   cp -r Runner.app Payload/Runner.app
                   zip -r app.ipa Payload
 
-            - name: Upload IPA
+            - name: Rename IPA with version
+              run: |
+                  cp build/ios/iphoneos/app.ipa \
+                     build/ios/iphoneos/hospital-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}-unsigned.ipa
+
+            - name: Upload IPA artifact
               uses: actions/upload-artifact@v4
               with:
                   name: ios-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}
-                  path: build/ios/iphoneos/app.ipa
+                  path: build/ios/iphoneos/hospital-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}-unsigned.ipa
                   if-no-files-found: error
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ github.ref_name }}
+                  name: ${{ github.ref_name }}
+                  draft: false
+                  prerelease: false
+                  generate_release_notes: true
+                  body: |
+                      Hospital App ${{ github.ref_name }} (build ${{ steps.ver.outputs.build }})
+
+                      ## iOS build
+
+                      Attached: `hospital-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}-unsigned.ipa`
+
+                      > **Unsigned build.** This IPA is built with `--no-codesign`
+                      > and cannot be installed on a real device or uploaded to
+                      > TestFlight as-is. Use it for inspection, archival, or as
+                      > input to a downstream resigning pipeline.
+                  files: |
+                      build/ios/iphoneos/hospital-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}-unsigned.ipa

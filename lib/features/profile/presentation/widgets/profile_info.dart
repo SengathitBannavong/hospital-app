@@ -71,8 +71,8 @@ class ProfileInfo extends StatelessWidget {
             icon: const Icon(Icons.delete_outline),
             label: const Text('Xóa tài khoản'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
+              foregroundColor: AppColors.emergency,
+              side: const BorderSide(color: AppColors.emergency),
             ),
           ),
         ],

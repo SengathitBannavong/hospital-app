@@ -135,6 +135,7 @@ class HospitalTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.textOnPrimary,
           elevation: 0,
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
           textStyle: const TextStyle(
@@ -149,6 +150,7 @@ class HospitalTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
           side: const BorderSide(color: AppColors.borderLight, width: 1),
@@ -164,12 +166,20 @@ class HospitalTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           textStyle: const TextStyle(
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
+        ),
+      ),
+
+      // ── Icon Button ──
+      iconButtonTheme: const IconButtonThemeData(
+        style: ButtonStyle(
+          padding: WidgetStatePropertyAll(EdgeInsets.all(12)),
+          iconSize: WidgetStatePropertyAll(24),
         ),
       ),
 
@@ -278,7 +288,7 @@ class HospitalTheme {
         backgroundColor: AppColors.textPrimaryLight,
         contentTextStyle: TextStyle(
           fontFamily: 'Plus Jakarta Sans',
-          fontSize: 14,
+          fontSize: 15,
           color: AppColors.textOnPrimary,
         ),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
@@ -447,6 +457,7 @@ class HospitalTheme {
           backgroundColor: AppColors.primaryLight,
           foregroundColor: AppColors.textPrimaryLight,
           elevation: 0,
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
           textStyle: const TextStyle(
@@ -461,6 +472,7 @@ class HospitalTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primaryLight,
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderMd),
           side: const BorderSide(color: AppColors.borderDark, width: 1),
@@ -469,6 +481,14 @@ class HospitalTheme {
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
+        ),
+      ),
+
+      // ── Icon Button ──
+      iconButtonTheme: const IconButtonThemeData(
+        style: ButtonStyle(
+          padding: WidgetStatePropertyAll(EdgeInsets.all(12)),
+          iconSize: WidgetStatePropertyAll(24),
         ),
       ),
 
@@ -554,7 +574,7 @@ class HospitalTheme {
         backgroundColor: AppColors.surfaceVariantDark,
         contentTextStyle: TextStyle(
           fontFamily: 'Plus Jakarta Sans',
-          fontSize: 14,
+          fontSize: 15,
           color: AppColors.textPrimaryDark,
         ),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.borderMd),

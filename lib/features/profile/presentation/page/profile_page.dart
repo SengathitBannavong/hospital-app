@@ -214,7 +214,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   if (profileState.isSaving)
                     Positioned.fill(
                       child: Container(
-                        color: Colors.black.withValues(alpha: 0.08),
+                        color: context.colorScheme.shadow,
                         alignment: Alignment.center,
                         child: const CircularProgressIndicator(),
                       ),
