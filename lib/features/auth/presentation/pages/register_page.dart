@@ -132,7 +132,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: context.colorScheme.surface,
         elevation: 0,
         toolbarHeight: isSmallScreen ? 40 : null,
         leading: IconButton(
@@ -254,7 +254,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             const SizedBox(height: AppSpacing.md),
                             // Date of Birth Picker
                             Material(
-                              color: Colors.transparent,
+                              type: MaterialType.transparency,
                               child: InkWell(
                                 onTap: _selectDateOfBirth,
                                 borderRadius: AppRadius.borderMd,
@@ -442,14 +442,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                   ),
                                 ),
                                 child: _isLoading
-                                    ? const SizedBox(
+                                    ? SizedBox(
                                         width: 24,
                                         height: 24,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2.5,
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
+                                                context.colorScheme.onPrimary,
                                               ),
                                         ),
                                       )

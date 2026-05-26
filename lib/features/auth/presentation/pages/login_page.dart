@@ -212,14 +212,14 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                                 ),
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 24,
                                       height: 24,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2.5,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
+                                              context.colorScheme.onPrimary,
                                             ),
                                       ),
                                     )

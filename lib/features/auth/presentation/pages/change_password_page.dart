@@ -120,7 +120,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: context.colorScheme.surface,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -268,14 +268,14 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                 ),
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 24,
                                       height: 24,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2.5,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
+                                              context.colorScheme.onPrimary,
                                             ),
                                       ),
                                     )
