@@ -71,14 +71,19 @@ jobs:
                   echo "build=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
                   echo "Building $VERSION+$BUILD_NUMBER"
 
-            - name: Build IPA
+            - name: Build iOS archive
+              # With --no-codesign, flutter produces the .xcarchive but skips
+              # the IPA export step (export requires signing). We upload the
+              # archive as the artifact — same payload, just not packaged as
+              # an .ipa. Signing + IPA export is out of scope for this demo.
               run: |
                   flutter build ipa --release --no-codesign \
                     --build-name=${{ steps.ver.outputs.version }} \
                     --build-number=${{ steps.ver.outputs.build }}
 
-            - name: Upload IPA
+            - name: Upload iOS archive
               uses: actions/upload-artifact@v4
               with:
                   name: ios-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}
-                  path: build/ios/ipa/*.ipa
+                  path: build/ios/archive/Runner.xcarchive
+                  if-no-files-found: error
