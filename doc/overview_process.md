@@ -39,7 +39,7 @@ missing endpoint count:
 | Multi-stop Navigation | `██░░░░░░░░` 20% | Repository wrappers for ordered/unordered multi-stop calls. | No user flow for choosing multiple destinations or optimizing order. | UI for `POST route/order_multi`, `POST route/order_unordered` |
 | Crowd / Flow Overlay | `██████░░░░` 60% | Heatmap, bottlenecks, forecast, alerts, obstacle reporting/display, crowd-aware local routing. | Point density view, edge-status overlay (request mismatch), location ping during nav, priority controls. | `flow/get_density` (param/shape mismatch), `flow/edge_status` (mismatch), `flow/ping_location`, `flow/set_priority`, `flow/expire_priority` |
 | QR Scanner | `████████░░` 80% | Scan a QR and set current map position. | Robust payload formats, friendlier invalid-code handling. | None beyond current map search. |
-| Info / FAQ / Utility | `█████░░░░░` 50% | **Info hub** linking static FAQ, Giới thiệu (About), and Liên hệ (Contact) pages. | Dynamic FAQ/about/contact, feedback, languages, pharmacy, canteen, parking, Wi-Fi, weather, upload. | `util/faq`, `util/about`, `util/contact`, `util/languages`, `util/check_version`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, `util/weather`, `util/feedback`, `util/feedback_summary`, `util/upload` |
+| Info / FAQ / Utility | `█████░░░░░` 50% | **Info hub** linking static FAQ, Giới thiệu (About), and Liên hệ (Contact) pages. | FE wiring for now-available `util/*` endpoints (dynamic FAQ/about/contact, weather, feedback, languages, app update check, upload). Note: a previous FE `util_repository.dart` was deleted because its assumed response shape was wrong (e.g. it expected `parking` to return `{available,total}` numbers — backend actually returns a POI list). Any rebuild must follow the new contracts. | Backend now provides: `util/faq`, `util/about`, `util/contact`, `util/languages`, `util/check_version`, `util/weather`, `util/feedback`, `util/feedback_summary`, `util/upload` — **available, FE not yet wired**. `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi` are POI-list endpoints and belong in the **Map** module as POI categories, not under Info/Utility. |
 | Asset / Wheelchair | `░░░░░░░░░░` 0% | Not available in the current app. | Asset stations, wheelchair finding, health, tracking, booking, release, broken-asset reporting. | `asset/asset_stations`, `asset/find_wheelchairs`, `asset/asset_health`, `asset/track_asset`, `asset/book_asset`, `asset/release_asset`, `asset/report_broken_asset` |
 | Staff Request | `░░░░░░░░░░` 0% | Not available in the current app. | Request staff/help from the app. | `POST /api/staff/request_staff` |
 | SOS | `░░░░░░░░░░` 0% | Not in the app (SOS screens exist on `feature/medical-sos-util`, waiting on backend). | Create SOS request and view own SOS detail. | `POST /api/sos/create`, `GET /api/sos/get_detail` |
@@ -55,7 +55,10 @@ device-token registration, indoor map, QR positioning, the **Info hub**, and
 simulated navigation.
 
 The biggest remaining gaps are SOS, chat, asset/wheelchair booking, staff
-request, dynamic utility/info content, the unified settings page (pending PR),
-deeper live navigation sync, and — critically on the backend — a real **push
-sender + notification triggers** (without which notifications stay seed-only).
+request, **FE wiring for the now-available `util/*` endpoints** (dynamic
+FAQ/about/contact, weather, feedback, languages, app update check, upload —
+backend is live, FE side is not yet built), the unified settings page (pending
+PR), deeper live navigation sync, and — critically on the backend — a real
+**push sender + notification triggers** (without which notifications stay
+seed-only).
 See `context/backend-tasks.md` and `context/overview_system.md`.
