@@ -13,20 +13,20 @@ import 'package:hospital_app/features/auth/presentation/pages/reset_password_pag
 import 'package:hospital_app/features/auth/presentation/pages/welcome_page.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/home/presentation/pages/home_page.dart';
-import 'package:hospital_app/features/map/presentation/pages/map_page.dart';
-import 'package:hospital_app/features/profile/presentation/page/profile_page.dart';
-import 'package:hospital_app/features/main/presentation/pages/main_shell.dart';
-import 'package:hospital_app/features/medical/presentation/pages/task_list_page.dart';
-import 'package:hospital_app/features/medical/presentation/pages/queue_page.dart';
-import 'package:hospital_app/features/medical/presentation/pages/prescription_page.dart';
-import 'package:hospital_app/features/notification/presentation/pages/notification_page.dart';
-import 'package:hospital_app/features/info/presentation/pages/info_page.dart';
-import 'package:hospital_app/features/settings/presentation/pages/settings_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/about_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/contact_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/faq_page.dart';
+import 'package:hospital_app/features/info/presentation/pages/info_page.dart';
+import 'package:hospital_app/features/main/presentation/pages/main_shell.dart';
+import 'package:hospital_app/features/map/presentation/pages/map_page.dart';
+import 'package:hospital_app/features/medical/presentation/pages/prescription_page.dart';
+import 'package:hospital_app/features/medical/presentation/pages/queue_page.dart';
+import 'package:hospital_app/features/medical/presentation/pages/task_list_page.dart';
+import 'package:hospital_app/features/notification/presentation/pages/notification_page.dart';
+import 'package:hospital_app/features/profile/presentation/page/profile_page.dart';
+import 'package:hospital_app/features/settings/presentation/pages/settings_page.dart';
+import 'package:hospital_app/features/sos/presentation/pages/sos_page.dart';
 
-// RouterNotifier to handle reactive redirection
 class RouterNotifier extends ChangeNotifier {
   final Ref _ref;
 
@@ -50,19 +50,14 @@ class RouterNotifier extends ChangeNotifier {
 
     final isProtected = state.matchedLocation == '/change-password';
 
-    // Not logged in: redirect to login unless on auth pages
     if (!isLoggedIn) {
-      return isLoggingIn
-          ? null
-          : '/login'; // return isLoggingIn ? null : '/login';
+      return isLoggingIn ? null : '/login';
     }
 
-    // Logged in: don't allow access to auth pages except protected routes
     if (isLoggedIn && isLoggingIn && !isProtected) {
       return '/welcome';
     }
 
-    // Allow access to protected routes only if logged in
     if (isProtected && !isLoggedIn) {
       return '/login';
     }
@@ -80,17 +75,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: AppToast.navigatorKey,
-    initialLocation: '/welcome', //welcome
+    initialLocation: '/welcome',
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
-      // Main Application Shell with Bottom Navigation
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainShell(navigationShell: navigationShell);
         },
         branches: [
-          // Home Branch
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -99,7 +92,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Medical Branch
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -118,7 +110,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Map Branch
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -127,7 +118,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Profile Branch
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -149,11 +139,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/contact',
         builder: (context, state) => const ContactPage(),
       ),
-      // Auth Routes
       GoRoute(
         path: '/welcome',
         builder: (context, state) => const WelcomePage(),
       ),
+      GoRoute(path: '/sos', builder: (context, state) => const SosPage()),
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginOtpPage(),
@@ -172,14 +162,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final phone = state.pathParameters['phone'] ?? '';
           final type = state.pathParameters['type'] ?? '';
           final extra = state.extra as Map<String, dynamic>?;
+          final pendingUser = extra?['pendingUser'] as AuthUser?;
           final password = extra?['password'] as String?;
-          final optCode = extra?['otp_code'] as String?;
 
           return OtpVerificationPage(
             phoneNumber: phone,
             otpType: type,
+            pendingUser: pendingUser,
             password: password,
-            otpCode: optCode,
           );
         },
       ),

@@ -1,4 +1,4 @@
-// lib/core/network/api_endpoints.dart  ← REPLACE your existing file
+// lib/core/network/api_endpoints.dart
 
 class ApiEndpoints {
   // Auth
@@ -15,7 +15,7 @@ class ApiEndpoints {
   // System
   static const String checkVersion = 'sys/check_version';
 
-  // Medical & Others
+  // Medical
   static const String patients = 'patients';
   static const String appointments = 'appointments';
   static const String getTasks = 'medical/get_tasks';
@@ -65,7 +65,7 @@ class ApiEndpoints {
   static const String flowReportObstacle = 'flow/report_obstacle';
   static const String flowGetObstacles = 'flow/get_obstacles';
 
-  // System
+  // Voice
   static const String sysGetVoiceKey = 'sys/get_voice_key';
   static const String sysGetVoiceFiles = 'sys/get_voice_files';
 
@@ -74,8 +74,12 @@ class ApiEndpoints {
   static const String notificationSetRead = 'notification/set_read';
   static const String notificationDelete = 'notification/delete';
 
-  // ── NEW: User / Notification Settings & Device Token ────────────────────
+  // User / Settings / Device Token
   static const String setDevToken = 'user/set_devtoken';
   static const String getSettings = 'user/get_settings';
   static const String setSettings = 'user/set_settings';
+
+  // SOS
+  static const String sosCreate = 'sos/create';
+  static const String sosGetDetail = 'sos/get_detail';
 }

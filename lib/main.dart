@@ -10,8 +10,6 @@ const _enableFirebase = bool.fromEnvironment('ENABLE_FIREBASE');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Load .env
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {

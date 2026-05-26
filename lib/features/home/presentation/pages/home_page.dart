@@ -30,7 +30,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
     _fetchTasks();
-    // Load real notifications on home page open
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(notificationProvider.notifier).loadNotifications();
     });
@@ -78,7 +77,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // ── Watch real unread count from provider ──────────────────────────────
     final unreadCount = ref.watch(unreadCountProvider);
     final notifState = ref.watch(notificationProvider);
 
@@ -121,8 +119,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.xl),
-
-              // Welcome Card
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 50),
                 child: Card(
@@ -148,15 +144,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: AppSpacing.xl),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 150),
                 child: Text('Tổng quan', style: context.textTheme.titleMedium),
               ),
               const SizedBox(height: AppSpacing.md),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 200),
                 child: MedicalInfoCard(
@@ -168,10 +161,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onTap: _fetchTasks,
                 ),
               ),
-
               const SizedBox(height: AppSpacing.md),
-
-              // ── Notification Section ──────────────────────────────────────
               const FadeSlideTransition(
                 delay: Duration(milliseconds: 350),
                 child: Text(
@@ -180,7 +170,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 400),
                 child: Card(
@@ -194,7 +183,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                               : Icons.notifications_outlined,
                           color: context.colorScheme.primary,
                         ),
-                        // Red dot badge if unread > 0
                         if (unreadCount > 0)
                           Positioned(
                             top: -4,
@@ -224,7 +212,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                       ],
                     ),
-                    // Show real count — or loading — or "no notifications"
                     title: Text(
                       notifState.isLoading
                           ? 'Đang tải thông báo...'
@@ -241,9 +228,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: AppSpacing.xl),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 450),
                 child: Text(
@@ -251,9 +236,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   style: context.textTheme.titleMedium,
                 ),
               ),
-
               const SizedBox(height: AppSpacing.md),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 500),
                 child: Wrap(
@@ -265,12 +248,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                       icon: Icons.info_outline_rounded,
                       onTap: () => context.push('/info'),
                     ),
+                    _QuickActionCard(
+                      title: 'SOS',
+                      icon: Icons.emergency_rounded,
+                      color: Colors.red,
+                      onTap: () => context.push('/sos'),
+                    ),
                   ],
                 ),
               ),
-
               const SizedBox(height: AppSpacing.xl),
-
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 450),
                 child: Container(
@@ -298,7 +285,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),
@@ -312,15 +298,18 @@ class _QuickActionCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final VoidCallback onTap;
+  final Color? color;
 
   const _QuickActionCard({
     required this.title,
     required this.icon,
     required this.onTap,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final iconColor = color ?? context.colorScheme.primary;
     return SizedBox(
       width: 150,
       child: Card(
@@ -331,11 +320,11 @@ class _QuickActionCard extends StatelessWidget {
             padding: AppSpacing.cardPadding,
             child: Column(
               children: [
-                Icon(icon, size: 32, color: context.colorScheme.primary),
+                Icon(icon, size: 32, color: iconColor),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   title,
-                  style: context.textTheme.labelLarge,
+                  style: context.textTheme.labelLarge?.copyWith(color: color),
                   textAlign: TextAlign.center,
                 ),
               ],
