@@ -82,15 +82,3 @@ jobs:
         with:
           name: ios-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}
           path: build/ios/ipa/*.ipa
-
-      # TEMPORARY: bootstrap step to recover the generated Podfile.lock so it
-      # can be committed back to the repo. Once `ios/Podfile.lock` exists in
-      # git, delete this step and the next CocoaPods cache hit will be ~3 min
-      # faster.
-      - name: Upload Podfile.lock (bootstrap only — delete after committing)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-podfile-lock
-          path: ios/Podfile.lock
-          if-no-files-found: warn
