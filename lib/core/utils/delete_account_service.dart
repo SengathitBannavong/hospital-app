@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/theme/app_colors.dart';
 
 class DeleteAccountService {
   /// Show confirmation dialog for account deletion
@@ -20,7 +21,10 @@ class DeleteAccountService {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.emergency),
+            ),
           ),
         ],
       ),

@@ -40,6 +40,8 @@ class AppToast {
 
     final isDark = Theme.of(state.context).brightness == Brightness.dark;
     final backgroundColor = isDark ? surfaceColor : solidColor;
+    // White is intentional: text always sits on a saturated solid
+    // (success/error/info) — theme.onSurface would lose contrast.
     final contentColor = isDark ? solidColor : Colors.white;
 
     showTopSnackBar(
