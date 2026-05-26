@@ -5,6 +5,7 @@ import '../../data/models/user_profile.dart';
 class ProfileInfo extends StatelessWidget {
   final UserProfile profile;
   final VoidCallback onEdit;
+  final VoidCallback? onFeedback;
   final VoidCallback? onDeleteAccount;
   final VoidCallback? onLogout;
 
@@ -12,6 +13,7 @@ class ProfileInfo extends StatelessWidget {
     super.key,
     required this.profile,
     required this.onEdit,
+    this.onFeedback,
     this.onDeleteAccount,
     this.onLogout,
   });
@@ -54,6 +56,14 @@ class ProfileInfo extends StatelessWidget {
           icon: const Icon(Icons.edit_outlined),
           label: const Text('Chỉnh sửa hồ sơ'),
         ),
+        if (onFeedback != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: onFeedback,
+            icon: const Icon(Icons.rate_review_outlined),
+            label: const Text('Đánh giá ứng dụng'),
+          ),
+        ],
         if (onDeleteAccount != null) ...[
           const SizedBox(height: AppSpacing.md),
           OutlinedButton.icon(

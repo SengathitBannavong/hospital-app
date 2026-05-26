@@ -203,6 +203,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           ProfileInfo(
                             profile: profile!,
                             onEdit: () => setState(() => _isEditing = true),
+                            onFeedback: () => context.push('/feedback'),
                             onDeleteAccount: _handleDeleteAccount,
                             onLogout: _handleLogout,
                           ),
