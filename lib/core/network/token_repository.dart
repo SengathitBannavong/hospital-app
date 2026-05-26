@@ -1,27 +1,34 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TokenRepository {
   static final FlutterSecureStorage _storage = const FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
-  static final File _macosFallbackFile = File(
-    '${Platform.environment['HOME']}/.hospital_app_token',
-  );
+  static File get _macosFallbackFile {
+    final home = Platform.environment['HOME'];
+    return File('$home/.hospital_app_token');
+  }
+
+  // Plaintext file fallback exists only because Keychain entitlements can be
+  // flaky on local macOS dev builds. Release builds always use Keychain.
+  static bool get _useMacosFallback =>
+      !kIsWeb && kDebugMode && Platform.isMacOS;
 
   static Future<void> saveToken(String token) async {
-    if (Platform.isMacOS) {
+    if (_useMacosFallback) {
       try {
         await _macosFallbackFile.writeAsString(token, flush: true);
+        return;
       } catch (_) {
-        await _storage.write(key: _tokenKey, value: token);
+        // fall through to secure storage
       }
-    } else {
-      await _storage.write(key: _tokenKey, value: token);
     }
+    await _storage.write(key: _tokenKey, value: token);
   }
 
   static Future<String?> getToken() async {
-    if (Platform.isMacOS) {
+    if (_useMacosFallback) {
       try {
         if (await _macosFallbackFile.exists()) {
           final s = await _macosFallbackFile.readAsString();
@@ -29,24 +36,24 @@ class TokenRepository {
         }
         return null;
       } catch (_) {
-        return await _storage.read(key: _tokenKey);
+        // fall through to secure storage
       }
     }
-    return await _storage.read(key: _tokenKey);
+    return _storage.read(key: _tokenKey);
   }
 
   static Future<void> deleteToken() async {
-    if (Platform.isMacOS) {
+    if (_useMacosFallback) {
       try {
         if (await _macosFallbackFile.exists()) {
           await _macosFallbackFile.delete();
         }
+        return;
       } catch (_) {
-        await _storage.delete(key: _tokenKey);
+        // fall through to secure storage
       }
-    } else {
-      await _storage.delete(key: _tokenKey);
     }
+    await _storage.delete(key: _tokenKey);
   }
 
   static Future<bool> hasToken() async {

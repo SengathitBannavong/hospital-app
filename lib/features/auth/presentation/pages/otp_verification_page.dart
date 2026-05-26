@@ -46,6 +46,16 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
     setState(() => _isVerifying = true);
 
     try {
+      // Forgot-password: don't call verify_otp here — reset_password accepts
+      // the OTP and a prior verification may consume it.
+      if (widget.otpType == 'forgot_password') {
+        AppToast.showSuccess('Tiếp tục đặt lại mật khẩu.');
+        if (mounted) {
+          context.push('/reset-password/${widget.phoneNumber}/$otp');
+        }
+        return;
+      }
+
       final repository = ref.read(authRepositoryProvider);
       await repository.verifyOtp(
         phoneNumber: widget.phoneNumber,
