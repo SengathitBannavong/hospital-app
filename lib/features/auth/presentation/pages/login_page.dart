@@ -186,11 +186,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: () {
-                                AppToast.showWarning(
-                                  'Chức năng quên mật khẩu chưa hỗ trợ.',
-                                );
-                              },
+                              onPressed: () => context.push('/forgot-password'),
                               style: TextButton.styleFrom(
                                 visualDensity: VisualDensity.compact,
                               ),

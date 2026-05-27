@@ -5,21 +5,24 @@ import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/auth/data/models/auth_user.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:hospital_app/features/auth/presentation/widgets/otp_countdown_button.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/otp_pin_input.dart';
 
 class OtpVerificationPage extends ConsumerStatefulWidget {
-  final String phoneNumber;
-  final String otpType;
-  final AuthUser? pendingUser;
-  final String? password;
-
   const OtpVerificationPage({
     super.key,
     required this.phoneNumber,
     required this.otpType,
     this.pendingUser,
     this.password,
+    this.otpCode,
   });
+
+  final String phoneNumber;
+  final String otpType;
+  final AuthUser? pendingUser;
+  final String? password;
+  final String? otpCode;
 
   @override
   ConsumerState<OtpVerificationPage> createState() =>
@@ -29,11 +32,28 @@ class OtpVerificationPage extends ConsumerStatefulWidget {
 class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
   final _otpController = TextEditingController();
   bool _isVerifying = false;
+  String? _mockOtpCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _mockOtpCode = widget.otpCode;
+  }
 
   @override
   void dispose() {
     _otpController.dispose();
     super.dispose();
+  }
+
+  Future<void> _resendOtp() async {
+    final response = await ref
+        .read(authRepositoryProvider)
+        .resendOtp(phoneNumber: widget.phoneNumber, otpType: widget.otpType);
+    if (response?.otpCode != null && mounted) {
+      setState(() => _mockOtpCode = response!.otpCode);
+    }
+    AppToast.showSuccess('Đã gửi lại mã');
   }
 
   Future<void> _verifyOtp() async {
@@ -112,11 +132,67 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(
                     children: [
+                      if (_mockOtpCode != null) ...[
+                        InkWell(
+                          onTap: () {
+                            _otpController.text = _mockOtpCode!;
+                            AppToast.showSuccess('Đã điền mã OTP');
+                          },
+                          borderRadius: AppRadius.borderMd,
+                          child: Container(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: context.colorScheme.tertiaryContainer,
+                              borderRadius: AppRadius.borderMd,
+                              border: Border.all(
+                                color: context.colorScheme.tertiary,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.bug_report_outlined,
+                                  color: context.colorScheme.tertiary,
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Mã OTP (mock)',
+                                        style: context.textTheme.labelSmall,
+                                      ),
+                                      Text(
+                                        _mockOtpCode!,
+                                        style: context.textTheme.titleLarge
+                                            ?.copyWith(
+                                              fontFamily: 'monospace',
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 4,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.touch_app_outlined,
+                                  color: context.colorScheme.tertiary,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                      ],
                       OtpPinInput(controller: _otpController, length: 6),
                       const SizedBox(height: AppSpacing.xl),
-                      const TextButton(
-                        onPressed: null,
-                        child: Text('Gửi lại mã hiện chưa hỗ trợ'),
+                      OtpCountdownButton(
+                        onSendOtp: _resendOtp,
+                        buttonLabel: 'Gửi lại mã',
+                        resendLabel: 'Gửi lại mã',
+                        errorMessage: 'Không thể gửi lại mã. Vui lòng thử lại.',
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       SizedBox(

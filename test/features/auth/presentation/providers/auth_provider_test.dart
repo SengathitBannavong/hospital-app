@@ -199,10 +199,10 @@ class MockAuthRepository implements AuthRepository {
   Future<void> deleteAccount({required String password}) async {}
 
   @override
-  Future<void> resendOtp({
+  Future<OtpResponse?> resendOtp({
     required String phoneNumber,
     String? otpType,
-  }) async {}
+  }) async => null;
 }
 
 /// Extended mock repository that tracks deleteAccount calls
