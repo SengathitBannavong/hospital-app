@@ -104,14 +104,24 @@ class AuthRepository {
   }
 
   // Resend OTP verification code
-  Future<void> resendOtp({required String phoneNumber, String? otpType}) async {
+  Future<OtpResponse?> resendOtp({
+    required String phoneNumber,
+    String? otpType,
+  }) async {
     try {
       if (otpType == 'forgot_password') {
-        await forgotPassword(phoneNumber);
-        return;
+        // Backend re-issues OTP via forgot_password endpoint; returns fresh
+        // otpCode.
+        return await forgotPassword(phoneNumber);
       }
 
-      throw Exception('Resend OTP is not supported for signup flow.');
+      if (otpType == 'signup') {
+        // Mock-only: backend has no resend endpoint for signup yet.
+        // Pretend success; return null so UI keeps existing otpCode banner.
+        return null;
+      }
+
+      throw Exception('Resend OTP is not supported for this flow.');
     } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }

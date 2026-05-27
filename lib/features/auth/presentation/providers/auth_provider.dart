@@ -138,7 +138,10 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
   }
 
   // Resend OTP verification code
-  Future<void> resendOtp({required String phoneNumber, String? otpType}) async {
+  Future<OtpResponse?> resendOtp({
+    required String phoneNumber,
+    String? otpType,
+  }) async {
     return await _repository.resendOtp(
       phoneNumber: phoneNumber,
       otpType: otpType,
