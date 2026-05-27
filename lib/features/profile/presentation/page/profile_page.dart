@@ -190,9 +190,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             } catch (error) {
                               if (mounted) {
                                 setState(() => _isUploadingAvatar = false);
-                                final msg = error
-                                    .toString()
-                                    .replaceFirst('Exception: ', '');
+                                final msg = error.toString().replaceFirst(
+                                  'Exception: ',
+                                  '',
+                                );
                                 AppToast.showError(
                                   'Không thể tải ảnh lên: $msg',
                                 );
