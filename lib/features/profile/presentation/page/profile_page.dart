@@ -1,11 +1,14 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../../../../core/utils/delete_account_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../util/presentation/providers/util_providers.dart';
 import '../../data/models/profile_update_request.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/profile_avatar.dart';
@@ -21,6 +24,7 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   bool _isEditing = false;
+  bool _isUploadingAvatar = false;
 
   Future<void> _handleLogout() async {
     final shouldLogout = await showDialog<bool>(
@@ -151,12 +155,50 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       children: [
                         ProfileAvatar(
                           imageUrl: profile?.avatar,
-                          isReadOnly: !_isEditing || profileState.isSaving,
-                          onImagePicked: (path) async {
+                          isReadOnly:
+                              !_isEditing ||
+                              profileState.isSaving ||
+                              _isUploadingAvatar,
+                          onImagePicked: (XFile picked) async {
                             final currentProfile = ref
                                 .read(profileProvider)
                                 .profile;
                             if (currentProfile == null) return;
+
+                            final sizeBytes = await picked.length();
+                            const maxBytes = 10 * 1024 * 1024;
+                            if (sizeBytes > maxBytes) {
+                              AppToast.showError(
+                                'Ảnh vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.',
+                              );
+                              return;
+                            }
+
+                            setState(() => _isUploadingAvatar = true);
+
+                            String uploadedUrl;
+                            try {
+                              final bytes = await picked.readAsBytes();
+                              final file = MultipartFile.fromBytes(
+                                bytes,
+                                filename: picked.name,
+                              );
+                              final result = await ref
+                                  .read(utilRepositoryProvider)
+                                  .uploadFile(file);
+                              uploadedUrl = result.fileUrl;
+                            } catch (error) {
+                              if (mounted) {
+                                setState(() => _isUploadingAvatar = false);
+                                final msg = error
+                                    .toString()
+                                    .replaceFirst('Exception: ', '');
+                                AppToast.showError(
+                                  'Không thể tải ảnh lên: $msg',
+                                );
+                              }
+                              return;
+                            }
 
                             final success = await ref
                                 .read(profileProvider.notifier)
@@ -165,9 +207,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                     fullName: currentProfile.fullName,
                                     dob: currentProfile.dob,
                                     gender: currentProfile.gender,
-                                    avatar: path,
+                                    avatar: uploadedUrl,
                                   ),
                                 );
+
+                            if (mounted) {
+                              setState(() => _isUploadingAvatar = false);
+                            }
 
                             if (!success && mounted) {
                               AppToast.showError(
@@ -211,7 +257,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       ],
                     ),
                   ),
-                  if (profileState.isSaving)
+                  if (profileState.isSaving || _isUploadingAvatar)
                     Positioned.fill(
                       child: Container(
                         color: context.colorScheme.shadow,

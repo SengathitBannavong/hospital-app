@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/network/media_url.dart';
 import '../../../../core/theme/hospital_theme.dart';
 
 class ProfileAvatar extends StatefulWidget {
   final String? imageUrl;
-  final Function(String path) onImagePicked;
+  final Function(XFile file) onImagePicked;
   final bool isReadOnly;
 
   const ProfileAvatar({
@@ -22,9 +23,13 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage(ImageSource source) async {
-    final XFile? image = await _picker.pickImage(source: source);
+    final XFile? image = await _picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      imageQuality: 80,
+    );
     if (image != null) {
-      widget.onImagePicked(image.path);
+      widget.onImagePicked(image);
     }
   }
 
@@ -62,17 +67,17 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedUrl = resolveMediaUrl(widget.imageUrl);
     return Center(
       child: Stack(
         children: [
           CircleAvatar(
             radius: 60,
             backgroundColor: context.colorScheme.primaryContainer,
-            backgroundImage:
-                widget.imageUrl != null && widget.imageUrl!.isNotEmpty
-                ? NetworkImage(widget.imageUrl!)
+            backgroundImage: resolvedUrl != null
+                ? NetworkImage(resolvedUrl)
                 : null,
-            child: widget.imageUrl == null || widget.imageUrl!.isEmpty
+            child: resolvedUrl == null
                 ? Icon(
                     Icons.person,
                     size: 60,
