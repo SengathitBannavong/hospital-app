@@ -25,6 +25,8 @@ import 'package:hospital_app/features/settings/presentation/pages/settings_page.
 import 'package:hospital_app/features/info/presentation/pages/about_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/contact_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/faq_page.dart';
+import 'package:hospital_app/features/chat/presentation/pages/chat_rooms_page.dart';
+import 'package:hospital_app/features/chat/presentation/pages/chat_messages_page.dart';
 
 // RouterNotifier to handle reactive redirection
 class RouterNotifier extends ChangeNotifier {
@@ -136,11 +138,29 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Chat Branch
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/chat',
+                builder: (context, state) => const ChatRoomsPage(),
+              ),
+            ],
+          ),
         ],
       ),
       GoRoute(
         path: '/notification',
         builder: (context, state) => const NotificationPage(),
+      ),
+      GoRoute(
+        path: '/chat/:room_id',
+        builder: (context, state) {
+          final roomId = int.tryParse(state.pathParameters['room_id'] ?? '') ?? 0;
+          final extra = state.extra as Map<String, dynamic>?;
+          final roomName = extra?['room_name'] as String? ?? '';
+          return ChatMessagesPage(roomId: roomId, roomName: roomName);
+        },
       ),
       GoRoute(path: '/info', builder: (context, state) => const InfoPage()),
       GoRoute(path: '/faq', builder: (context, state) => const FaqPage()),

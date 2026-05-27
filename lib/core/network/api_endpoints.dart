@@ -78,4 +78,14 @@ class ApiEndpoints {
   static const String setDevToken = 'user/set_devtoken';
   static const String getSettings = 'user/get_settings';
   static const String setSettings = 'user/set_settings';
+
+  // Chat
+  static const String chatCreateRoom = 'chat/create_room';
+  static const String chatGetRooms = 'chat/get_rooms';
+  static const String chatGetMessages = 'chat/get_messages';
+  static const String chatSendMessage = 'chat/send_message';
+  static const String chatGetUnreadCount = 'chat/get_unread_count';
+  static const String chatMarkRead = 'chat/mark_read';
+  static const String chatLeaveRoom = 'chat/leave_room';
+  static const String chatWs = 'ws/chat';
 }
