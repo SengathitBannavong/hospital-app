@@ -12,8 +12,15 @@ class ChatRepository {
   Future<List<ChatRoom>> getRooms({int page = 1, int limit = 50}) =>
       _remoteDataSource.getRooms(page: page, limit: limit);
 
-  Future<void> createRoom({required int staffId, String topic = ''}) =>
-      _remoteDataSource.createRoom(staffId: staffId, topic: topic);
+  Future<void> createRoom({
+    required int staffId,
+    int? userId,
+    String topic = '',
+  }) => _remoteDataSource.createRoom(
+    staffId: staffId,
+    userId: userId,
+    topic: topic,
+  );
 
   Future<List<ChatMessage>> getMessages({
     required int conversationId,

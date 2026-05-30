@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
+import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
+import '../../data/models/chat_participants.dart';
 import '../providers/chat_provider.dart';
 import '../providers/chat_rooms_state.dart';
 import '../widgets/chat_room_card.dart';
@@ -103,84 +105,136 @@ class _ChatRoomsPageState extends ConsumerState<ChatRoomsPage> {
   }
 
   Future<void> _showCreateRoomDialog(BuildContext context) async {
-    bool isCreating = false;
-    final staffIdController = TextEditingController();
+    final role = ref.read(authStateProvider)?.role;
+    final isPatient = role == null || role == 'patient';
+
+    if (isPatient) {
+      await _showPatientCreateRoomDialog(context);
+      return;
+    }
+
+    await _showStaffCreateRoomDialog(context);
+  }
+
+  Future<void> _showPatientCreateRoomDialog(BuildContext context) async {
     final topicController = TextEditingController();
-    String? staffIdError;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bắt đầu trò chuyện hỗ trợ'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: topicController,
+              decoration: const InputDecoration(
+                labelText: 'Chủ đề (tuỳ chọn)',
+                hintText: 'Hỗ trợ bệnh nhân',
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              // TODO(backend): Provide the default support staff_id for
+              // patient-initiated rooms so this action can call create_room.
+              'Chưa có nhân viên hỗ trợ mặc định. Vui lòng liên hệ lễ tân.',
+              style: TextStyle(fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Đóng'),
+          ),
+          const FilledButton(onPressed: null, child: Text('Bắt đầu')),
+        ],
+      ),
+    );
+    topicController.dispose();
+  }
+
+  Future<void> _showStaffCreateRoomDialog(BuildContext context) async {
+    ChatPatient? selectedPatient;
+    final topicController = TextEditingController();
+    final participantsFuture = ref
+        .read(chatRepositoryProvider)
+        .getParticipants();
 
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Tạo cuộc trò chuyện'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: staffIdController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'ID nhân viên hỗ trợ *',
-                  hintText: 'Nhập ID nhân viên',
-                  errorText: staffIdError,
-                ),
-                onChanged: (_) {
-                  if (staffIdError != null) {
-                    setDialogState(() => staffIdError = null);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: topicController,
-                decoration: const InputDecoration(
-                  labelText: 'Chủ đề (tuỳ chọn)',
-                  hintText: 'Hỗ trợ bệnh nhân',
-                ),
-              ),
-            ],
+          title: const Text('Tạo cuộc trò chuyện với bệnh nhân'),
+          content: FutureBuilder<ChatParticipants>(
+            future: participantsFuture,
+            builder: (ctx, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const SizedBox(
+                  height: 80,
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return Text(
+                  'Không thể tải danh sách bệnh nhân: ${snapshot.error}',
+                );
+              }
+
+              final patients = snapshot.data?.patients ?? const [];
+              if (patients.isEmpty) {
+                return const Text('Không có bệnh nhân để chọn.');
+              }
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<ChatPatient>(
+                    initialValue: selectedPatient,
+                    items: patients
+                        .map(
+                          (patient) => DropdownMenuItem(
+                            value: patient,
+                            child: Text(patient.fullName),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (patient) {
+                      setDialogState(() => selectedPatient = patient);
+                    },
+                    decoration: const InputDecoration(labelText: 'Bệnh nhân'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: topicController,
+                    decoration: const InputDecoration(
+                      labelText: 'Chủ đề (tuỳ chọn)',
+                      hintText: 'Hỗ trợ bệnh nhân',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    // TODO(backend): Expose the logged-in staff's staff_id on
+                    // AuthUser so staff can create rooms with selected
+                    // patients.
+                    'Tài khoản chưa có mã nhân viên để tạo cuộc trò chuyện.',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ],
+              );
+            },
           ),
           actions: [
             TextButton(
-              onPressed: isCreating ? null : () => Navigator.of(ctx).pop(),
-              child: const Text('Huỷ'),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Đóng'),
             ),
-            FilledButton(
-              onPressed: isCreating
-                  ? null
-                  : () async {
-                      final staffIdText = staffIdController.text.trim();
-                      final staffId = int.tryParse(staffIdText);
-                      if (staffId == null || staffId <= 0) {
-                        setDialogState(() => staffIdError = 'Vui lòng nhập ID hợp lệ');
-                        return;
-                      }
-                      setDialogState(() => isCreating = true);
-                      final ok = await ref
-                          .read(chatRoomsProvider.notifier)
-                          .createRoom(
-                            staffId: staffId,
-                            topic: topicController.text.trim(),
-                          );
-                      if (!ctx.mounted) return;
-                      Navigator.of(ctx).pop();
-                      if (ok) {
-                        AppToast.showSuccess('Đã tạo cuộc trò chuyện');
-                      }
-                    },
-              child: isCreating
-                  ? const SizedBox(
-                      height: 16,
-                      width: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Tạo'),
-            ),
+            const FilledButton(onPressed: null, child: Text('Tạo')),
           ],
         ),
       ),
     );
-    staffIdController.dispose();
     topicController.dispose();
   }
 
@@ -199,10 +253,7 @@ class _ChatRoomsPageState extends ConsumerState<ChatRoomsPage> {
                 SizedBox(height: AppSpacing.md),
                 Text('Chưa có cuộc trò chuyện nào'),
                 SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Nhấn nút bút để tạo mới',
-                  style: TextStyle(fontSize: 12),
-                ),
+                Text('Nhấn nút bút để tạo mới', style: TextStyle(fontSize: 12)),
               ],
             ),
           ),

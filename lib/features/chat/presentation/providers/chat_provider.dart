@@ -16,11 +16,11 @@ final chatRepositoryProvider = Provider<ChatRepository>(
 
 final chatRoomsProvider =
     StateNotifierProvider<ChatRoomsNotifier, ChatRoomsState>((ref) {
-  final repo = ref.watch(chatRepositoryProvider);
-  final notifier = ChatRoomsNotifier(repo);
-  notifier.load();
-  return notifier;
-});
+      final repo = ref.watch(chatRepositoryProvider);
+      final notifier = ChatRoomsNotifier(repo);
+      notifier.load();
+      return notifier;
+    });
 
 // Total unread badge derived from rooms.
 final chatUnreadTotalProvider = Provider<int>((ref) {
@@ -61,10 +61,14 @@ class ChatRoomsNotifier extends StateNotifier<ChatRoomsState> {
 
   Future<void> refresh() => load(refresh: true);
 
-  Future<bool> createRoom({required int staffId, String topic = ''}) async {
+  Future<bool> createRoom({
+    required int staffId,
+    int? userId,
+    String topic = '',
+  }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _repo.createRoom(staffId: staffId, topic: topic);
+      await _repo.createRoom(staffId: staffId, userId: userId, topic: topic);
       await load();
       return true;
     } catch (e) {
@@ -97,21 +101,24 @@ class ChatRoomsNotifier extends StateNotifier<ChatRoomsState> {
 
 // ── Per-room messages ─────────────────────────────────────────────────────────
 
-final chatMessagesProvider = StateNotifierProvider.family<
-    ChatMessagesNotifier, ChatMessagesState, int>((ref, conversationId) {
-  final repo = ref.watch(chatRepositoryProvider);
-  // Per-room WS connection: backend URL needs conversation_id in query param.
-  final ws = ChatWebSocketService(conversationId);
-  ws.connect();
-  ref.onDispose(ws.dispose);
-  final notifier = ChatMessagesNotifier(repo, ws, conversationId, ref);
-  notifier.load();
-  return notifier;
-});
+final chatMessagesProvider =
+    StateNotifierProvider.family<ChatMessagesNotifier, ChatMessagesState, int>((
+      ref,
+      conversationId,
+    ) {
+      final repo = ref.watch(chatRepositoryProvider);
+      // Per-room WS connection: backend URL needs conversation_id in query param.
+      final ws = ChatWebSocketService(conversationId);
+      ws.connect();
+      ref.onDispose(ws.dispose);
+      final notifier = ChatMessagesNotifier(repo, ws, conversationId, ref);
+      notifier.load();
+      return notifier;
+    });
 
 class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
   ChatMessagesNotifier(this._repo, this._ws, this._conversationId, this._ref)
-      : super(ChatMessagesState.initial()) {
+    : super(ChatMessagesState.initial()) {
     _wsSub = _ws.messages.listen(_onWsMessage);
   }
 
@@ -179,11 +186,9 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
         messages: [msg, ...state.messages],
         isSending: false,
       );
-      _ref.read(chatRoomsProvider.notifier).updateRoomLastMessage(
-            _conversationId,
-            msg.content,
-            msg.createdAt,
-          );
+      _ref
+          .read(chatRoomsProvider.notifier)
+          .updateRoomLastMessage(_conversationId, msg.content, msg.createdAt);
     } catch (e) {
       state = state.copyWith(isSending: false, errorMessage: _fmt(e));
     }
@@ -206,7 +211,9 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
       final exists = state.messages.any((m) => m.id == chatMsg.id);
       if (!exists) {
         state = state.copyWith(messages: [chatMsg, ...state.messages]);
-        _ref.read(chatRoomsProvider.notifier).updateRoomLastMessage(
+        _ref
+            .read(chatRoomsProvider.notifier)
+            .updateRoomLastMessage(
               _conversationId,
               chatMsg.content,
               chatMsg.createdAt,

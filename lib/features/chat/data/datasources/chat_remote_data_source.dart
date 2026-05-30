@@ -42,13 +42,18 @@ class ChatRemoteDataSource {
   }
 
   // Backend: POST /chat/create_room
-  // Body: { "staff_id": X (required), "topic": "..." (optional) }
-  Future<void> createRoom({required int staffId, String topic = ''}) async {
+  // Body: { "staff_id": X, "user_id": Y?, "topic": "..."? }
+  Future<void> createRoom({
+    required int staffId,
+    int? userId,
+    String topic = '',
+  }) async {
     try {
       final response = await _dio.post(
         ApiEndpoints.chatCreateRoom,
         data: <String, dynamic>{
           'staff_id': staffId,
+          if (userId case final int userId) 'user_id': userId,
           if (topic.isNotEmpty) 'topic': topic,
         },
       );
