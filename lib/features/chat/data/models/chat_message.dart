@@ -3,6 +3,7 @@ class ChatMessage {
     required this.id,
     required this.roomId,
     required this.senderId,
+    required this.senderType,
     required this.senderName,
     required this.content,
     required this.type,
@@ -15,6 +16,7 @@ class ChatMessage {
   final int id;
   final int roomId;
   final int senderId;
+  final String senderType;
   final String senderName;
   final String content;
   final String type;
@@ -30,9 +32,8 @@ class ChatMessage {
         json['conversation_id'] ?? json['room_id'] ?? json['roomId'] ?? 0,
       ),
       senderId: _parseInt(json['sender_id'] ?? json['senderId'] ?? 0),
-      senderName: _parseString(
-        json['sender_type'] ?? json['sender_name'] ?? json['senderName'] ?? '',
-      ),
+      senderType: _parseString(json['sender_type'] ?? json['senderType'] ?? ''),
+      senderName: _parseString(json['sender_name'] ?? json['senderName'] ?? ''),
       content: _parseString(
         json['text_content'] ?? json['content'] ?? json['message'] ?? '',
       ),
@@ -48,6 +49,7 @@ class ChatMessage {
     'id': id,
     'room_id': roomId,
     'sender_id': senderId,
+    'sender_type': senderType,
     'sender_name': senderName,
     'content': content,
     'type': type,
@@ -61,6 +63,7 @@ class ChatMessage {
     int? id,
     int? roomId,
     int? senderId,
+    String? senderType,
     String? senderName,
     String? content,
     String? type,
@@ -73,6 +76,7 @@ class ChatMessage {
       id: id ?? this.id,
       roomId: roomId ?? this.roomId,
       senderId: senderId ?? this.senderId,
+      senderType: senderType ?? this.senderType,
       senderName: senderName ?? this.senderName,
       content: content ?? this.content,
       type: type ?? this.type,

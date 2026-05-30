@@ -8,6 +8,7 @@ import 'package:hospital_app/features/chat/data/models/chat_participants.dart';
 import 'package:hospital_app/features/chat/data/models/chat_room.dart';
 import 'package:hospital_app/features/chat/data/datasources/chat_remote_data_source.dart';
 import 'package:hospital_app/features/chat/data/repository/chat_repository.dart';
+import 'package:hospital_app/features/chat/presentation/pages/chat_messages_page.dart';
 import 'package:hospital_app/features/chat/presentation/providers/chat_provider.dart';
 import 'package:hospital_app/features/util/data/models/upload_result.dart';
 import 'package:hospital_app/features/util/data/repository/util_repository.dart';
@@ -60,17 +61,79 @@ void main() {
       expect(state.messages, hasLength(1));
       expect(fakeRepo.sentContent, 'hello');
     });
+
+    test('load sorts messages newest-first by createdAt then id', () async {
+      final fakeRepo = _FakeChatRepository(
+        messages: [
+          _message(id: 1, createdAt: '2026-05-30T10:00:00Z'),
+          _message(id: 4, createdAt: '2026-05-30T10:02:00Z'),
+          _message(id: 3, createdAt: '2026-05-30T10:02:00Z'),
+          _message(id: 2, createdAt: '2026-05-30T10:01:00Z'),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          chatRepositoryProvider.overrideWithValue(fakeRepo),
+          utilRepositoryProvider.overrideWithValue(_FakeUtilRepository()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(chatMessagesProvider(1).notifier).load();
+
+      final ids = container
+          .read(chatMessagesProvider(1))
+          .messages
+          .map((message) => message.id)
+          .toList();
+      expect(ids, [4, 3, 2, 1]);
+    });
+  });
+
+  group('isMineChatMessage', () {
+    test('sender id match wins before role/type fallback', () {
+      final message = _message(senderId: 9, senderType: 'staff');
+
+      expect(isMineChatMessage(message, 9, 'patient'), isTrue);
+    });
+
+    test('patient role owns user messages only', () {
+      expect(
+        isMineChatMessage(_message(senderType: 'user'), 9, 'patient'),
+        isTrue,
+      );
+      expect(
+        isMineChatMessage(_message(senderType: 'staff'), 9, 'patient'),
+        isFalse,
+      );
+    });
+
+    test('staff role owns non-user messages only', () {
+      expect(
+        isMineChatMessage(_message(senderType: 'staff'), 9, 'staff'),
+        isTrue,
+      );
+      expect(
+        isMineChatMessage(_message(senderType: 'admin'), 9, 'staff'),
+        isTrue,
+      );
+      expect(
+        isMineChatMessage(_message(senderType: 'user'), 9, 'staff'),
+        isFalse,
+      );
+    });
   });
 }
 
 class _FakeChatRepository extends ChatRepository {
-  _FakeChatRepository()
+  _FakeChatRepository({this.messages = const []})
     : super(
         remoteDataSource: ChatRemoteDataSource(
           dio: Dio(BaseOptions(baseUrl: 'https://example.test/api/')),
         ),
       );
 
+  final List<ChatMessage> messages;
   String? sentContent;
 
   @override
@@ -78,6 +141,9 @@ class _FakeChatRepository extends ChatRepository {
     return const [
       ChatRoom(
         id: 1,
+        userId: 3,
+        staffId: 7,
+        status: 'open',
         name: 'Hỗ trợ',
         lastMessage: '',
         lastMessageAt: '',
@@ -93,7 +159,7 @@ class _FakeChatRepository extends ChatRepository {
     int page = 1,
     int limit = 30,
   }) async {
-    return const [];
+    return messages;
   }
 
   @override
@@ -124,7 +190,8 @@ class _FakeChatRepository extends ChatRepository {
       id: 99,
       roomId: conversationId,
       senderId: 2,
-      senderName: 'staff',
+      senderType: 'staff',
+      senderName: '',
       content: content,
       type: type,
       mediaUrl: mediaUrl,
@@ -133,6 +200,28 @@ class _FakeChatRepository extends ChatRepository {
       createdAt: '2026-05-30T10:00:00Z',
     );
   }
+}
+
+ChatMessage _message({
+  int id = 1,
+  int roomId = 1,
+  int senderId = 2,
+  String senderType = 'user',
+  String createdAt = '2026-05-30T10:00:00Z',
+}) {
+  return ChatMessage(
+    id: id,
+    roomId: roomId,
+    senderId: senderId,
+    senderType: senderType,
+    senderName: '',
+    content: 'message $id',
+    type: 'text',
+    mediaUrl: '',
+    isRead: false,
+    isDeleted: false,
+    createdAt: createdAt,
+  );
 }
 
 class _FakeUtilRepository extends UtilRepository {

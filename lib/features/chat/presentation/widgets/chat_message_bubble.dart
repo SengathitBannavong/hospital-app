@@ -77,9 +77,16 @@ class ChatMessageBubble extends StatelessWidget {
 
   String get _senderLabel {
     final label = message.senderName.trim();
-    if (label.isEmpty || label == 'user' || label == 'staff') return '';
-    return label;
+    if (label.isNotEmpty) return label;
+    return _fallbackSideLabel;
   }
+
+  String get _fallbackSideLabel => switch (message.senderType) {
+    'user' => 'Bệnh nhân',
+    'admin' => 'Quản trị viên',
+    'coordinator' => 'Điều phối viên',
+    _ => 'Nhân viên hỗ trợ',
+  };
 
   Widget _buildContent(BuildContext context) {
     return switch (message.type) {

@@ -63,22 +63,6 @@ class ChatRoomsNotifier extends StateNotifier<ChatRoomsState> {
 
   Future<void> refresh() => load(refresh: true);
 
-  Future<bool> createRoom({
-    required int staffId,
-    int? userId,
-    String topic = '',
-  }) async {
-    state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      await _repo.createRoom(staffId: staffId, userId: userId, topic: topic);
-      await load();
-      return true;
-    } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: _fmt(e));
-      return false;
-    }
-  }
-
   void markRoomRead(int roomId) {
     final updated = state.rooms.map((r) {
       if (r.id == roomId) return r.copyWith(unreadCount: 0);
@@ -154,7 +138,7 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
       );
       await _loadSenderNames();
       state = state.copyWith(
-        messages: msgs.map(_withResolvedSenderName).toList(),
+        messages: _sortedNewestFirst(msgs.map(_withResolvedSenderName)),
         isLoading: false,
         page: 1,
         hasMore: msgs.length >= _pageSize,
@@ -179,7 +163,7 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
         for (final m in merged) m.id: _withResolvedSenderName(m),
       }.values.toList();
       state = state.copyWith(
-        messages: deduplicated,
+        messages: _sortedNewestFirst(deduplicated),
         isLoadingMore: false,
         page: nextPage,
         hasMore: msgs.length >= _pageSize,
@@ -245,7 +229,7 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
         .where((message) => message.id != resolvedMsg.id)
         .toList();
     state = state.copyWith(
-      messages: [resolvedMsg, ...withoutDuplicate],
+      messages: _sortedNewestFirst([resolvedMsg, ...withoutDuplicate]),
       isSending: isSending,
     );
     _ref
@@ -289,6 +273,16 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
       'voice' => '[Tin nhắn thoại]',
       _ => '',
     };
+  }
+
+  List<ChatMessage> _sortedNewestFirst(Iterable<ChatMessage> msgs) {
+    final list = msgs.toList()
+      ..sort((a, b) {
+        final byTime = b.createdAt.compareTo(a.createdAt);
+        if (byTime != 0) return byTime;
+        return b.id.compareTo(a.id);
+      });
+    return list;
   }
 
   @override

@@ -22,7 +22,8 @@ void main() {
       expect(message.id, 42);
       expect(message.roomId, 7);
       expect(message.senderId, 9);
-      expect(message.senderName, 'staff');
+      expect(message.senderType, 'staff');
+      expect(message.senderName, '');
       expect(message.content, 'Xin chào');
       expect(message.type, 'image');
       expect(message.mediaUrl, '/uploads/a.png');
@@ -40,9 +41,15 @@ void main() {
         'last_message_at': '2026-05-30T10:00:00Z',
         'unread_count': '3',
         'avatar_url': '/uploads/avatar.png',
+        'user_id': '5',
+        'staff_id': 7,
+        'status': 'closed',
       });
 
       expect(room.id, 11);
+      expect(room.userId, 5);
+      expect(room.staffId, 7);
+      expect(room.status, 'closed');
       expect(room.name, 'Hỗ trợ');
       expect(room.lastMessage, 'Tin mới');
       expect(room.unreadCount, 3);

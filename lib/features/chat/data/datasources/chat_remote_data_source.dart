@@ -43,34 +43,6 @@ class ChatRemoteDataSource {
     }
   }
 
-  // Backend: POST /chat/create_room
-  // Body: { "staff_id": X, "user_id": Y?, "topic": "..."? }
-  Future<void> createRoom({
-    required int staffId,
-    int? userId,
-    String topic = '',
-  }) async {
-    try {
-      final response = await _dio.post(
-        ApiEndpoints.chatCreateRoom,
-        data: <String, dynamic>{
-          'staff_id': staffId,
-          if (userId case final int userId) 'user_id': userId,
-          if (topic.isNotEmpty) 'topic': topic,
-        },
-      );
-      final apiResponse = ApiResponse<dynamic>.fromJson(
-        response.data,
-        (json) => json,
-      );
-      if (apiResponse.code != ApiResponseCodes.success) {
-        throw Exception(apiResponse.message);
-      }
-    } on DioException catch (e) {
-      throw Exception(_parseError(e));
-    }
-  }
-
   // Backend: GET /chat/get_messages?conversation_id=X&page=Y&limit=Z
   Future<List<ChatMessage>> getMessages({
     required int conversationId,

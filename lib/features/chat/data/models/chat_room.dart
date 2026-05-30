@@ -1,6 +1,9 @@
 class ChatRoom {
   const ChatRoom({
     required this.id,
+    required this.userId,
+    required this.staffId,
+    required this.status,
     required this.name,
     required this.lastMessage,
     required this.lastMessageAt,
@@ -9,6 +12,9 @@ class ChatRoom {
   });
 
   final int id;
+  final int userId;
+  final int staffId;
+  final String status;
   final String name;
   final String lastMessage;
   final String lastMessageAt;
@@ -18,6 +24,9 @@ class ChatRoom {
   factory ChatRoom.fromJson(Map<String, dynamic> json) {
     return ChatRoom(
       id: _parseInt(json['conversation_id'] ?? json['id'] ?? json['room_id']),
+      userId: _parseInt(json['user_id'] ?? json['userId'] ?? 0),
+      staffId: _parseInt(json['staff_id'] ?? json['staffId'] ?? 0),
+      status: _parseString(json['status'] ?? 'open'),
       name: _parseString(
         json['topic'] ??
             json['name'] ??
@@ -40,6 +49,9 @@ class ChatRoom {
 
   ChatRoom copyWith({
     int? id,
+    int? userId,
+    int? staffId,
+    String? status,
     String? name,
     String? lastMessage,
     String? lastMessageAt,
@@ -48,6 +60,9 @@ class ChatRoom {
   }) {
     return ChatRoom(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
+      staffId: staffId ?? this.staffId,
+      status: status ?? this.status,
       name: name ?? this.name,
       lastMessage: lastMessage ?? this.lastMessage,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,

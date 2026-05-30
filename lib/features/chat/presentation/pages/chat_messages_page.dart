@@ -5,9 +5,17 @@ import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../data/models/chat_message.dart';
 import '../providers/chat_provider.dart';
 import '../providers/chat_messages_state.dart';
 import '../widgets/chat_message_bubble.dart';
+
+bool isMineChatMessage(ChatMessage m, int myId, String? role) {
+  if (myId != 0 && m.senderId == myId) return true;
+  final iAmPatient = role == null || role == 'patient' || role == 'user';
+  final fromPatient = m.senderType == 'user';
+  return iAmPatient ? fromPatient : (m.senderType.isNotEmpty && !fromPatient);
+}
 
 class ChatMessagesPage extends ConsumerStatefulWidget {
   const ChatMessagesPage({required this.roomId, this.roomName = '', super.key});
@@ -85,6 +93,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
     final state = ref.watch(chatMessagesProvider(widget.roomId));
     final authUser = ref.watch(authStateProvider);
     final myId = authUser?.userId ?? 0;
+    final myRole = authUser?.role;
     final cs = Theme.of(context).colorScheme;
 
     ref.listen<ChatMessagesState>(chatMessagesProvider(widget.roomId), (
@@ -121,14 +130,18 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
       ),
       body: Column(
         children: [
-          Expanded(child: _buildMessageList(state, myId)),
+          Expanded(child: _buildMessageList(state, myId, myRole)),
           _buildInputBar(state),
         ],
       ),
     );
   }
 
-  Widget _buildMessageList(ChatMessagesState state, int myId) {
+  bool _isMine(ChatMessage msg, int myId, String? role) {
+    return isMineChatMessage(msg, myId, role);
+  }
+
+  Widget _buildMessageList(ChatMessagesState state, int myId, String? role) {
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -160,7 +173,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
         }
 
         final msg = state.messages[index];
-        final isMe = myId != 0 && msg.senderId == myId;
+        final isMe = _isMine(msg, myId, role);
 
         // Show sender name when the next-older message has a different sender.
         final prevMsg = index + 1 < state.messages.length
