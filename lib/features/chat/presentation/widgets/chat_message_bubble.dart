@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hospital_app/core/network/media_url.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import '../../data/models/chat_message.dart';
 
@@ -25,27 +26,27 @@ class ChatMessageBubble extends StatelessWidget {
           maxWidth: MediaQuery.of(context).size.width * 0.72,
         ),
         child: Column(
-          crossAxisAlignment:
-              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             if (!isMe && showSenderName)
               Padding(
-                padding: const EdgeInsets.only(
-                  left: AppSpacing.sm,
-                  bottom: 2,
-                ),
+                padding: const EdgeInsets.only(left: AppSpacing.sm, bottom: 2),
                 child: Text(
-                  message.senderName.isEmpty ? 'Người dùng' : message.senderName,
+                  message.senderName.isEmpty
+                      ? 'Người dùng'
+                      : message.senderName,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
+              padding: EdgeInsets.symmetric(
+                horizontal: message.type == 'image' ? 4 : AppSpacing.md,
+                vertical: message.type == 'image' ? 4 : AppSpacing.sm,
               ),
               decoration: BoxDecoration(
                 color: isMe ? cs.primary : cs.surfaceContainerHighest,
@@ -57,26 +58,88 @@ class ChatMessageBubble extends StatelessWidget {
                 ),
                 boxShadow: AppShadows.card,
               ),
-              child: Text(
-                message.content,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isMe ? cs.onPrimary : cs.onSurface,
-                    ),
-              ),
+              child: _buildContent(context),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
               child: Text(
                 _formatTime(message.createdAt),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontSize: 10,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontSize: 10,
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    return switch (message.type) {
+      'image' => _buildImageContent(context),
+      'voice' => _buildVoiceContent(context),
+      _ => _buildTextContent(context),
+    };
+  }
+
+  Widget _buildTextContent(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Text(
+      message.content,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: isMe ? cs.onPrimary : cs.onSurface,
+      ),
+    );
+  }
+
+  Widget _buildImageContent(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final resolvedUrl = resolveMediaUrl(message.mediaUrl);
+    if (resolvedUrl == null) {
+      return Text(
+        'Không thể tải ảnh',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: isMe ? cs.onPrimary : cs.onSurface,
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Image.network(
+        resolvedUrl,
+        fit: BoxFit.cover,
+        width: 220,
+        height: 180,
+        errorBuilder: (context, error, stackTrace) => Text(
+          'Không thể tải ảnh',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: isMe ? cs.onPrimary : cs.onSurface,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVoiceContent(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.graphic_eq_rounded,
+          color: isMe ? cs.onPrimary : cs.onSurface,
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Text(
+          'Tin nhắn thoại',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: isMe ? cs.onPrimary : cs.onSurface,
+          ),
+        ),
+      ],
     );
   }
 

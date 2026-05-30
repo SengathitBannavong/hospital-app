@@ -37,10 +37,14 @@ class ChatRepository {
 
   Future<ChatMessage> sendMessage({
     required int conversationId,
-    required String content,
+    String content = '',
+    String type = 'text',
+    String mediaUrl = '',
   }) => _remoteDataSource.sendMessage(
     conversationId: conversationId,
     content: content,
+    type: type,
+    mediaUrl: mediaUrl,
   );
 
   Future<void> markRead({required int conversationId}) =>

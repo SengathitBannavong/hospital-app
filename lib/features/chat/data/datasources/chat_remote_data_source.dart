@@ -131,18 +131,26 @@ class ChatRemoteDataSource {
   }
 
   // Backend: POST /chat/send_message
-  // Body: { "conversation_id": X, "type": "text", "text_content": "..." }
+  // Body: { "conversation_id": X, "type": "...", "text_content": "...",
+  // "media_url": "..." }
   Future<ChatMessage> sendMessage({
     required int conversationId,
-    required String content,
+    String content = '',
+    String type = 'text',
+    String mediaUrl = '',
   }) async {
+    if (content.trim().isEmpty && mediaUrl.trim().isEmpty) {
+      throw Exception('Nội dung tin nhắn không được để trống');
+    }
+
     try {
       final response = await _dio.post(
         ApiEndpoints.chatSendMessage,
         data: {
           'conversation_id': conversationId,
-          'type': 'text',
-          'text_content': content,
+          'type': type,
+          if (content.trim().isNotEmpty) 'text_content': content.trim(),
+          if (mediaUrl.trim().isNotEmpty) 'media_url': mediaUrl.trim(),
         },
       );
       final apiResponse = ApiResponse<ChatMessage>.fromJson(

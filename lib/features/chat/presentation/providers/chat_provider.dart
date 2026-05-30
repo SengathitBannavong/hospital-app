@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/services/chat_websocket_service.dart';
+import 'package:hospital_app/features/util/data/repository/util_repository.dart';
+import 'package:hospital_app/features/util/presentation/providers/util_providers.dart';
 import '../../data/models/chat_message.dart';
 import '../../data/repository/chat_repository.dart';
 import 'chat_messages_state.dart';
@@ -107,22 +110,35 @@ final chatMessagesProvider =
       conversationId,
     ) {
       final repo = ref.watch(chatRepositoryProvider);
+      final utilRepo = ref.watch(utilRepositoryProvider);
       // Per-room WS connection: backend URL needs conversation_id in query param.
       final ws = ChatWebSocketService(conversationId);
       ws.connect();
       ref.onDispose(ws.dispose);
-      final notifier = ChatMessagesNotifier(repo, ws, conversationId, ref);
+      final notifier = ChatMessagesNotifier(
+        repo,
+        utilRepo,
+        ws,
+        conversationId,
+        ref,
+      );
       notifier.load();
       return notifier;
     });
 
 class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
-  ChatMessagesNotifier(this._repo, this._ws, this._conversationId, this._ref)
-    : super(ChatMessagesState.initial()) {
+  ChatMessagesNotifier(
+    this._repo,
+    this._utilRepo,
+    this._ws,
+    this._conversationId,
+    this._ref,
+  ) : super(ChatMessagesState.initial()) {
     _wsSub = _ws.messages.listen(_onWsMessage);
   }
 
   final ChatRepository _repo;
+  final UtilRepository _utilRepo;
   final ChatWebSocketService _ws;
   final int _conversationId;
   final Ref _ref;
@@ -182,13 +198,25 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
         conversationId: _conversationId,
         content: content.trim(),
       );
-      state = state.copyWith(
-        messages: [msg, ...state.messages],
-        isSending: false,
+      _upsertMessage(msg, isSending: false);
+    } catch (e) {
+      state = state.copyWith(isSending: false, errorMessage: _fmt(e));
+    }
+  }
+
+  Future<void> sendImage(String path) async {
+    if (path.trim().isEmpty) return;
+    state = state.copyWith(isSending: true, clearError: true);
+    try {
+      final filename = path.split('/').last;
+      final file = await MultipartFile.fromFile(path, filename: filename);
+      final upload = await _utilRepo.uploadFile(file);
+      final msg = await _repo.sendMessage(
+        conversationId: _conversationId,
+        type: 'image',
+        mediaUrl: upload.fileUrl,
       );
-      _ref
-          .read(chatRoomsProvider.notifier)
-          .updateRoomLastMessage(_conversationId, msg.content, msg.createdAt);
+      _upsertMessage(msg, isSending: false);
     } catch (e) {
       state = state.copyWith(isSending: false, errorMessage: _fmt(e));
     }
@@ -208,18 +236,34 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
 
     try {
       final chatMsg = ChatMessage.fromJson(msg);
-      final exists = state.messages.any((m) => m.id == chatMsg.id);
-      if (!exists) {
-        state = state.copyWith(messages: [chatMsg, ...state.messages]);
-        _ref
-            .read(chatRoomsProvider.notifier)
-            .updateRoomLastMessage(
-              _conversationId,
-              chatMsg.content,
-              chatMsg.createdAt,
-            );
-      }
+      _upsertMessage(chatMsg);
     } catch (_) {}
+  }
+
+  void _upsertMessage(ChatMessage msg, {bool? isSending}) {
+    final withoutDuplicate = state.messages
+        .where((message) => message.id != msg.id)
+        .toList();
+    state = state.copyWith(
+      messages: [msg, ...withoutDuplicate],
+      isSending: isSending,
+    );
+    _ref
+        .read(chatRoomsProvider.notifier)
+        .updateRoomLastMessage(
+          _conversationId,
+          _lastMessagePreview(msg),
+          msg.createdAt,
+        );
+  }
+
+  String _lastMessagePreview(ChatMessage msg) {
+    if (msg.content.isNotEmpty) return msg.content;
+    return switch (msg.type) {
+      'image' => '[Hình ảnh]',
+      'voice' => '[Tin nhắn thoại]',
+      _ => '',
+    };
   }
 
   @override

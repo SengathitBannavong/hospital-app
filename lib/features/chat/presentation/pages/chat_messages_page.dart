@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/chat_provider.dart';
 import '../providers/chat_messages_state.dart';
 import '../widgets/chat_message_bubble.dart';
@@ -22,6 +23,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -63,6 +65,14 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
         .sendMessage(text);
   }
 
+  Future<void> _pickImage() async {
+    final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+    await ref
+        .read(chatMessagesProvider(widget.roomId).notifier)
+        .sendImage(picked.path);
+  }
+
   String _resolveRoomName() {
     if (widget.roomName.isNotEmpty) return widget.roomName;
     final rooms = ref.read(chatRoomsProvider).rooms;
@@ -77,15 +87,15 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
     final myId = authUser?.userId ?? 0;
     final cs = Theme.of(context).colorScheme;
 
-    ref.listen<ChatMessagesState>(
-      chatMessagesProvider(widget.roomId),
-      (prev, next) {
-        if (next.errorMessage != null &&
-            next.errorMessage != prev?.errorMessage) {
-          AppToast.showError(next.errorMessage!);
-        }
-      },
-    );
+    ref.listen<ChatMessagesState>(chatMessagesProvider(widget.roomId), (
+      prev,
+      next,
+    ) {
+      if (next.errorMessage != null &&
+          next.errorMessage != prev?.errorMessage) {
+        AppToast.showError(next.errorMessage!);
+      }
+    });
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -209,6 +219,11 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
         ),
         child: Row(
           children: [
+            IconButton(
+              onPressed: state.isSending ? null : _pickImage,
+              icon: const Icon(Icons.image_outlined),
+              tooltip: 'Gửi ảnh',
+            ),
             Expanded(
               child: TextField(
                 controller: _inputController,
@@ -282,4 +297,3 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
     );
   }
 }
-
