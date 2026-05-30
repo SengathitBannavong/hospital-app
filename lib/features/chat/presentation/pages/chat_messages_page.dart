@@ -162,7 +162,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
         final msg = state.messages[index];
         final isMe = myId != 0 && msg.senderId == myId;
 
-        // Show sender name when the next-older message is from a different sender.
+        // Show sender name when the next-older message has a different sender.
         final prevMsg = index + 1 < state.messages.length
             ? state.messages[index + 1]
             : null;
@@ -240,7 +240,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
                     horizontal: AppSpacing.md,
                     vertical: AppSpacing.sm,
                   ),
-                  border: OutlineInputBorder(
+                  border: const OutlineInputBorder(
                     borderRadius: AppRadius.borderFull,
                     borderSide: BorderSide.none,
                   ),

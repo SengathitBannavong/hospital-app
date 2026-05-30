@@ -9,19 +9,18 @@ import '../../data/repository/chat_repository.dart';
 import 'chat_messages_state.dart';
 import 'chat_rooms_state.dart';
 
-// ── Repository ────────────────────────────────────────────────────────────────
+// Repository
 
 final chatRepositoryProvider = Provider<ChatRepository>(
   (ref) => ChatRepository(),
 );
 
-// ── Rooms list ────────────────────────────────────────────────────────────────
+// Rooms list
 
 final chatRoomsProvider =
     StateNotifierProvider<ChatRoomsNotifier, ChatRoomsState>((ref) {
       final repo = ref.watch(chatRepositoryProvider);
-      final notifier = ChatRoomsNotifier(repo);
-      notifier.load();
+      final notifier = ChatRoomsNotifier(repo)..load();
       return notifier;
     });
 
@@ -102,7 +101,7 @@ class ChatRoomsNotifier extends StateNotifier<ChatRoomsState> {
   String _fmt(Object e) => e.toString().replaceFirst('Exception: ', '');
 }
 
-// ── Per-room messages ─────────────────────────────────────────────────────────
+// Per-room messages
 
 final chatMessagesProvider =
     StateNotifierProvider.family<ChatMessagesNotifier, ChatMessagesState, int>((
@@ -111,9 +110,8 @@ final chatMessagesProvider =
     ) {
       final repo = ref.watch(chatRepositoryProvider);
       final utilRepo = ref.watch(utilRepositoryProvider);
-      // Per-room WS connection: backend URL needs conversation_id in query param.
-      final ws = ChatWebSocketService(conversationId);
-      ws.connect();
+      // Per-room WS connection; conversation_id is in the query param.
+      final ws = ChatWebSocketService(conversationId)..connect();
       ref.onDispose(ws.dispose);
       final notifier = ChatMessagesNotifier(
         repo,
@@ -121,8 +119,7 @@ final chatMessagesProvider =
         ws,
         conversationId,
         ref,
-      );
-      notifier.load();
+      )..load();
       return notifier;
     });
 
@@ -231,7 +228,7 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
     } catch (_) {}
   }
 
-  // WS broadcasts: {message_id, sender_id, sender_type, type, text_content, media_url, created_at}
+  // WS broadcasts message_id, sender_id, type, text_content, media_url, etc.
   // No conversation_id in broadcast (per-room connection, so it's implicit).
   void handleWebSocketMessage(Map<String, dynamic> msg) {
     if (msg['message_id'] == null) return;

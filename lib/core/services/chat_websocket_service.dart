@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../config/app_config.dart';
 import '../network/token_repository.dart';
@@ -36,7 +35,9 @@ class ChatWebSocketService {
 
     // BASE_URL already includes /api/ — append ws/chat directly.
     final cleanBase = wsBase.endsWith('/') ? wsBase : '$wsBase/';
-    final uri = Uri.parse('${cleanBase}ws/chat?conversation_id=$_conversationId&token=$token');
+    final uri = Uri.parse(
+      '${cleanBase}ws/chat?conversation_id=$_conversationId&token=$token',
+    );
 
     try {
       _channel = WebSocketChannel.connect(uri);

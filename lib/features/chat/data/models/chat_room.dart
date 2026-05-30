@@ -19,13 +19,19 @@ class ChatRoom {
     return ChatRoom(
       id: _parseInt(json['conversation_id'] ?? json['id'] ?? json['room_id']),
       name: _parseString(
-        json['topic'] ?? json['name'] ?? json['room_name'] ?? 'Hỗ trợ bệnh nhân',
+        json['topic'] ??
+            json['name'] ??
+            json['room_name'] ??
+            'Hỗ trợ bệnh nhân',
       ),
       lastMessage: _parseString(
         json['last_message'] ?? json['lastMessage'] ?? '',
       ),
       lastMessageAt: _parseString(
-        json['updated_at'] ?? json['last_message_at'] ?? json['lastMessageAt'] ?? '',
+        json['updated_at'] ??
+            json['last_message_at'] ??
+            json['lastMessageAt'] ??
+            '',
       ),
       unreadCount: _parseInt(json['unread_count'] ?? json['unreadCount'] ?? 0),
       avatarUrl: _parseString(json['avatar_url'] ?? json['avatarUrl'] ?? ''),

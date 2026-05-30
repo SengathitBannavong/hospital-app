@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 class ChatAvatar extends StatelessWidget {
-  const ChatAvatar({required this.name, this.avatarUrl = '', this.radius = 22, super.key});
+  const ChatAvatar({
+    required this.name,
+    this.avatarUrl = '',
+    this.radius = 22,
+    super.key,
+  });
 
   final String name;
   final String avatarUrl;
@@ -16,7 +21,7 @@ class ChatAvatar extends StatelessWidget {
       return CircleAvatar(
         radius: radius,
         backgroundImage: NetworkImage(avatarUrl),
-        onBackgroundImageError: (_, __) {},
+        onBackgroundImageError: (_, _) {},
         child: null,
       );
     }

@@ -36,7 +36,8 @@ class ChatRoomCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           room.name.isEmpty ? 'Phòng chat' : room.name,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
                                 fontWeight: hasUnread
                                     ? FontWeight.bold
                                     : FontWeight.normal,
@@ -57,7 +58,8 @@ class ChatRoomCard extends StatelessWidget {
                           room.lastMessage.isEmpty
                               ? 'Chưa có tin nhắn'
                               : room.lastMessage,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 color: hasUnread
                                     ? cs.onSurface
                                     : cs.onSurfaceVariant,

@@ -9,9 +9,9 @@ class ChatTimeLabel extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Text(
       _format(isoString),
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: cs.onSurfaceVariant,
-          ),
+      style: Theme.of(
+        context,
+      ).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
     );
   }
 
