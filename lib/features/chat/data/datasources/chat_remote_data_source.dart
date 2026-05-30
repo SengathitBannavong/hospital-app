@@ -8,7 +8,9 @@ import '../models/chat_message.dart';
 import '../models/chat_participants.dart';
 
 class ChatRemoteDataSource {
-  final Dio _dio = ApiClient.instance;
+  ChatRemoteDataSource({Dio? dio}) : _dio = dio ?? ApiClient.instance;
+
+  final Dio _dio;
 
   Future<List<ChatRoom>> getRooms({int page = 1, int limit = 50}) async {
     try {

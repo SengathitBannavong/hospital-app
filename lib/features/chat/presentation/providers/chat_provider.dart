@@ -134,7 +134,7 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
     this._conversationId,
     this._ref,
   ) : super(ChatMessagesState.initial()) {
-    _wsSub = _ws.messages.listen(_onWsMessage);
+    _wsSub = _ws.messages.listen(handleWebSocketMessage);
   }
 
   final ChatRepository _repo;
@@ -233,7 +233,7 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
 
   // WS broadcasts: {message_id, sender_id, sender_type, type, text_content, media_url, created_at}
   // No conversation_id in broadcast (per-room connection, so it's implicit).
-  void _onWsMessage(Map<String, dynamic> msg) {
+  void handleWebSocketMessage(Map<String, dynamic> msg) {
     if (msg['message_id'] == null) return;
 
     try {
