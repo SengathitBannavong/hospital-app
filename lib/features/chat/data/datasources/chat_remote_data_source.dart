@@ -5,6 +5,7 @@ import 'package:hospital_app/core/network/api_response.dart';
 import 'package:hospital_app/core/network/api_response_codes.dart';
 import '../models/chat_room.dart';
 import '../models/chat_message.dart';
+import '../models/chat_participants.dart';
 
 class ChatRemoteDataSource {
   final Dio _dio = ApiClient.instance;
@@ -15,24 +16,22 @@ class ChatRemoteDataSource {
         ApiEndpoints.chatGetRooms,
         queryParameters: {'page': page, 'limit': limit},
       );
-      final apiResponse = ApiResponse<List<ChatRoom>>.fromJson(
-        response.data,
-        (json) {
-          List<dynamic> toList(Object? raw) {
-            if (raw is List) return raw;
-            if (raw is Map<String, dynamic>) {
-              final nested = raw['rooms'] ?? raw['data'];
-              if (nested is List) return nested;
-            }
-            return const [];
+      final apiResponse = ApiResponse<List<ChatRoom>>.fromJson(response.data, (
+        json,
+      ) {
+        List<dynamic> toList(Object? raw) {
+          if (raw is List) return raw;
+          if (raw is Map<String, dynamic>) {
+            final nested = raw['rooms'] ?? raw['data'];
+            if (nested is List) return nested;
           }
+          return const [];
+        }
 
-          return toList(json)
-              .whereType<Map<String, dynamic>>()
-              .map(ChatRoom.fromJson)
-              .toList();
-        },
-      );
+        return toList(
+          json,
+        ).whereType<Map<String, dynamic>>().map(ChatRoom.fromJson).toList();
+      });
       if (apiResponse.code == ApiResponseCodes.success) {
         return apiResponse.data ?? [];
       }
@@ -107,6 +106,25 @@ class ChatRemoteDataSource {
     }
   }
 
+  // Backend: GET /chat/participants
+  // Response data: { "patients": [...], "staffs": [...] }
+  Future<ChatParticipants> getParticipants() async {
+    try {
+      final response = await _dio.get(ApiEndpoints.chatParticipants);
+      final apiResponse = ApiResponse<ChatParticipants>.fromJson(
+        response.data,
+        (json) => ChatParticipants.fromJson(json as Map<String, dynamic>),
+      );
+      if (apiResponse.code == ApiResponseCodes.success &&
+          apiResponse.data != null) {
+        return apiResponse.data!;
+      }
+      throw Exception(apiResponse.message);
+    } on DioException catch (e) {
+      throw Exception(_parseError(e));
+    }
+  }
+
   // Backend: POST /chat/send_message
   // Body: { "conversation_id": X, "type": "text", "text_content": "..." }
   Future<ChatMessage> sendMessage({
@@ -126,7 +144,8 @@ class ChatRemoteDataSource {
         response.data,
         (json) => ChatMessage.fromJson(json as Map<String, dynamic>),
       );
-      if (apiResponse.code == ApiResponseCodes.success && apiResponse.data != null) {
+      if (apiResponse.code == ApiResponseCodes.success &&
+          apiResponse.data != null) {
         return apiResponse.data!;
       }
       throw Exception(apiResponse.message);
@@ -143,6 +162,26 @@ class ChatRemoteDataSource {
         ApiEndpoints.chatMarkRead,
         data: {'conversation_id': conversationId},
       );
+    } on DioException catch (e) {
+      throw Exception(_parseError(e));
+    }
+  }
+
+  // Backend: POST /chat/close_room
+  // Body: { "conversation_id": X }
+  Future<void> closeRoom({required int conversationId}) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.chatCloseRoom,
+        data: {'conversation_id': conversationId},
+      );
+      final apiResponse = ApiResponse<dynamic>.fromJson(
+        response.data,
+        (json) => json,
+      );
+      if (apiResponse.code != ApiResponseCodes.success) {
+        throw Exception(apiResponse.message);
+      }
     } on DioException catch (e) {
       throw Exception(_parseError(e));
     }
