@@ -1,126 +1,86 @@
 # Hospital System - Indoor Navigation & Management
 
-> A comprehensive multi-platform hospital management and indoor navigation system developed as a graduation project at Hanoi University of Science and Technology (HUST). This system addresses the complexity of navigating large hospital campuses where GPS is unreliable, while integrating critical medical and asset management  workflows.
+> A Flutter-based hospital management and indoor navigation app for patients and staff. It focuses on indoor wayfinding where GPS is unreliable, while also exposing hospital utility workflows in one place.
 
-## Project Overview
+## Overview
 
-The Hospital System is an integrated ecosystem designed to coordinate traffic flow, provide turn-by-turn indoor navigation, and manage medical services. It consists of **Mobile Client** Developed with Flutter for patients and staff (iOS/Android).
+The app is organized as a feature-first Flutter codebase with Riverpod state management and GoRouter navigation. Current user-facing features include:
+
+- Authentication with signup, login, and OTP verification
+- Home dashboard with utility shortcuts
+- SOS entry point
+- Weather and parking utility cards
+- Cross-platform support for mobile and macOS development
 
 ## Getting Started
 
 ### Prerequisites
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (latest stable version)
-- Android Studio or VS Code with Flutter extension
-- An Android Emulator, iOS Simulator, or a physical device
 
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd hospital_app
-   ```
-2. Install dependencies:
-   ```bash
-   flutter pub get
-   ```
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) on the stable channel
+- Android Studio or VS Code with the Flutter extension
+- An Android emulator, iOS simulator, or connected physical device
 
-### Running the App
-To run the app in debug mode on your connected device/emulator:
+### Setup
+
+```bash
+git clone <repository-url>
+cd hospital-app
+flutter pub get
+```
+
+### Run
+
 ```bash
 flutter run
 ```
 
-### Building for Production
-- **Android:**
-  ```bash
-  flutter build apk --release
-  ```
-- **iOS:**
-  ```bash
-  flutter build ios --release
-  ```
+To target a specific platform:
 
-### Running Tests
-Unit tests live under `test/` mirroring the `lib/` layout.
+```bash
+flutter run -d macos
+flutter run -d android
+flutter run -d ios
+```
 
-- Run the full suite:
-  ```bash
-  flutter test
-  ```
-- Run a single feature's tests (example: map module):
-  ```bash
-  flutter test test/features/map
-  ```
-- Run a single file with verbose output:
-  ```bash
-  flutter test test/features/map/presentation/providers/map_provider_test.dart -r expanded
-  ```
-- Static analysis (must be clean before pushing):
-  ```bash
-  dart analyze lib test
-  ```
-  When working on a single feature you can scope it: `dart analyze lib/features/map test/features/map`.
+### Build
 
-# Project Rule
----
-## Define Name
----
-### File Naming
- 
+```bash
+flutter build apk --release
+flutter build ios --release
+flutter build macos
 ```
-✓ snake_case for all files
-  user_model.dart
-  auth_repository.dart
-  login_page.dart
-  app_colors.dart
- 
-❌ NEVER use camelCase or PascalCase for files
-  userModel.dart       ← Wrong
-  AuthRepository.dart  ← Wrong
+
+### Test and Analyze
+
+```bash
+flutter test
+dart analyze lib test
 ```
- 
-### Class Naming
- 
-```dart
-// ✓ PascalCase for classes
-class UserModel {}
-class AuthRepository {}
-class LoginPage {}
- 
-// ✓ Suffix pattern for clarity
-class UserModel {}                  // Model (data layer)
-class User {}                       // Entity (domain layer)
-class AuthRepository {}              // Abstract repository
-class AuthRepositoryImpl {}          // Implementation
-class LoginUseCase {}                // Use case
-class AuthBloc {}                    // Bloc
-class AuthState {}                   // State
-class AuthEvent {}                   // Event
-class LoginPage {}                   // Full-screen page
-class LoginForm {}                   // Reusable widget
-class AuthRemoteDataSource {}        // Data source
-class AuthRemoteDataSourceImpl {}    // Implementation
-```
- 
-### Variable & Function Naming
- 
-```dart
-// ✓ camelCase
-final userName = 'John';
-void fetchUserData() {}
-bool get isAuthenticated => _token != null;
- 
-// ✓ Private with underscore prefix
-String _token = '';
-void _handleLogin() {}
- 
-// ✓ Constants: lowerCamelCase (Dart convention)
-const defaultPadding = 16.0;
-const apiTimeout = Duration(seconds: 30);
+
+### Continuous Integration
+
+GitHub Actions workflows in `.github/workflows/`:
+
+- **`flutter_ci.yml`** — quality bot: runs on every push/PR to `main`. Generates Freezed/JSON sources, checks formatting (`dart format`), and runs `flutter analyze`.
+- **`ios_build.yml`** — semver-tag triggered (`v*.*.*`) plus manual dispatch. Caches Flutter pub + CocoaPods, injects build number from CI run, produces an unsigned `Runner.xcarchive` as an artifact. **Unsigned because production code-signing is out of scope for this academic project** — the artifact is for build-pipeline verification and inspection only, not for device install. (A signed `.ipa` would require an Apple Developer certificate + provisioning profile.)
+
+To produce a tagged iOS build:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 ## Project Structure
-The project follows a feature-first architecture:
-- `lib/app/`: App-level configuration (root widget, routing).
-- `lib/core/`: Shared constants, utilities, and common widgets.
-- `lib/features/`: Independent modules (Auth, Home, Map, etc.), each containing its own Data, Domain, and Presentation layers.
+
+- `lib/app/`: App-level configuration, root widget, and routing
+- `lib/core/`: Shared constants, utilities, networking, and theming
+- `lib/features/`: Feature modules such as auth, home, SOS, and utilities
+
+## Code Style
+
+- Use `snake_case` for file names
+- Use `PascalCase` for classes
+- Use `camelCase` for variables and functions
+
+Keep generated files in sync with `build_runner` when editing Freezed/json_serializable models.

@@ -101,7 +101,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: context.colorScheme.surface,
         elevation: 0,
         toolbarHeight: isSmallScreen ? 40 : null,
         leading: IconButton(
@@ -244,14 +244,14 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                                 ),
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 24,
                                       height: 24,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2.5,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
+                                              context.colorScheme.onPrimary,
                                             ),
                                       ),
                                     )

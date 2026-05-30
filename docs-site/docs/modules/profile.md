@@ -14,6 +14,12 @@ itself — the Profile app bar has a ⚙️ gear that opens the shared
 [Settings page](./settings) (`context.push('/settings')`).
 :::
 
+:::info[Đánh giá ứng dụng]
+The Profile menu also exposes an **"Đánh giá ứng dụng"** entry that pushes
+`/feedback`. See the [Util Module](./util) for the feedback page details and
+the backend contract.
+:::
+
 ## State Management
 
 | Provider | Description |

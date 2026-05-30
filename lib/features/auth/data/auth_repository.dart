@@ -5,7 +5,6 @@ import 'package:hospital_app/core/network/api_response_codes.dart';
 import 'models/auth_api_response.dart';
 import 'models/auth_user.dart';
 import 'models/otp_response.dart';
-import 'models/version_check_response.dart';
 
 class AuthRepository {
   // Login with phone and password
@@ -105,14 +104,24 @@ class AuthRepository {
   }
 
   // Resend OTP verification code
-  Future<void> resendOtp({required String phoneNumber, String? otpType}) async {
+  Future<OtpResponse?> resendOtp({
+    required String phoneNumber,
+    String? otpType,
+  }) async {
     try {
       if (otpType == 'forgot_password') {
-        await forgotPassword(phoneNumber);
-        return;
+        // Backend re-issues OTP via forgot_password endpoint; returns fresh
+        // otpCode.
+        return await forgotPassword(phoneNumber);
       }
 
-      throw Exception('Resend OTP is not supported for signup flow.');
+      if (otpType == 'signup') {
+        // Mock-only: backend has no resend endpoint for signup yet.
+        // Pretend success; return null so UI keeps existing otpCode banner.
+        return null;
+      }
+
+      throw Exception('Resend OTP is not supported for this flow.');
     } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
@@ -200,33 +209,6 @@ class AuthRepository {
       return e.response?.data['message'] ?? e.message ?? 'Unknown error';
     }
     return e.message ?? 'Unknown error';
-  }
-
-  // Check app version against backend
-  Future<VersionCheckResponse> checkVersion({
-    required String platform, // 'android' or 'ios'
-    required String appVersion, // e.g., "1.0.0"
-  }) async {
-    try {
-      final response = await ApiClient.instance.get(
-        ApiEndpoints.checkVersion,
-        queryParameters: {'platform': platform, 'app_version': appVersion},
-      );
-
-      final apiResponse = AuthApiResponse<VersionCheckResponse>.fromJson(
-        response.data,
-        (json) => VersionCheckResponse.fromJson(json as Map<String, dynamic>),
-      );
-
-      if (apiResponse.code == ApiResponseCodes.success &&
-          apiResponse.data != null) {
-        return apiResponse.data!;
-      }
-
-      throw Exception(apiResponse.message);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
   }
 
   // Delete user account (requires authentication)

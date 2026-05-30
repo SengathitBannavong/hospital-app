@@ -1,0 +1,108 @@
+name: Flutter iOS Build
+on:
+    push:
+        tags:
+            - "v*.*.*"
+jobs:
+    build-ios:
+        runs-on: macos-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Flutter
+              uses: subosito/flutter-action@v2
+              with:
+                  channel: "stable"
+                  cache: true
+
+            - name: Cache pub dependencies
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.pub-cache
+                      .dart_tool
+                  key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pub-
+
+            - name: Cache CocoaPods
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ios/Pods
+                      ~/Library/Caches/CocoaPods
+                  key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pods-
+
+            - name: Install dependencies
+              run: flutter pub get
+
+            - name: Generate models (Freezed/JSON)
+              run: dart run build_runner build --delete-conflicting-outputs
+
+            - name: Write .env from repo variables
+              run: |
+                  cat > .env <<EOF
+                  BASE_URL=${{ vars.BASE_URL || 'https://group3.it4788.sukkaito.id.vn/api/' }}
+                  APP_NAME=${{ vars.APP_NAME || 'Hospital App' }}
+                  EOF
+
+            - name: Resolve version + build number
+              id: ver
+              run: |
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+                  echo "build=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+                  echo "Building $VERSION+$BUILD_NUMBER"
+
+            - name: Build iOS (no codesign)
+              run: |
+                  flutter build ios --release --no-codesign \
+                    --build-name=${{ steps.ver.outputs.version }} \
+                    --build-number=${{ steps.ver.outputs.build }}
+
+            - name: Package .app into .ipa
+              run: |
+                  cd build/ios/iphoneos
+                  mkdir Payload
+                  cp -r Runner.app Payload/Runner.app
+                  zip -r app.ipa Payload
+
+            - name: Rename IPA with version
+              run: |
+                  cp build/ios/iphoneos/app.ipa \
+                     build/ios/iphoneos/hospital-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}-unsigned.ipa
+
+            - name: Upload IPA artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ios-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}
+                  path: build/ios/iphoneos/hospital-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}-unsigned.ipa
+                  if-no-files-found: error
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ github.ref_name }}
+                  name: ${{ github.ref_name }}
+                  draft: false
+                  prerelease: false
+                  generate_release_notes: true
+                  body: |
+                      Hospital App ${{ github.ref_name }} (build ${{ steps.ver.outputs.build }})
+
+                      ## iOS build
+
+                      Attached: `hospital-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}-unsigned.ipa`
+
+                      > **Unsigned build.** This IPA is built with `--no-codesign`
+                      > and cannot be installed on a real device or uploaded to
+                      > TestFlight as-is. Use it for inspection, archival, or as
+                      > input to a downstream resigning pipeline.
+                  files: |
+                      build/ios/iphoneos/hospital-app-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.build }}-unsigned.ipa

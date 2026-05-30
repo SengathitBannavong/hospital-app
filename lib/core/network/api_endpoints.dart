@@ -1,4 +1,4 @@
-// lib/core/network/api_endpoints.dart  ← REPLACE your existing file
+// lib/core/network/api_endpoints.dart
 
 class ApiEndpoints {
   // Auth
@@ -12,10 +12,7 @@ class ApiEndpoints {
   static const String changePassword = 'auth/change_password';
   static const String deleteAccount = 'user/delete_account';
 
-  // System
-  static const String checkVersion = 'sys/check_version';
-
-  // Medical & Others
+  // Medical
   static const String patients = 'patients';
   static const String appointments = 'appointments';
   static const String getTasks = 'medical/get_tasks';
@@ -65,7 +62,7 @@ class ApiEndpoints {
   static const String flowReportObstacle = 'flow/report_obstacle';
   static const String flowGetObstacles = 'flow/get_obstacles';
 
-  // System
+  // Voice
   static const String sysGetVoiceKey = 'sys/get_voice_key';
   static const String sysGetVoiceFiles = 'sys/get_voice_files';
 
@@ -74,7 +71,7 @@ class ApiEndpoints {
   static const String notificationSetRead = 'notification/set_read';
   static const String notificationDelete = 'notification/delete';
 
-  // ── NEW: User / Notification Settings & Device Token ────────────────────
+  // User / Settings / Device Token
   static const String setDevToken = 'user/set_devtoken';
   static const String getSettings = 'user/get_settings';
   static const String setSettings = 'user/set_settings';
@@ -88,4 +85,18 @@ class ApiEndpoints {
   static const String chatMarkRead = 'chat/mark_read';
   static const String chatLeaveRoom = 'chat/leave_room';
   static const String chatWs = 'ws/chat';
+  // SOS
+  static const String sosCreate = 'sos/create';
+  static const String sosGetDetail = 'sos/get_detail';
+
+  // Utility
+  static const String utilFaq = 'util/faq';
+  static const String utilAbout = 'util/about';
+  static const String utilContact = 'util/contact';
+  static const String utilLanguages = 'util/languages';
+  static const String utilCheckVersion = 'util/check_version';
+  static const String utilWeather = 'util/weather';
+  static const String utilFeedback = 'util/feedback';
+  static const String utilFeedbackSummary = 'util/feedback_summary';
+  static const String utilUpload = 'util/upload';
 }

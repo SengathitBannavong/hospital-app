@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 // ─────────────────────────────────────────────
@@ -12,19 +11,22 @@ class AppTextTheme {
   static TextTheme _base(Color primaryColor, Color secondaryColor) {
     return TextTheme(
       // ── Display ──
-      displayLarge: GoogleFonts.plusJakartaSans(
+      displayLarge: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 32,
         fontWeight: FontWeight.w700,
         color: primaryColor,
         height: 1.2,
       ),
-      displayMedium: GoogleFonts.plusJakartaSans(
+      displayMedium: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 28,
         fontWeight: FontWeight.w700,
         color: primaryColor,
         height: 1.25,
       ),
-      displaySmall: GoogleFonts.plusJakartaSans(
+      displaySmall: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 24,
         fontWeight: FontWeight.w600,
         color: primaryColor,
@@ -32,19 +34,22 @@ class AppTextTheme {
       ),
 
       // ── Headlines ──
-      headlineLarge: GoogleFonts.plusJakartaSans(
+      headlineLarge: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 24,
         fontWeight: FontWeight.w600,
         color: primaryColor,
         height: 1.3,
       ),
-      headlineMedium: GoogleFonts.plusJakartaSans(
+      headlineMedium: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: primaryColor,
         height: 1.35,
       ),
-      headlineSmall: GoogleFonts.plusJakartaSans(
+      headlineSmall: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: primaryColor,
@@ -52,19 +57,22 @@ class AppTextTheme {
       ),
 
       // ── Titles ──
-      titleLarge: GoogleFonts.plusJakartaSans(
+      titleLarge: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: primaryColor,
         height: 1.4,
       ),
-      titleMedium: GoogleFonts.plusJakartaSans(
+      titleMedium: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: primaryColor,
         height: 1.4,
       ),
-      titleSmall: GoogleFonts.plusJakartaSans(
+      titleSmall: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: primaryColor,
@@ -72,19 +80,22 @@ class AppTextTheme {
       ),
 
       // ── Body ──
-      bodyLarge: GoogleFonts.plusJakartaSans(
+      bodyLarge: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 16,
         fontWeight: FontWeight.w400,
         color: primaryColor,
         height: 1.6,
       ),
-      bodyMedium: GoogleFonts.plusJakartaSans(
+      bodyMedium: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: primaryColor,
         height: 1.6,
       ),
-      bodySmall: GoogleFonts.plusJakartaSans(
+      bodySmall: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 12,
         fontWeight: FontWeight.w400,
         color: secondaryColor,
@@ -92,19 +103,22 @@ class AppTextTheme {
       ),
 
       // ── Labels ──
-      labelLarge: GoogleFonts.plusJakartaSans(
+      labelLarge: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: primaryColor,
         height: 1.4,
       ),
-      labelMedium: GoogleFonts.plusJakartaSans(
+      labelMedium: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 12,
         fontWeight: FontWeight.w500,
         color: secondaryColor,
         height: 1.4,
       ),
-      labelSmall: GoogleFonts.plusJakartaSans(
+      labelSmall: TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
         fontSize: 11,
         fontWeight: FontWeight.w500,
         color: secondaryColor,

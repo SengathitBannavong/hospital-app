@@ -51,6 +51,8 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
       await ref.read(authStateProvider.notifier).login(phoneNumber, password);
 
       if (mounted) {
+        // Login is a single-step flow on the current backend.
+        AppToast.showSuccess('Đăng nhập thành công.');
         context.go('/');
       }
     } catch (error) {
@@ -206,14 +208,14 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                                 ),
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 24,
                                       height: 24,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2.5,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
+                                              context.colorScheme.onPrimary,
                                             ),
                                       ),
                                     )

@@ -7,12 +7,14 @@ class FadeSlideTransition extends StatefulWidget {
     this.delay = Duration.zero,
     this.duration = const Duration(milliseconds: 600),
     this.slideOffset = const Offset(0, 30),
+    this.enabled = true,
   });
 
   final Widget child;
   final Duration delay;
   final Duration duration;
   final Offset slideOffset;
+  final bool enabled;
 
   @override
   State<FadeSlideTransition> createState() => _FadeSlideTransitionState();
@@ -23,6 +25,7 @@ class _FadeSlideTransitionState extends State<FadeSlideTransition>
   late final AnimationController _controller;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
+  bool _started = false;
 
   @override
   void initState() {
@@ -42,6 +45,22 @@ class _FadeSlideTransitionState extends State<FadeSlideTransition>
       begin: widget.slideOffset,
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: curve));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) {
+      return;
+    }
+    _started = true;
+
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (!widget.enabled || disableAnimations) {
+      _controller.value = 1;
+      return;
+    }
 
     Future.delayed(widget.delay, () {
       if (mounted) {
@@ -58,6 +77,12 @@ class _FadeSlideTransitionState extends State<FadeSlideTransition>
 
   @override
   Widget build(BuildContext context) {
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (!widget.enabled || disableAnimations) {
+      return widget.child;
+    }
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {

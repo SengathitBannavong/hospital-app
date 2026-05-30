@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hospital_app/features/auth/data/auth_repository.dart';
 import 'package:hospital_app/features/auth/data/models/auth_user.dart';
 import 'package:hospital_app/features/auth/data/models/otp_response.dart';
-import 'package:hospital_app/features/auth/data/models/version_check_response.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 
 void main() {
@@ -119,19 +118,6 @@ void main() {
       expect(notifier.state, isNull);
     });
 
-    test('checkVersion returns VersionCheckResponse', () async {
-      final mockRepo = MockAuthRepository();
-      final notifier = AuthNotifier(mockRepo);
-
-      final result = await notifier.checkVersion(
-        platform: 'android',
-        appVersion: '1.0.0',
-      );
-
-      expect(result, isNotNull);
-      expect(result.latestVersion, isNotNull);
-    });
-
     test('resendOtp completes successfully', () async {
       final mockRepo = MockAuthRepository();
       final notifier = AuthNotifier(mockRepo);
@@ -213,23 +199,10 @@ class MockAuthRepository implements AuthRepository {
   Future<void> deleteAccount({required String password}) async {}
 
   @override
-  Future<VersionCheckResponse> checkVersion({
-    required String platform,
-    required String appVersion,
-  }) async {
-    return const VersionCheckResponse(
-      minimumVersion: '1.0.0',
-      latestVersion: '1.1.0',
-      updateType: 'optional',
-      message: 'A new version is available',
-    );
-  }
-
-  @override
-  Future<void> resendOtp({
+  Future<OtpResponse?> resendOtp({
     required String phoneNumber,
     String? otpType,
-  }) async {}
+  }) async => null;
 }
 
 /// Extended mock repository that tracks deleteAccount calls
