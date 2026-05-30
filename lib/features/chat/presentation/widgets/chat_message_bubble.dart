@@ -18,6 +18,7 @@ class ChatMessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final senderLabel = _senderLabel;
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -30,13 +31,11 @@ class ChatMessageBubble extends StatelessWidget {
               ? CrossAxisAlignment.end
               : CrossAxisAlignment.start,
           children: [
-            if (!isMe && showSenderName)
+            if (!isMe && showSenderName && senderLabel.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(left: AppSpacing.sm, bottom: 2),
                 child: Text(
-                  message.senderName.isEmpty
-                      ? 'Người dùng'
-                      : message.senderName,
+                  senderLabel,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: cs.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
@@ -74,6 +73,12 @@ class ChatMessageBubble extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String get _senderLabel {
+    final label = message.senderName.trim();
+    if (label.isEmpty || label == 'user' || label == 'staff') return '';
+    return label;
   }
 
   Widget _buildContent(BuildContext context) {

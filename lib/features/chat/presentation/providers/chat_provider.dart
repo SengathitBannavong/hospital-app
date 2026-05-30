@@ -143,6 +143,7 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
   final int _conversationId;
   final Ref _ref;
   StreamSubscription<Map<String, dynamic>>? _wsSub;
+  final Map<int, String> _senderNames = {};
 
   static const int _pageSize = 30;
 
@@ -154,8 +155,9 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
         page: 1,
         limit: _pageSize,
       );
+      await _loadSenderNames();
       state = state.copyWith(
-        messages: msgs,
+        messages: msgs.map(_withResolvedSenderName).toList(),
         isLoading: false,
         page: 1,
         hasMore: msgs.length >= _pageSize,
@@ -177,7 +179,7 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
       );
       final merged = [...state.messages, ...msgs];
       final deduplicated = <int, ChatMessage>{
-        for (final m in merged) m.id: m,
+        for (final m in merged) m.id: _withResolvedSenderName(m),
       }.values.toList();
       state = state.copyWith(
         messages: deduplicated,
@@ -241,20 +243,46 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
   }
 
   void _upsertMessage(ChatMessage msg, {bool? isSending}) {
+    final resolvedMsg = _withResolvedSenderName(msg);
     final withoutDuplicate = state.messages
-        .where((message) => message.id != msg.id)
+        .where((message) => message.id != resolvedMsg.id)
         .toList();
     state = state.copyWith(
-      messages: [msg, ...withoutDuplicate],
+      messages: [resolvedMsg, ...withoutDuplicate],
       isSending: isSending,
     );
     _ref
         .read(chatRoomsProvider.notifier)
         .updateRoomLastMessage(
           _conversationId,
-          _lastMessagePreview(msg),
-          msg.createdAt,
+          _lastMessagePreview(resolvedMsg),
+          resolvedMsg.createdAt,
         );
+  }
+
+  Future<void> _loadSenderNames() async {
+    if (_senderNames.isNotEmpty) return;
+    try {
+      final participants = await _repo.getParticipants();
+      for (final patient in participants.patients) {
+        if (patient.fullName.isNotEmpty) {
+          _senderNames[patient.userId] = patient.fullName;
+        }
+      }
+      for (final staff in participants.staffs) {
+        final label = staff.staffCode.isNotEmpty ? staff.staffCode : staff.role;
+        if (label.isNotEmpty) {
+          _senderNames[staff.userId] = label;
+          _senderNames[staff.staffId] = label;
+        }
+      }
+    } catch (_) {}
+  }
+
+  ChatMessage _withResolvedSenderName(ChatMessage msg) {
+    final senderName = _senderNames[msg.senderId];
+    if (senderName == null || senderName.isEmpty) return msg;
+    return msg.copyWith(senderName: senderName);
   }
 
   String _lastMessagePreview(ChatMessage msg) {
