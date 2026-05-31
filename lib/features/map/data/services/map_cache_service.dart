@@ -300,7 +300,7 @@ class MapCacheService {
     if (at is String) {
       final savedAt = DateTime.tryParse(at);
       if (savedAt != null &&
-          DateTime.now().toUtc().difference(savedAt) > maxAge) {
+          DateTime.now().toUtc().difference(savedAt) >= maxAge) {
         debugPrint('[cache] active route STALE -> clearing');
         await clearActiveRoute();
         return null;
