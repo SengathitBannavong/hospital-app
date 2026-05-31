@@ -1,8 +1,15 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hospital_app/features/auth/data/auth_repository.dart';
+import 'package:hospital_app/features/auth/data/models/auth_user.dart';
+import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:hospital_app/core/services/chat_websocket_service.dart';
 import 'package:hospital_app/features/chat/data/models/chat_message.dart';
 import 'package:hospital_app/features/chat/data/models/chat_participants.dart';
 import 'package:hospital_app/features/chat/data/models/chat_room.dart';
@@ -27,39 +34,124 @@ void main() {
   });
 
   group('ChatMessagesNotifier', () {
-    test('sendMessage inserts REST result and WS echo dedups by id', () async {
+    test(
+      'sendMessage inserts optimistic message and reconciles echo',
+      () async {
+        final fakeRepo = _FakeChatRepository();
+        final fakeWs = _FakeChatWebSocketService();
+        final container = _container(fakeRepo: fakeRepo, fakeWs: fakeWs);
+        addTearDown(container.dispose);
+
+        final notifier = container.read(chatMessagesProvider(1).notifier);
+        await notifier.load();
+
+        await notifier.sendMessage('hello');
+
+        var state = container.read(chatMessagesProvider(1));
+        expect(state.messages, hasLength(1));
+        expect(state.messages.single.id, isNegative);
+        expect(state.messages.single.content, 'hello');
+        expect(fakeWs.sentPayloads.single, {
+          'type': 'text',
+          'text_content': 'hello',
+          'media_url': '',
+        });
+
+        notifier.handleWebSocketMessage({
+          'message_id': 99,
+          'conversation_id': 1,
+          'sender_id': 42,
+          'sender_type': 'user',
+          'type': 'text',
+          'text_content': 'hello',
+          'created_at': '2026-05-30T10:00:00Z',
+        });
+
+        state = container.read(chatMessagesProvider(1));
+        expect(state.messages, hasLength(1));
+        expect(state.messages.single.id, 99);
+        expect(fakeRepo.sendMessageCalls, 0);
+      },
+    );
+
+    test(
+      'echo with different sender id still reconciles optimistic message',
+      () async {
+        final fakeRepo = _FakeChatRepository();
+        final fakeWs = _FakeChatWebSocketService();
+        final container = _container(fakeRepo: fakeRepo, fakeWs: fakeWs);
+        addTearDown(container.dispose);
+
+        final notifier = container.read(chatMessagesProvider(1).notifier);
+        await notifier.load();
+
+        await notifier.sendMessage('hello');
+        notifier.handleWebSocketMessage({
+          'message_id': 101,
+          'conversation_id': 1,
+          'sender_id': 7,
+          'sender_type': 'staff',
+          'type': 'text',
+          'text_content': 'hello',
+          'created_at': '2026-05-30T10:00:00Z',
+        });
+
+        final state = container.read(chatMessagesProvider(1));
+        expect(state.messages, hasLength(1));
+        expect(state.messages.single.id, 101);
+        expect(state.messages.single.id, isPositive);
+      },
+    );
+
+    test('two identical text sends reconcile one-for-one', () async {
       final fakeRepo = _FakeChatRepository();
-      final container = ProviderContainer(
-        overrides: [
-          chatRepositoryProvider.overrideWithValue(fakeRepo),
-          utilRepositoryProvider.overrideWithValue(_FakeUtilRepository()),
-        ],
-      );
+      final fakeWs = _FakeChatWebSocketService();
+      final container = _container(fakeRepo: fakeRepo, fakeWs: fakeWs);
       addTearDown(container.dispose);
 
       final notifier = container.read(chatMessagesProvider(1).notifier);
       await notifier.load();
 
-      await notifier.sendMessage('hello');
+      await notifier.sendMessage('hi');
+      await notifier.sendMessage('hi');
 
       var state = container.read(chatMessagesProvider(1));
-      expect(state.messages, hasLength(1));
-      expect(state.messages.single.id, 99);
-      expect(state.messages.single.content, 'hello');
+      expect(state.messages, hasLength(2));
+      expect(
+        state.messages.map((message) => message.id),
+        everyElement(isNegative),
+      );
 
-      notifier.handleWebSocketMessage({
-        'message_id': 99,
-        'conversation_id': 1,
-        'sender_id': 2,
-        'sender_type': 'staff',
-        'type': 'text',
-        'text_content': 'hello',
-        'created_at': '2026-05-30T10:00:00Z',
-      });
+      notifier
+        ..handleWebSocketMessage({
+          'message_id': 201,
+          'conversation_id': 1,
+          'sender_id': 7,
+          'sender_type': 'staff',
+          'type': 'text',
+          'text_content': 'hi',
+          'created_at': '2026-05-30T10:00:01Z',
+        })
+        ..handleWebSocketMessage({
+          'message_id': 202,
+          'conversation_id': 1,
+          'sender_id': 7,
+          'sender_type': 'staff',
+          'type': 'text',
+          'text_content': 'hi',
+          'created_at': '2026-05-30T10:00:02Z',
+        });
 
       state = container.read(chatMessagesProvider(1));
-      expect(state.messages, hasLength(1));
-      expect(fakeRepo.sentContent, 'hello');
+      expect(state.messages, hasLength(2));
+      expect(
+        state.messages.map((message) => message.id),
+        containsAll([201, 202]),
+      );
+      expect(
+        state.messages.map((message) => message.id),
+        everyElement(isPositive),
+      );
     });
 
     test('load sorts messages newest-first by createdAt then id', () async {
@@ -71,12 +163,7 @@ void main() {
           _message(id: 2, createdAt: '2026-05-30T10:01:00Z'),
         ],
       );
-      final container = ProviderContainer(
-        overrides: [
-          chatRepositoryProvider.overrideWithValue(fakeRepo),
-          utilRepositoryProvider.overrideWithValue(_FakeUtilRepository()),
-        ],
-      );
+      final container = _container(fakeRepo: fakeRepo);
       addTearDown(container.dispose);
 
       await container.read(chatMessagesProvider(1).notifier).load();
@@ -88,6 +175,73 @@ void main() {
           .toList();
       expect(ids, [4, 3, 2, 1]);
     });
+
+    test(
+      'sendImage uploads then sends over websocket optimistically',
+      () async {
+        final fakeRepo = _FakeChatRepository();
+        final fakeWs = _FakeChatWebSocketService();
+        final fakeUtil = _FakeUtilRepository();
+        final container = _container(
+          fakeRepo: fakeRepo,
+          fakeWs: fakeWs,
+          fakeUtil: fakeUtil,
+        );
+        addTearDown(container.dispose);
+        final image = File('${Directory.systemTemp.path}/chat-test-image.png');
+        await image.writeAsBytes([1, 2, 3]);
+        addTearDown(() async {
+          if (await image.exists()) await image.delete();
+        });
+
+        final notifier = container.read(chatMessagesProvider(1).notifier);
+        await notifier.load();
+
+        await notifier.sendImage(image.path);
+
+        final state = container.read(chatMessagesProvider(1));
+        expect(fakeUtil.uploadCount, 1);
+        expect(fakeWs.sentPayloads.single, {
+          'type': 'image',
+          'text_content': '',
+          'media_url': '/uploads/test.png',
+        });
+        expect(state.messages, hasLength(1));
+        expect(state.messages.single.id, isNegative);
+        expect(state.messages.single.type, 'image');
+        expect(state.messages.single.mediaUrl, '/uploads/test.png');
+      },
+    );
+
+    test(
+      'optimistic message persists without echo and load replaces it',
+      () async {
+        final fakeRepo = _FakeChatRepository();
+        final container = _container(fakeRepo: fakeRepo);
+        addTearDown(container.dispose);
+        final notifier = container.read(chatMessagesProvider(1).notifier);
+        await notifier.load();
+
+        await notifier.sendMessage('no echo');
+
+        var state = container.read(chatMessagesProvider(1));
+        expect(state.messages.single.id, isNegative);
+
+        fakeRepo.messages = [
+          _message(
+            id: 55,
+            senderId: 42,
+            senderType: 'user',
+            content: 'no echo',
+          ),
+        ];
+        await notifier.load();
+
+        state = container.read(chatMessagesProvider(1));
+        expect(state.messages, hasLength(1));
+        expect(state.messages.single.id, 55);
+      },
+    );
   });
 
   group('isMineChatMessage', () {
@@ -133,8 +287,8 @@ class _FakeChatRepository extends ChatRepository {
         ),
       );
 
-  final List<ChatMessage> messages;
-  String? sentContent;
+  List<ChatMessage> messages;
+  int sendMessageCalls = 0;
 
   @override
   Future<List<ChatRoom>> getRooms({int page = 1, int limit = 50}) async {
@@ -185,20 +339,62 @@ class _FakeChatRepository extends ChatRepository {
     String type = 'text',
     String mediaUrl = '',
   }) async {
-    sentContent = content;
-    return ChatMessage(
-      id: 99,
-      roomId: conversationId,
-      senderId: 2,
-      senderType: 'staff',
-      senderName: '',
-      content: content,
-      type: type,
-      mediaUrl: mediaUrl,
-      isRead: false,
-      isDeleted: false,
-      createdAt: '2026-05-30T10:00:00Z',
-    );
+    sendMessageCalls++;
+    throw StateError('REST sendMessage should not be called');
+  }
+}
+
+ProviderContainer _container({
+  required _FakeChatRepository fakeRepo,
+  _FakeChatWebSocketService? fakeWs,
+  _FakeUtilRepository? fakeUtil,
+}) {
+  final ws = fakeWs ?? _FakeChatWebSocketService();
+  return ProviderContainer(
+    overrides: [
+      authStateProvider.overrideWith(
+        (ref) => AuthNotifier(_NoopAuthRepository())
+          ..setUser(
+            const AuthUser(
+              userId: 42,
+              fullName: 'Patient',
+              phoneNumber: '0900000001',
+              token: 'token',
+              role: 'patient',
+            ),
+          ),
+      ),
+      chatRepositoryProvider.overrideWithValue(fakeRepo),
+      chatWebSocketServiceProvider.overrideWith((ref, conversationId) => ws),
+      utilRepositoryProvider.overrideWithValue(
+        fakeUtil ?? _FakeUtilRepository(),
+      ),
+    ],
+  );
+}
+
+class _NoopAuthRepository extends AuthRepository {}
+
+class _FakeChatWebSocketService extends ChatWebSocketService {
+  _FakeChatWebSocketService() : super(1, tokenReader: () async => null);
+
+  final List<Map<String, dynamic>> sentPayloads = [];
+  final _controller = StreamController<Map<String, dynamic>>.broadcast();
+
+  @override
+  Stream<Map<String, dynamic>> get messages => _controller.stream;
+
+  @override
+  Future<void> connect() async {}
+
+  @override
+  void send(Map<String, dynamic> payload) {
+    sentPayloads.add(payload);
+  }
+
+  @override
+  Future<void> dispose() async {
+    await _controller.close();
   }
 }
 
@@ -207,6 +403,7 @@ ChatMessage _message({
   int roomId = 1,
   int senderId = 2,
   String senderType = 'user',
+  String content = 'message',
   String createdAt = '2026-05-30T10:00:00Z',
 }) {
   return ChatMessage(
@@ -215,7 +412,7 @@ ChatMessage _message({
     senderId: senderId,
     senderType: senderType,
     senderName: '',
-    content: 'message $id',
+    content: content,
     type: 'text',
     mediaUrl: '',
     isRead: false,
@@ -225,8 +422,11 @@ ChatMessage _message({
 }
 
 class _FakeUtilRepository extends UtilRepository {
+  int uploadCount = 0;
+
   @override
   Future<UploadResult> uploadFile(MultipartFile file) async {
+    uploadCount++;
     return const UploadResult(
       fileUrl: '/uploads/test.png',
       fileName: 'test.png',

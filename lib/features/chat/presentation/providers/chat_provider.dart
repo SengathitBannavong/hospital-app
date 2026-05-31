@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/services/chat_websocket_service.dart';
+import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/util/data/repository/util_repository.dart';
 import 'package:hospital_app/features/util/presentation/providers/util_providers.dart';
 import '../../data/models/chat_message.dart';
@@ -29,6 +30,14 @@ final chatUnreadTotalProvider = Provider<int>((ref) {
   final roomsState = ref.watch(chatRoomsProvider);
   return roomsState.totalUnread;
 });
+
+final chatWebSocketServiceProvider = Provider.family<ChatWebSocketService, int>(
+  (ref, conversationId) {
+    final ws = ChatWebSocketService(conversationId)..connect();
+    ref.onDispose(ws.dispose);
+    return ws;
+  },
+);
 
 class ChatRoomsNotifier extends StateNotifier<ChatRoomsState> {
   ChatRoomsNotifier(this._repo) : super(ChatRoomsState.initial());
@@ -94,9 +103,7 @@ final chatMessagesProvider =
     ) {
       final repo = ref.watch(chatRepositoryProvider);
       final utilRepo = ref.watch(utilRepositoryProvider);
-      // Per-room WS connection; conversation_id is in the query param.
-      final ws = ChatWebSocketService(conversationId)..connect();
-      ref.onDispose(ws.dispose);
+      final ws = ref.watch(chatWebSocketServiceProvider(conversationId));
       final notifier = ChatMessagesNotifier(
         repo,
         utilRepo,
@@ -125,6 +132,8 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
   final Ref _ref;
   StreamSubscription<Map<String, dynamic>>? _wsSub;
   final Map<int, String> _senderNames = {};
+  final Set<int> _pendingIds = {};
+  int _nextTempId = -1;
 
   static const int _pageSize = 30;
 
@@ -136,6 +145,7 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
         page: 1,
         limit: _pageSize,
       );
+      _pendingIds.clear();
       await _loadSenderNames();
       state = state.copyWith(
         messages: _sortedNewestFirst(msgs.map(_withResolvedSenderName)),
@@ -174,14 +184,13 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
   }
 
   Future<void> sendMessage(String content) async {
-    if (content.trim().isEmpty) return;
+    final text = content.trim();
+    if (text.isEmpty) return;
     state = state.copyWith(isSending: true, clearError: true);
     try {
-      final msg = await _repo.sendMessage(
-        conversationId: _conversationId,
-        content: content.trim(),
-      );
-      _upsertMessage(msg, isSending: false);
+      _ws.send({'type': 'text', 'text_content': text, 'media_url': ''});
+      _insertPendingMessage(type: 'text', content: text, mediaUrl: '');
+      state = state.copyWith(isSending: false);
     } catch (e) {
       state = state.copyWith(isSending: false, errorMessage: _fmt(e));
     }
@@ -194,12 +203,17 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
       final filename = path.split('/').last;
       final file = await MultipartFile.fromFile(path, filename: filename);
       final upload = await _utilRepo.uploadFile(file);
-      final msg = await _repo.sendMessage(
-        conversationId: _conversationId,
+      _ws.send({
+        'type': 'image',
+        'text_content': '',
+        'media_url': upload.fileUrl,
+      });
+      _insertPendingMessage(
         type: 'image',
+        content: '',
         mediaUrl: upload.fileUrl,
       );
-      _upsertMessage(msg, isSending: false);
+      state = state.copyWith(isSending: false);
     } catch (e) {
       state = state.copyWith(isSending: false, errorMessage: _fmt(e));
     }
@@ -219,8 +233,58 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
 
     try {
       final chatMsg = ChatMessage.fromJson(msg);
+      _reconcilePendingEcho(chatMsg);
       _upsertMessage(chatMsg);
     } catch (_) {}
+  }
+
+  void _insertPendingMessage({
+    required String type,
+    required String content,
+    required String mediaUrl,
+  }) {
+    final tempId = _nextTempId--;
+    _pendingIds.add(tempId);
+    _upsertMessage(
+      ChatMessage(
+        id: tempId,
+        roomId: _conversationId,
+        senderId: _myUserId,
+        senderType: _mySenderType,
+        senderName: '',
+        content: content,
+        type: type,
+        mediaUrl: mediaUrl,
+        isRead: false,
+        isDeleted: false,
+        createdAt: DateTime.now().toUtc().toIso8601String(),
+      ),
+    );
+  }
+
+  void _reconcilePendingEcho(ChatMessage chatMsg) {
+    if (_pendingIds.isEmpty) return;
+    final pending = state.messages.where((message) {
+      return _pendingIds.contains(message.id) &&
+          message.type == chatMsg.type &&
+          _matchesPendingPayload(message, chatMsg);
+    }).toList();
+    if (pending.isEmpty) return;
+
+    final oldest = pending.reduce((a, b) => a.id < b.id ? a : b);
+    _pendingIds.remove(oldest.id);
+    state = state.copyWith(
+      messages: state.messages
+          .where((message) => message.id != oldest.id)
+          .toList(),
+    );
+  }
+
+  bool _matchesPendingPayload(ChatMessage pending, ChatMessage real) {
+    // TODO(backend): image reconcile relies on echoed media_url
+    // matching the sent one.
+    if (real.type == 'image') return pending.mediaUrl == real.mediaUrl;
+    return pending.content == real.content;
   }
 
   void _upsertMessage(ChatMessage msg, {bool? isSending}) {
@@ -292,4 +356,12 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
   }
 
   String _fmt(Object e) => e.toString().replaceFirst('Exception: ', '');
+
+  int get _myUserId => _ref.read(authStateProvider)?.userId ?? 0;
+
+  String get _mySenderType {
+    final role = _ref.read(authStateProvider)?.role;
+    if (role == null || role == 'patient' || role == 'user') return 'user';
+    return role;
+  }
 }

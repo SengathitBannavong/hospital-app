@@ -4,14 +4,25 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../config/app_config.dart';
 import '../network/token_repository.dart';
 
+typedef ChatWebSocketConnector = WebSocketChannel Function(Uri uri);
+typedef ChatTokenReader = Future<String?> Function();
+
 // Per-room WebSocket connection.
 // Backend URL: GET /api/ws/chat?conversation_id=X&token=Y
 class ChatWebSocketService {
-  ChatWebSocketService(this._conversationId);
+  ChatWebSocketService(
+    this._conversationId, {
+    ChatWebSocketConnector? connector,
+    ChatTokenReader? tokenReader,
+  }) : _connector = connector ?? WebSocketChannel.connect,
+       _tokenReader = tokenReader ?? TokenRepository.getToken;
 
   final int _conversationId;
+  final ChatWebSocketConnector _connector;
+  final ChatTokenReader _tokenReader;
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _subscription;
+  final List<String> _outbox = [];
 
   final _messageController = StreamController<Map<String, dynamic>>.broadcast();
 
@@ -25,7 +36,7 @@ class ChatWebSocketService {
 
   Future<void> connect() async {
     if (_isConnected || _disposed) return;
-    final token = await TokenRepository.getToken();
+    final token = await _tokenReader();
     if (token == null) return;
 
     final baseUrl = AppConfig.baseUrl;
@@ -40,9 +51,13 @@ class ChatWebSocketService {
     );
 
     try {
-      _channel = WebSocketChannel.connect(uri);
+      _channel = _connector(uri);
       await _channel!.ready;
       _isConnected = true;
+      for (final message in _outbox) {
+        _channel!.sink.add(message);
+      }
+      _outbox.clear();
 
       _subscription = _channel!.stream.listen(
         _onData,
@@ -53,6 +68,15 @@ class ChatWebSocketService {
     } catch (e) {
       _isConnected = false;
       _scheduleReconnect();
+    }
+  }
+
+  void send(Map<String, dynamic> payload) {
+    final encoded = jsonEncode(payload);
+    if (_isConnected && _channel != null) {
+      _channel!.sink.add(encoded);
+    } else {
+      _outbox.add(encoded);
     }
   }
 
