@@ -19,8 +19,6 @@ State orchestration is highly granular to prevent unnecessary rebuilds.
 | Provider | Type | Description |
 | :--- | :--- | :--- |
 | `authStateProvider` | `StateNotifierProvider` | The core provider exposing an `AuthUser` object. Handles complex flows like `verifyCredentials`, `login`, and `logout`. |
-| `versionCheckProvider` | `FutureProvider.family` | Validates the current app version against the backend upon initialization. |
-| `deleteAccountProvider` | `FutureProvider.family` | Manages the destructive account deletion workflow. |
 
 ## Widget Types & Patterns
 
@@ -28,7 +26,6 @@ The module is composed of several specialized screens utilizing shared core comp
 
 ```text
 📦 LoginPage
-├── 🛡️ VersionCheckWidget (Wrapper)
 └── 📜 SingleChildScrollView
     └── 🏗️ Column
         ├── 🖼️ Image (App Logo)

@@ -17,18 +17,17 @@ Before diving into individual components, here is the high-level structural comp
 ```text
 📦 ProviderScope (Riverpod Root)
 └── 📦 MaterialApp.router
-    └── 🛡️ VersionCheckWidget (Global Wrapper)
-        └── 🔀 go_router (Route Management)
-            ├── 🔒 Unauthenticated Branch
-            │   └── 📦 LoginPage
-            └── 🔓 Authenticated Branch
-                └── 📦 MainShell (ScaffoldWithBottomNavBar)
-                    └── 📄 StatefulNavigationShell
-                        ├── 📑 Home Branch
-                        ├── 📑 Map Branch
-                        ├── 📑 Medical Branch
-                        ├── 📑 Notification Branch
-                        └── 📑 Profile Branch
+    └── 🔀 go_router (Route Management)
+        ├── 🔒 Unauthenticated Branch
+        │   └── 📦 LoginPage
+        └── 🔓 Authenticated Branch
+            └── 📦 MainShell (NavigationBar)
+                └── 📄 StatefulNavigationShell
+                    ├── 📑 Home Branch
+                    ├── 📑 Medical Branch
+                    ├── 📑 Map Branch
+                    ├── 📑 Profile Branch
+                    └── 📑 Chat Branch
 ```
 
 ---
@@ -67,10 +66,12 @@ MedicalInfoCard(
 
 ---
 
-## 🛡️ `VersionCheckWidget`
-**Path**: `lib/core/widgets/version_check_widget.dart`
+## 🛡️ Startup Update Prompt
+**Path**: `lib/core/services/version_gate.dart`
 
-A structural wrapper widget used at the root of the application (or specific protected routes) to ensure the user is running a backend-compliant version of the app. If the version is outdated, this widget intercepts the UI and forces a blocking "Update Required" screen.
+The current update flow runs from Home after startup. It calls
+`util/check_version`, rate-limits repeated prompts, and opens the backend
+`download_url` externally when an update is available.
 
 ---
 

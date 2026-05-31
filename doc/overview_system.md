@@ -1,7 +1,7 @@
 # API Contract Overview — Frontend ↔ Backend
 
-_Full two-sided reconciliation, 2026-05-25. Backend side from codex audit on the
-backend repo; frontend side audited from the app repositories._
+_Full two-sided reconciliation, refreshed 2026-05-31. Backend side from codex
+audit on the backend repo plus current frontend usage._
 
 Backend wraps **all** successful responses as `{ code, message, data }`
 (`pkg/response.go:162`); tables describe the shape of `data`. The app reads that
@@ -28,10 +28,11 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | auth/change_password | ignored (void) | `null` | MATCH |
 | user/delete_account | ignored (void) | `{id}` | MATCH |
 
-### System
+### System / Utility
 | Endpoint | Frontend expects | Backend returns | Verdict |
 | --- | --- | --- | --- |
-| sys/check_version | `VersionCheckResponse {latest_version, force_update, download_url}` | same | MATCH |
+| util/check_version | `UtilVersionCheck {status, latest_version, download_url, change_log}` | util version payload | MATCH |
+| sys/check_version | legacy path no longer used by app startup | same | n/a |
 | sys/get_voice_key | reads `api_key` (returns String?) | `{provider, api_key, language, enabled}` | MATCH |
 | sys/get_voice_files | builds `Map<String,String>` from `files` | `{language, base_url, files:[{key,url,text}]}` | MATCH |
 
@@ -108,6 +109,17 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | notification/set_read | ignored | `{updated:true}` | MATCH |
 | notification/delete | ignored | `{deleted:true}` | MATCH |
 
+### Chat
+| Endpoint | Frontend expects | Backend returns | Verdict |
+| --- | --- | --- | --- |
+| chat/get_rooms | list or `{rooms/data:[...]}` with room id, name, last message, unread count | room list payload | **VERIFY** (defensive parser accepts both) |
+| chat/get_messages | list or `{messages/data:[...], total, page, limit}` | paginated message payload | **VERIFY** (defensive parser accepts both) |
+| chat/participants | `{patients:[...], staffs:[...]}` | participant lists | MATCH |
+| chat/send_message | `ChatMessage` | message payload | MATCH |
+| chat/mark_read | ignored | success wrapper | MATCH |
+| chat/close_room | ignored | success wrapper | MATCH |
+| ws/chat | per-room broadcast message payload | message fields without room id | MATCH (room id implicit in socket URL) |
+
 ---
 
 ## Table 2 — Requests (what the backend expects)
@@ -125,10 +137,11 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | auth/change_password | `{old_password, new_password}` | same | MATCH |
 | user/delete_account | `{password}` | `{password}` | MATCH |
 
-### System
+### System / Utility
 | Endpoint | Frontend sends | Backend wants | Verdict |
 | --- | --- | --- | --- |
-| sys/check_version | query `{platform, app_version}` | query `platform` (android/ios), `app_version` | MATCH |
+| util/check_version | query `{platform, code}` | query `platform`, `code` | MATCH |
+| sys/check_version | n/a | query `platform` (android/ios), `app_version` | n/a |
 | sys/get_voice_key | no params | none | MATCH |
 | sys/get_voice_files | no params | none | MATCH |
 
@@ -206,6 +219,17 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | notification/set_read | `{notif_id:<int>}` | `{notif_id}` | MATCH |
 | notification/delete | `{notif_id:<int>}` single | `{notif_id}` single | MATCH |
 
+### Chat
+| Endpoint | Frontend sends | Backend wants | Verdict |
+| --- | --- | --- | --- |
+| chat/get_rooms | query `{page, limit}` | optional pagination | MATCH |
+| chat/get_messages | query `{conversation_id, page, limit}` | same | MATCH |
+| chat/participants | no params | none | MATCH |
+| chat/send_message | `{conversation_id, type, text_content?, media_url?}` | same | MATCH |
+| chat/mark_read | `{conversation_id}` | same | MATCH |
+| chat/close_room | `{conversation_id}` | same | MATCH |
+| ws/chat | URL query `{conversation_id, token}` | same | MATCH |
+
 ---
 
 ## Mismatches & things to fix (priority order)
@@ -224,11 +248,14 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
    `POIItem[]` or ward counts. Confirm shapes line up.
 6. **`medical/cancel_task`, `medical/get_history`** 🟡 — the app calls these but they
    weren't in the backend audit. Confirm the routes exist.
+7. **Chat response shapes** 🟡 — current parser accepts list and nested
+   `{rooms/messages/data}` shapes. Confirm exact backend payloads before
+   tightening models.
 
 ### Resolved / confirmed good
 - `auth/login` is a **MATCH** — the app parses `data` as a flat `AuthUser`
   (correcting the earlier "expects nested user" assumption).
-- All of Notification, Settings, Profile, System, and the core Medical/Map/Route
-  request+response contracts line up.
+- All of Notification, Settings, Profile, Utility version-check, and the core
+  Medical/Map/Route request+response contracts line up.
 - Response wrapping `{code,message,data}` is handled everywhere by the app's
   wrappers.

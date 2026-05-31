@@ -23,6 +23,7 @@ lib/
 │   └── widgets/                 # Reusable UI components (buttons, text fields)
 ├── features/                    # Feature modules
 │   ├── auth/                    # Login, signup, OTP, reset password
+│   ├── chat/                    # Chat rooms, messages, WebSocket sync
 │   ├── home/                    # Mobile dashboard
 │   ├── info/                    # Static pages (FAQ, Hospital Guide)
 │   ├── main/                    # Main shell (Bottom navigation wrapper)

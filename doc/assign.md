@@ -1,6 +1,6 @@
-# Contribution Assignment — `main` (31 commits)
+# Contribution Assignment — `main` (41 commits)
 
-_Generated 2026-05-26. HEAD `967615a`. Ordered oldest → newest. "#" = PR number
+_Updated 2026-05-31. HEAD `7ff8d3c`. Ordered oldest → newest. "#" = PR number
 (or short hash for direct commits). Co-contributors are from `Co-Authored-By`._
 
 | # | Date (UTC+?) | Module | What it does (summary) | Main contributor | Co-contributor |
@@ -36,15 +36,24 @@ _Generated 2026-05-26. HEAD `967615a`. Ordered oldest → newest. "#" = PR numbe
 | #32 | 2026-05-25 18:56 | Docs | PROJECT.md current-state summary + prioritised backlog; move overview docs to `doc/` | Bannavong | — |
 | #30 | 2026-05-26 12:36 | SOS / Home / Core | SOS screen (`POST sos/create`, `GET sos/get_detail`) + red Home quick-action; restored forgot-password flow; dropped dead util scaffolding; gated macOS token fallback behind `kDebugMode`; removed unused `google_fonts`. | Samkol Meng Leang | Bannavong |
 | #37 | 2026-05-26 14:06 | Util / Info / Home / Profile | Dynamic FAQ/About/Contact via `util/*`; startup app-update check (`util/check_version`); Home weather card (`util/weather`); Feedback page reachable from Profile (`util/feedback` + `util/feedback_summary`); consolidated duplicate version-check path. | Punleu-Oun | Bannavong |
+| #41 | 2026-05-26 | Docs | Update documentation website and assignment docs | Bannavong | — |
+| #42 | 2026-05-26 | CI / iOS | Add iOS build workflow work | Bannavong | — |
+| #43 | 2026-05-26 | CI / iOS | Update iOS build workflow | Bannavong | — |
+| `43e5f81` | 2026-05-26 | CI / iOS | Fix archive upload for unsigned iOS builds | Bannavong | — |
+| `79b5f9b` | 2026-05-26 | CI / iOS | Update workflow to retrieve app IPA artifacts correctly | Bannavong | — |
+| #44 | 2026-05-26 | UI / Home / Map / SOS / CI | Responsive UI pass, accessibility/role tokens, map-first Home, collapsible map overlays, iOS release CI | Bannavong | — |
+| #46 | 2026-05-27 | Auth / Profile | Fix signup and forgot-password OTP flow; normalize profile avatar media URLs | Bannavong | — |
+| #45 | 2026-05-31 | Chat | Add chat rooms, per-room WebSocket messages, image sending via upload, unread/activity badges, lifecycle polling, and tests | Soumek Xaynguyen (quanghot31lao) | — |
+| #48 | 2026-05-31 | Notification / Tests | Add notification provider and page tests; minor profile/map cache cleanup | Vongphet Pasithphone | — |
 
 ## Contributor summary
 
 | Person | Lead commits | Also co-contributed |
 |---|---|---|
-| **Bannavong** (bannavong.sa239717) | 20 — core, theme, CI, map, route, flow, medical, docs | #17, #25, #29, #31, #30, #37 |
-| **Vongphet Pasithphone** (pasithphone.v220116) | 4 — auth (#7, #22), async/UI (#17), reset-password (#25) | #29 |
+| **Bannavong** (bannavong.sa239717) | 28 — core, theme, CI, map, route, flow, medical, docs, responsive UI, auth/profile fixes | #17, #25, #29, #31, #30, #37 |
+| **Vongphet Pasithphone** (pasithphone.v220116) | 5 — auth (#7, #22), async/UI (#17), reset-password (#25), notification tests (#48) | #29 |
 | **Kimheng99** (nutkimheng000) | 2 — notification UI (#18), notifications/info/nav (#29) | — |
-| **Soumek Xaynguyen** (aka quangngv / quanghot31ao) | 2 — profile page (#8), unified Settings page (#31) | — |
+| **Soumek Xaynguyen** (aka quangngv / quanghot31lao) | 3 — profile page (#8), unified Settings page (#31), chat (#45) | — |
 | **Samkol Meng Leang** (CodeLeang) | 2 — auth/core/home pages (#5), SOS + home utility shortcuts (#30) | — |
 | **Punleu-Oun** (ounpunleu7975) | 1 — util wiring: Info hub, Home, app update, feedback (#37) | — |
 

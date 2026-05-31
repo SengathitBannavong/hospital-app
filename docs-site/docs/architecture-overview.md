@@ -25,7 +25,12 @@ The application code inside `lib/` is strictly separated into two main directori
 - **Medical**: Handles clinical tasks, active queue management, and prescription views for patients.
 - **Notification**: Unified inbox for system alerts and medical updates.
 - **Profile**: Manages the user's personal details and preferences.
+- **Chat**: Patient/staff room list and realtime per-room messaging.
 
 ## UI Shell & Navigation
 
-The app shell is built using `go_router`. It implements a 4-tab bottom navigation shell that allows seamless switching between the primary feature branches (Home, Medical, Map, and Profile) while maintaining navigation state. Secondary destinations (Notification, Info, FAQ, About, Contact) are top-level pushed routes rather than tabs.
+The app shell is built using `go_router`. It implements a 5-tab bottom
+navigation shell that allows seamless switching between the primary feature
+branches (Home, Medical, Map, Profile, and Chat) while maintaining navigation
+state. Secondary destinations (Notification, Info, FAQ, About, Contact, SOS,
+Settings, Feedback, and chat room details) are pushed routes.

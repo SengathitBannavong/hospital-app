@@ -20,7 +20,7 @@ Unlike deeply nested features, the Home module relies primarily on localized sta
 | :--- | :--- |
 | **Local State (`StatefulWidget`)** | Manages the `_isLoadingTasks` boolean and `_taskCount` integer directly within `_HomePageState`. |
 | **Direct Repository Access** | Instantiates `HomeRepository` to execute `getTasks()` directly during `initState` and via Pull-to-Refresh. |
-| **Global Consumers** | Consumes `themeController` (dark/light), `authStateProvider` (logout), `notificationProvider` / `unreadCountProvider` (app-bar bell badge + summary card), and `weatherProvider` (Home weather card). |
+| **Global Consumers** | Consumes `authStateProvider` (logout), `notificationProvider` / `unreadCountProvider` (app-bar bell badge + summary card), and `weatherProvider` (Home weather card). |
 | **Startup hooks** | Post-frame callback invokes `checkAndPrompt()` from `lib/core/services/version_gate.dart` — calls `util/check_version` and shows a dismissible update dialog when `status == 'update_available'`, throttled to once per 24h via Hive. |
 
 ## Widget Types & Patterns
@@ -29,23 +29,21 @@ The UI is composed of animated, highly-reusable components designed to give a pr
 
 ```text
 📦 HomePage
-├── 🧭 AppBar (refresh · ⚙️ Settings → /settings · 🔔 notification bell badge · logout)
+├── 🧭 AppBar (🔔 notification bell badge · overflow menu: refresh/settings/logout)
 ├── 🔄 RefreshIndicator
 └── 📜 SingleChildScrollView
     └── 🏗️ Column
-        ├── 🌟 FadeSlideTransition (Welcome Card)
+        ├── 🗺️ MapPreviewCard → /map
+        ├── 🌟 FadeSlideTransition
+        │   └── 📱 Row of _QuickActionCard
+        │       ├── "Thông tin" → push('/info')
+        │       └── "SOS" (red) → push('/sos')
         ├── 🌟 FadeSlideTransition
         │   └── 📇 MedicalInfoCard (Active Tasks — real count)
         ├── 🌟 FadeSlideTransition
-        │   └── 🔔 Notification summary card → push('/notification')
-        ├── 🌟 FadeSlideTransition
         │   └── 🌤️ _WeatherSummaryCard (weatherProvider · util/weather)
-        ├── 🌟 FadeSlideTransition
-        │   └── 📱 Wrap of _QuickActionCard
-        │       ├── "Thông tin" → push('/info')
-        │       └── "SOS" (red) → push('/sos')
         └── 🌟 FadeSlideTransition
-            └── 🚨 Status Badge
+            └── 🔔 Notification summary card → push('/notification')
 ```
 
 :::note[Demo content removed]
@@ -59,7 +57,7 @@ Profile) were removed. The Home screen now shows only real data plus an Info sho
 ## State Taxonomy
 
 - **Local UI State**: `_taskCount` and `_isLoadingTasks`. The Home module relies entirely on internal `StatefulWidget` state for its immediate metrics.
-- **Consumed Global State**: `themeController` (for dark mode) and `authStateProvider` (for logout).
+- **Consumed Global State**: `authStateProvider` (for logout), notification providers, and utility providers.
 - **Remote State**: Summary data fetched directly from the backend without intermediate caching providers.
 
 ## The Execution Lifecycle

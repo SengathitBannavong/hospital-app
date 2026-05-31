@@ -6,7 +6,7 @@ This document provides a summary of the project's core systems, specifically the
 
 ## 🎨 Theme System
 
-The theme system is designed to be modern, clean, and calming—tailored for healthcare applications. It leverages Material 3 and Google Fonts (**Plus Jakarta Sans**).
+The theme system is designed to be modern, clean, and calming—tailored for healthcare applications. It leverages Material 3 and centralized text/color/design tokens. Typography is configured in `AppTextTheme` with **Plus Jakarta Sans** family names; the app no longer depends on the `google_fonts` package.
 
 ### 1. Color Tokens (`AppColors`)
 The project uses a centralized color palette defined in `lib/core/theme/app_colors.dart`.
@@ -131,8 +131,8 @@ The map feature (`lib/features/map/`) renders a hospital floor grid with POIs, w
 - **Utils**: `presentation/utils/search_utils.dart` — accent-insensitive `normalizeForSearch` with top-level `RegExp` instances (parsed once).
 - **Tokens**: `presentation/theme/map_tokens.dart` — `MapMotion` durations/curves, `MapSurface` colors, `MapPoiPalette` (muted, semantically grouped POI palette + labels).
 - **Painter**: `widgets/map_grid_painter.dart` — pooled `Paint` objects, viewport culling, animated `routeProgress` (0–1) for route draw-on.
-- **Page**: `pages/map_page.dart` — collapsible search bar (top), top-left route pill, bottom-left legend/recenter FABs, bottom-right "Plan route" FAB. POI taps, route planning, and the legend all open as modal bottom sheets, leaving the map unobstructed.
-- **Widgets**: `map_top_bar`, `map_search_results_panel` (skeleton + suggestion chips), `map_poi_metadata_panel`, `map_route_panel`, `map_route_status`, `map_legend_sheet`.
+- **Page**: `pages/map_page.dart` — full-screen grid with collapsible overlays, floor selector, analytics panel, status cluster, route pill, legend/recenter controls, and route planning sheets. POI taps, route planning, route history, obstacle reporting, and the legend all open as modal bottom sheets, leaving the map unobstructed.
+- **Widgets**: `map_top_bar`, `map_search_results_panel` (skeleton + suggestion chips), `map_poi_metadata_panel`, `map_route_panel`, `map_route_status`, `map_legend_sheet`, `map_navigation_sheet`, and `map_page/*` focused widgets.
 
 ### Performance notes
 - `MapPage.build` scopes provider reads with `.select()` to avoid full-tree rebuilds.

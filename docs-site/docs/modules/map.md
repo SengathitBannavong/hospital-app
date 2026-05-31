@@ -234,7 +234,7 @@ throws into the widget tree.
 | **Edge Status** | Flow snapshot `EdgeStatus` | Line between cell centers: solid red if `blocked`, otherwise orange lerped by `congestion`. |
 | **Bottlenecks** | `flow/get_bottlenecks` | Numbered red pins at the busiest cells (discrete points, ranked by `count`). |
 | **Alerts** | `flow/get_alerts` | Status chip; optionally highlights the referenced cell. |
-| **Forecast** | `flow/get_forecast` | Time-offset slider seam; gracefully disabled while the endpoint is stubbed. |
+| **Forecast** | `flow/get_forecast` | Time-offset slider; gracefully disabled while the endpoint is stubbed. |
 
 :::note[Backend-stubbed layers]
 `flow/get_alerts` and `flow/get_forecast` currently return placeholder payloads.
