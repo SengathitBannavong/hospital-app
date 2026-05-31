@@ -12,15 +12,14 @@ import 'package:hospital_app/features/notification/data/models/app_notification.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('NotificationPage shows loading then list and supports delete',
-      (tester) async {
+  testWidgets('NotificationPage shows loading then list and supports delete', (
+    tester,
+  ) async {
     final mockRepo = _WidgetMockNotificationRepository();
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          notificationRepositoryProvider.overrideWithValue(mockRepo),
-        ],
+        overrides: [notificationRepositoryProvider.overrideWithValue(mockRepo)],
         child: const MaterialApp(home: NotificationPage()),
       ),
     );
@@ -58,14 +57,29 @@ class _WidgetMockNotificationRepository implements NotificationRepository {
   Future<void> markAsRead({required int notificationId}) async {}
 
   @override
-  Future<NotificationPageResponse> getNotifications({int page = 1, int limit = 20}) async {
+  Future<NotificationPageResponse> getNotifications({
+    int page = 1,
+    int limit = 20,
+  }) async {
     return NotificationPageResponse(
       total: 2,
       page: 1,
       limit: limit,
       data: const [
-        AppNotification(id: 1, title: 'One', message: 'm1', createdAt: 't1', isRead: false),
-        AppNotification(id: 2, title: 'Two', message: 'm2', createdAt: 't2', isRead: false),
+        AppNotification(
+          id: 1,
+          title: 'One',
+          message: 'm1',
+          createdAt: 't1',
+          isRead: false,
+        ),
+        AppNotification(
+          id: 2,
+          title: 'Two',
+          message: 'm2',
+          createdAt: 't2',
+          isRead: false,
+        ),
       ],
     );
   }
@@ -77,5 +91,6 @@ class _WidgetMockNotificationRepository implements NotificationRepository {
   Future<void> saveSettings(NotificationSettingsModel settings) async {}
 
   @override
-  Future<NotificationSettingsModel> getSettings() async => NotificationSettingsModel.defaults();
+  Future<NotificationSettingsModel> getSettings() async =>
+      NotificationSettingsModel.defaults();
 }
