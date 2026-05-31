@@ -5,15 +5,22 @@ import 'chat_avatar.dart';
 import 'chat_time_label.dart';
 
 class ChatRoomCard extends StatelessWidget {
-  const ChatRoomCard({required this.room, required this.onTap, super.key});
+  const ChatRoomCard({
+    required this.room,
+    required this.onTap,
+    this.hasActivity = false,
+    super.key,
+  });
 
   final ChatRoom room;
   final VoidCallback onTap;
+  final bool hasActivity;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final hasUnread = room.unreadCount > 0;
+    final shouldHighlight = hasUnread || hasActivity;
 
     return InkWell(
       onTap: onTap,
@@ -38,7 +45,7 @@ class ChatRoomCard extends StatelessWidget {
                           room.name.isEmpty ? 'Phòng chat' : room.name,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
-                                fontWeight: hasUnread
+                                fontWeight: shouldHighlight
                                     ? FontWeight.bold
                                     : FontWeight.normal,
                               ),
@@ -60,10 +67,10 @@ class ChatRoomCard extends StatelessWidget {
                               : room.lastMessage,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: hasUnread
+                                color: shouldHighlight
                                     ? cs.onSurface
                                     : cs.onSurfaceVariant,
-                                fontWeight: hasUnread
+                                fontWeight: shouldHighlight
                                     ? FontWeight.w600
                                     : FontWeight.normal,
                               ),
@@ -71,9 +78,11 @@ class ChatRoomCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (hasUnread) ...[
+                      if (shouldHighlight) ...[
                         const SizedBox(width: AppSpacing.sm),
-                        _UnreadBadge(count: room.unreadCount),
+                        hasUnread
+                            ? _UnreadBadge(count: room.unreadCount)
+                            : const _UnreadDot(),
                       ],
                     ],
                   ),
@@ -82,6 +91,22 @@ class ChatRoomCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _UnreadDot extends StatelessWidget {
+  const _UnreadDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: const BoxDecoration(
+        color: AppColors.error,
+        shape: BoxShape.circle,
       ),
     );
   }

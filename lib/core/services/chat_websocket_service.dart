@@ -25,8 +25,14 @@ class ChatWebSocketService {
   final List<String> _outbox = [];
 
   final _messageController = StreamController<Map<String, dynamic>>.broadcast();
+  final _connectionController = StreamController<bool>.broadcast();
 
   Stream<Map<String, dynamic>> get messages => _messageController.stream;
+
+  // Emits true each time the socket (re)connects, false when it drops. The
+  // chat notifier listens for `true` to run a catch-up fetch, since the
+  // broadcast never replays messages sent while the socket was down.
+  Stream<bool> get connectionStates => _connectionController.stream;
 
   bool _isConnected = false;
   bool _disposed = false;
@@ -54,6 +60,7 @@ class ChatWebSocketService {
       _channel = _connector(uri);
       await _channel!.ready;
       _isConnected = true;
+      if (!_connectionController.isClosed) _connectionController.add(true);
       for (final message in _outbox) {
         _channel!.sink.add(message);
       }
@@ -82,18 +89,38 @@ class ChatWebSocketService {
 
   void _onData(dynamic data) {
     try {
-      final decoded = jsonDecode(data as String) as Map<String, dynamic>;
-      _messageController.add(decoded);
+      final decoded = jsonDecode(data as String);
+      final payload = _extractPayload(decoded);
+      if (payload != null) _messageController.add(payload);
     } catch (_) {}
+  }
+
+  Map<String, dynamic>? _extractPayload(Object? decoded) {
+    if (decoded is! Map<String, dynamic>) return null;
+    if (decoded['message_id'] != null) return decoded;
+
+    final data = decoded['data'];
+    if (data is Map<String, dynamic> && data['message_id'] != null) {
+      return data;
+    }
+
+    final message = decoded['message'];
+    if (message is Map<String, dynamic> && message['message_id'] != null) {
+      return message;
+    }
+
+    return decoded;
   }
 
   void _onError(Object error) {
     _isConnected = false;
+    if (!_connectionController.isClosed) _connectionController.add(false);
     if (!_disposed) _scheduleReconnect();
   }
 
   void _onDone() {
     _isConnected = false;
+    if (!_connectionController.isClosed) _connectionController.add(false);
     if (!_disposed) _scheduleReconnect();
   }
 
@@ -116,5 +143,6 @@ class ChatWebSocketService {
     _disposed = true;
     await disconnect();
     await _messageController.close();
+    await _connectionController.close();
   }
 }

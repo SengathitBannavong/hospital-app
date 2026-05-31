@@ -1,81 +1,26 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hospital_app/features/chat/data/models/chat_room.dart';
 import 'package:hospital_app/features/chat/presentation/providers/chat_provider.dart';
 
-class MainShell extends ConsumerStatefulWidget {
+class MainShell extends ConsumerWidget {
   const MainShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  ConsumerState<MainShell> createState() => _MainShellState();
-}
-
-class _MainShellState extends ConsumerState<MainShell> {
-  StreamSubscription<ChatRoom>? _newMessageSub;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _newMessageSub = ref
-          .read(chatRoomsProvider.notifier)
-          .newMessageRooms
-          .listen(_showNewMessageBanner);
-    });
-  }
-
-  @override
-  void dispose() {
-    _newMessageSub?.cancel();
-    super.dispose();
-  }
-
-  void _showNewMessageBanner(ChatRoom room) {
-    if (!mounted) return;
-    if (ref.read(activeChatRoomProvider) == room.id) return;
-    if (_isCurrentChatRoom(room.id)) return;
-
-    final messenger = ScaffoldMessenger.of(context)
-      ..hideCurrentMaterialBanner();
-    messenger.showMaterialBanner(
-      MaterialBanner(
-        content: Text('Tin nhắn mới từ ${room.name}'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              messenger.hideCurrentMaterialBanner();
-              context.push('/chat/${room.id}', extra: {'room_name': room.name});
-            },
-            child: const Text('Mở'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  bool _isCurrentChatRoom(int roomId) {
-    final path = GoRouter.of(context).routeInformationProvider.value.uri.path;
-    return path == '/chat/$roomId';
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final chatUnread = ref.watch(chatUnreadTotalProvider);
+    final hasChatActivity = ref.watch(chatHasActivityProvider);
 
     return Scaffold(
-      body: widget.navigationShell,
+      body: navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: widget.navigationShell.currentIndex,
+        selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (index) {
-          widget.navigationShell.goBranch(
+          navigationShell.goBranch(
             index,
-            initialLocation: index == widget.navigationShell.currentIndex,
+            initialLocation: index == navigationShell.currentIndex,
           );
         },
         destinations: [
@@ -100,20 +45,44 @@ class _MainShellState extends ConsumerState<MainShell> {
             label: 'Hồ sơ',
           ),
           NavigationDestination(
-            icon: Badge(
-              isLabelVisible: chatUnread > 0,
-              label: Text(chatUnread > 99 ? '99+' : '$chatUnread'),
+            icon: _ChatNavIcon(
+              unreadCount: chatUnread,
+              hasActivity: hasChatActivity,
               child: const Icon(Icons.chat_bubble_outline_rounded),
             ),
-            selectedIcon: Badge(
-              isLabelVisible: chatUnread > 0,
-              label: Text(chatUnread > 99 ? '99+' : '$chatUnread'),
+            selectedIcon: _ChatNavIcon(
+              unreadCount: chatUnread,
+              hasActivity: hasChatActivity,
               child: const Icon(Icons.chat_bubble_rounded),
             ),
             label: 'Chat',
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ChatNavIcon extends StatelessWidget {
+  const _ChatNavIcon({
+    required this.unreadCount,
+    required this.hasActivity,
+    required this.child,
+  });
+
+  final int unreadCount;
+  final bool hasActivity;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final showBadge = unreadCount > 0 || hasActivity;
+    return Badge(
+      isLabelVisible: showBadge,
+      label: unreadCount > 0
+          ? Text(unreadCount > 99 ? '99+' : '$unreadCount')
+          : null,
+      child: child,
     );
   }
 }

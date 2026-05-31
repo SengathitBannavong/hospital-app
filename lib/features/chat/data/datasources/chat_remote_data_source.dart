@@ -7,6 +7,20 @@ import '../models/chat_room.dart';
 import '../models/chat_message.dart';
 import '../models/chat_participants.dart';
 
+class ChatMessagesPageResult {
+  const ChatMessagesPageResult({
+    required this.messages,
+    required this.total,
+    required this.page,
+    required this.limit,
+  });
+
+  final List<ChatMessage> messages;
+  final int total;
+  final int page;
+  final int limit;
+}
+
 class ChatRemoteDataSource {
   ChatRemoteDataSource({Dio? dio}) : _dio = dio ?? ApiClient.instance;
 
@@ -44,10 +58,10 @@ class ChatRemoteDataSource {
   }
 
   // Backend: GET /chat/get_messages?conversation_id=X&page=Y&limit=Z
-  Future<List<ChatMessage>> getMessages({
+  Future<ChatMessagesPageResult> getMessagesPage({
     required int conversationId,
     int page = 1,
-    int limit = 30,
+    int limit = 50,
   }) async {
     try {
       final response = await _dio.get(
@@ -58,7 +72,7 @@ class ChatRemoteDataSource {
           'limit': limit,
         },
       );
-      final apiResponse = ApiResponse<List<ChatMessage>>.fromJson(
+      final apiResponse = ApiResponse<ChatMessagesPageResult>.fromJson(
         response.data,
         (json) {
           List<dynamic> toList(Object? raw) {
@@ -70,19 +84,52 @@ class ChatRemoteDataSource {
             return const [];
           }
 
-          return toList(json)
+          int parseInt(Object? raw, int fallback) {
+            if (raw is int) return raw;
+            if (raw is num) return raw.toInt();
+            if (raw is String) return int.tryParse(raw) ?? fallback;
+            return fallback;
+          }
+
+          final map = json is Map<String, dynamic> ? json : null;
+          final messages = toList(json)
               .whereType<Map<String, dynamic>>()
               .map(ChatMessage.fromJson)
               .toList();
+          return ChatMessagesPageResult(
+            messages: messages,
+            total: parseInt(map?['total'], messages.length),
+            page: parseInt(map?['page'], page),
+            limit: parseInt(map?['limit'], limit),
+          );
         },
       );
       if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? [];
+        return apiResponse.data ??
+            ChatMessagesPageResult(
+              messages: const [],
+              total: 0,
+              page: page,
+              limit: limit,
+            );
       }
       throw Exception(apiResponse.message);
     } on DioException catch (e) {
       throw Exception(_parseError(e));
     }
+  }
+
+  Future<List<ChatMessage>> getMessages({
+    required int conversationId,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    final result = await getMessagesPage(
+      conversationId: conversationId,
+      page: page,
+      limit: limit,
+    );
+    return result.messages;
   }
 
   // Backend: GET /chat/participants

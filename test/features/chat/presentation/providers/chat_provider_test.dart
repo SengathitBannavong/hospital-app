@@ -34,7 +34,7 @@ void main() {
   });
 
   group('ChatRoomsNotifier', () {
-    test('emits new-message rooms and skips the active room', () async {
+    test('flags changed rooms and skips the active room', () async {
       final fakeRepo = _FakeChatRepository(
         rooms: [
           _room(id: 1, unreadCount: 0),
@@ -49,10 +49,6 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       container.read(activeChatRoomProvider.notifier).state = 2;
 
-      final events = <ChatRoom>[];
-      final sub = notifier.newMessageRooms.listen(events.add);
-      addTearDown(sub.cancel);
-
       fakeRepo.rooms = [
         _room(id: 1, unreadCount: 1),
         _room(id: 2, unreadCount: 1, lastMessageAt: '2026-05-30T10:05:00Z'),
@@ -61,8 +57,31 @@ void main() {
       await notifier.refresh();
       await Future<void>.delayed(Duration.zero);
 
-      expect(events.map((room) => room.id), [1, 3]);
+      expect(container.read(chatActivityRoomIdsProvider), {1, 3});
+      expect(container.read(chatHasActivityProvider), isTrue);
       expect(container.read(chatUnreadTotalProvider), 2);
+    });
+
+    test('markRoomRead clears local chat activity dot', () async {
+      final fakeRepo = _FakeChatRepository(
+        rooms: [_room(id: 1, lastMessageAt: '2026-05-30T10:00:00Z')],
+      );
+      final container = _container(fakeRepo: fakeRepo);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(chatRoomsProvider.notifier);
+      await Future<void>.delayed(Duration.zero);
+
+      fakeRepo.rooms = [_room(id: 1, lastMessageAt: '2026-05-30T10:05:00Z')];
+      await notifier.refresh();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(chatActivityRoomIdsProvider), {1});
+
+      notifier.markRoomRead(1);
+
+      expect(container.read(chatActivityRoomIdsProvider), isEmpty);
+      expect(container.read(chatHasActivityProvider), isFalse);
     });
 
     test('polling timer cancels on dispose', () {
@@ -79,6 +98,66 @@ void main() {
   });
 
   group('ChatMessagesNotifier', () {
+    test(
+      'markRead skips backend call when room has no unread messages',
+      () async {
+        final fakeRepo = _FakeChatRepository(rooms: [_room(id: 1)]);
+        final container = _container(fakeRepo: fakeRepo);
+        addTearDown(container.dispose);
+        container.read(activeChatRoomProvider.notifier).state = 1;
+        await container.read(chatRoomsProvider.notifier).load();
+
+        await container.read(chatMessagesProvider(1).notifier).markRead();
+
+        expect(fakeRepo.markReadCalls, 0);
+      },
+    );
+
+    test(
+      'markRead calls backend and clears unread incoming messages',
+      () async {
+        final fakeRepo = _FakeChatRepository(
+          messages: [
+            _message(id: 1, senderId: 7, senderType: 'staff', isRead: false),
+          ],
+          rooms: [_room(id: 1, unreadCount: 3)],
+        );
+        final container = _container(fakeRepo: fakeRepo);
+        addTearDown(container.dispose);
+        container.read(activeChatRoomProvider.notifier).state = 1;
+        await container.read(chatRoomsProvider.notifier).load();
+        await container.read(chatMessagesProvider(1).notifier).load();
+
+        await container.read(chatMessagesProvider(1).notifier).markRead();
+
+        expect(fakeRepo.markReadCalls, 1);
+        expect(container.read(chatUnreadTotalProvider), 0);
+        expect(
+          container.read(chatMessagesProvider(1)).messages.single.isRead,
+          isTrue,
+        );
+      },
+    );
+
+    test('markRead skips backend call when room is not active', () async {
+      final fakeRepo = _FakeChatRepository(
+        messages: [
+          _message(id: 1, senderId: 7, senderType: 'staff', isRead: false),
+        ],
+        rooms: [_room(id: 1, unreadCount: 1)],
+      );
+      final container = _container(fakeRepo: fakeRepo);
+      addTearDown(container.dispose);
+      container.read(activeChatRoomProvider.notifier).state = null;
+      await container.read(chatRoomsProvider.notifier).load();
+      await container.read(chatMessagesProvider(1).notifier).load();
+
+      await container.read(chatMessagesProvider(1).notifier).markRead();
+
+      expect(fakeRepo.markReadCalls, 0);
+      expect(container.read(chatUnreadTotalProvider), 1);
+    });
+
     test(
       'sendMessage inserts optimistic message and reconciles echo',
       () async {
@@ -221,6 +300,50 @@ void main() {
       expect(ids, [4, 3, 2, 1]);
     });
 
+    test('load fetches latest backend page for large conversations', () async {
+      final fakeRepo = _FakeChatRepository(
+        messages: [
+          for (var id = 1; id <= 60; id++)
+            _message(id: id, createdAt: '2026-05-30T10:00:00Z'),
+        ],
+      );
+      final container = _container(fakeRepo: fakeRepo);
+      addTearDown(container.dispose);
+
+      await container.read(chatMessagesProvider(1).notifier).load();
+
+      final state = container.read(chatMessagesProvider(1));
+      expect(fakeRepo.messagePageRequests, containsAllInOrder([1, 2]));
+      expect(state.page, 2);
+      expect(state.hasMore, isTrue);
+      expect(
+        state.messages.map((message) => message.id).toList(),
+        List<int>.generate(10, (index) => 60 - index),
+      );
+    });
+
+    test('loadMore fetches the previous older backend page', () async {
+      final fakeRepo = _FakeChatRepository(
+        messages: [
+          for (var id = 1; id <= 60; id++)
+            _message(id: id, createdAt: '2026-05-30T10:00:00Z'),
+        ],
+      );
+      final container = _container(fakeRepo: fakeRepo);
+      addTearDown(container.dispose);
+      final notifier = container.read(chatMessagesProvider(1).notifier);
+      await notifier.load();
+
+      await notifier.loadMore();
+
+      final state = container.read(chatMessagesProvider(1));
+      expect(fakeRepo.messagePageRequests, containsAllInOrder([1, 2]));
+      expect(fakeRepo.messagePageRequests.last, 1);
+      expect(state.page, 1);
+      expect(state.hasMore, isFalse);
+      expect(state.messages, hasLength(60));
+    });
+
     test(
       'sendImage uploads then sends over websocket optimistically',
       () async {
@@ -233,6 +356,8 @@ void main() {
           fakeUtil: fakeUtil,
         );
         addTearDown(container.dispose);
+        final keepAlive = container.listen(chatMessagesProvider(1), (_, _) {});
+        addTearDown(keepAlive.close);
         final image = File('${Directory.systemTemp.path}/chat-test-image.png');
         await image.writeAsBytes([1, 2, 3]);
         addTearDown(() async {
@@ -348,7 +473,9 @@ class _FakeChatRepository extends ChatRepository {
 
   List<ChatMessage> messages;
   List<ChatRoom> rooms;
+  final List<int> messagePageRequests = [];
   int sendMessageCalls = 0;
+  int markReadCalls = 0;
 
   @override
   Future<List<ChatRoom>> getRooms({int page = 1, int limit = 50}) async {
@@ -359,9 +486,38 @@ class _FakeChatRepository extends ChatRepository {
   Future<List<ChatMessage>> getMessages({
     required int conversationId,
     int page = 1,
-    int limit = 30,
+    int limit = 50,
   }) async {
-    return messages;
+    return (await getMessagesPage(
+      conversationId: conversationId,
+      page: page,
+      limit: limit,
+    )).messages;
+  }
+
+  @override
+  Future<ChatMessagesPageResult> getMessagesPage({
+    required int conversationId,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    messagePageRequests.add(page);
+    final start = (page - 1) * limit;
+    if (start >= messages.length) {
+      return ChatMessagesPageResult(
+        messages: const [],
+        total: messages.length,
+        page: page,
+        limit: limit,
+      );
+    }
+    final end = (start + limit).clamp(0, messages.length);
+    return ChatMessagesPageResult(
+      messages: messages.sublist(start, end),
+      total: messages.length,
+      page: page,
+      limit: limit,
+    );
   }
 
   @override
@@ -389,6 +545,11 @@ class _FakeChatRepository extends ChatRepository {
   }) async {
     sendMessageCalls++;
     throw StateError('REST sendMessage should not be called');
+  }
+
+  @override
+  Future<void> markRead({required int conversationId}) async {
+    markReadCalls++;
   }
 }
 
@@ -470,6 +631,7 @@ ChatMessage _message({
   int senderId = 2,
   String senderType = 'user',
   String content = 'message',
+  bool isRead = false,
   String createdAt = '2026-05-30T10:00:00Z',
 }) {
   return ChatMessage(
@@ -481,7 +643,7 @@ ChatMessage _message({
     content: content,
     type: 'text',
     mediaUrl: '',
-    isRead: false,
+    isRead: isRead,
     isDeleted: false,
     createdAt: createdAt,
   );

@@ -33,6 +33,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
   final FocusNode _focusNode = FocusNode();
   final ImagePicker _imagePicker = ImagePicker();
   late ProviderContainer _container;
+  bool _showNewMessagesPill = false;
 
   @override
   void didChangeDependencies() {
@@ -47,7 +48,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _setActiveRoom(widget.roomId);
-      ref.read(chatMessagesProvider(widget.roomId).notifier).markRead();
+      _markReadIfUnread();
     });
   }
 
@@ -75,6 +76,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
 
   void _setActiveRoom(int roomId) {
     ref.read(activeChatRoomProvider.notifier).state = roomId;
+    _clearChatActivity(roomId);
   }
 
   void _clearActiveRoomAfterDispose(int roomId) {
@@ -86,16 +88,118 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
     });
   }
 
+  void _clearChatActivity(int roomId) {
+    final notifier = ref.read(chatActivityRoomIdsProvider.notifier);
+    if (!notifier.state.contains(roomId)) return;
+    notifier.state = {
+      for (final id in notifier.state)
+        if (id != roomId) id,
+    };
+  }
+
+  void _markReadIfUnread() {
+    if (ref.read(activeChatRoomProvider) != widget.roomId) return;
+    final room = ref
+        .read(chatRoomsProvider)
+        .rooms
+        .where((room) => room.id == widget.roomId)
+        .firstOrNull;
+    if (room == null || room.unreadCount <= 0) return;
+
+    ref.read(chatMessagesProvider(widget.roomId).notifier).markRead();
+  }
+
   void _handleScroll() {
     if (!_scrollController.hasClients) return;
     final pos = _scrollController.position;
+    // Reversed list: pixel 0 = bottom (newest), maxScrollExtent = top (oldest).
+    // Once the user scrolls back to the newest, drop the new-messages pill.
+    if (_showNewMessagesPill && pos.pixels <= pos.minScrollExtent + 80) {
+      setState(() => _showNewMessagesPill = false);
+    }
     // Guard: only trigger when the list actually has scrollable content.
     if (pos.maxScrollExtent <= 0) return;
-    // Reversed list: pixel 0 = bottom (newest), maxScrollExtent = top (oldest).
     // Fire loadMore when the user is within 300px of the top (oldest end).
     if (pos.pixels >= pos.maxScrollExtent - 300) {
       ref.read(chatMessagesProvider(widget.roomId).notifier).loadMore();
     }
+  }
+
+  // True when the viewport shows the newest messages (reverse-list bottom).
+  bool _isAtBottom() {
+    if (!_scrollController.hasClients) return true;
+    final pos = _scrollController.position;
+    return pos.pixels <= pos.minScrollExtent + 80;
+  }
+
+  // Reacts to message-list changes. Auto-scrolls to the newest message only
+  // when the user is already at the bottom or sent the message themselves;
+  // otherwise it preserves their reading position and shows the pill.
+  void _onMessagesChanged(
+    ChatMessagesState? prev,
+    ChatMessagesState next,
+  ) {
+    final nextNewest = next.messages.isNotEmpty ? next.messages.first : null;
+    if (nextNewest == null) return;
+    final prevNewest = (prev?.messages.isNotEmpty ?? false)
+        ? prev!.messages.first
+        : null;
+    final isNewArrival = prevNewest == null || nextNewest.id != prevNewest.id;
+    if (!isNewArrival) return;
+
+    final authUser = ref.read(authStateProvider);
+    final mine = isMineChatMessage(
+      nextNewest,
+      authUser?.userId ?? 0,
+      authUser?.role,
+    );
+
+    if (mine || _isAtBottom()) {
+      if (_showNewMessagesPill) {
+        setState(() => _showNewMessagesPill = false);
+      }
+      _scrollToBottomSoon();
+    } else {
+      // Keep the old-message view from shifting when items are added at the
+      // bottom of the reversed list, then signal that something arrived.
+      _preserveScrollAfterInsert();
+      if (!_showNewMessagesPill) {
+        setState(() => _showNewMessagesPill = true);
+      }
+    }
+  }
+
+  void _scrollToBottomSoon() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.minScrollExtent,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  // In a reversed list, inserting at index 0 (the visual bottom) grows
+  // maxScrollExtent; re-anchoring to the same distance-from-top keeps the
+  // messages the user is reading perfectly still.
+  void _preserveScrollAfterInsert() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    final oldPixels = pos.pixels;
+    final oldMax = pos.maxScrollExtent;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final newPos = _scrollController.position;
+      final delta = newPos.maxScrollExtent - oldMax;
+      if (delta.abs() < 0.5) return;
+      newPos.jumpTo(
+        (oldPixels + delta).clamp(
+          newPos.minScrollExtent,
+          newPos.maxScrollExtent,
+        ),
+      );
+    });
   }
 
   Future<void> _send() async {
@@ -130,15 +234,32 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
     final myRole = authUser?.role;
     final cs = Theme.of(context).colorScheme;
 
-    ref.listen<ChatMessagesState>(chatMessagesProvider(widget.roomId), (
-      prev,
-      next,
-    ) {
-      if (next.errorMessage != null &&
-          next.errorMessage != prev?.errorMessage) {
-        AppToast.showError(next.errorMessage!);
-      }
-    });
+    ref
+      ..listen<ChatMessagesState>(chatMessagesProvider(widget.roomId), (
+        prev,
+        next,
+      ) {
+        if (next.errorMessage != null &&
+            next.errorMessage != prev?.errorMessage) {
+          AppToast.showError(next.errorMessage!);
+        }
+        _onMessagesChanged(prev, next);
+      })
+      ..listen(chatRoomsProvider, (prev, next) {
+        final previousUnread = prev?.rooms
+            .where((room) => room.id == widget.roomId)
+            .firstOrNull
+            ?.unreadCount;
+        final currentUnread = next.rooms
+            .where((room) => room.id == widget.roomId)
+            .firstOrNull
+            ?.unreadCount;
+        if (currentUnread != null &&
+            currentUnread > 0 &&
+            currentUnread != previousUnread) {
+          _markReadIfUnread();
+        }
+      });
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -164,7 +285,14 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
       ),
       body: Column(
         children: [
-          Expanded(child: _buildMessageList(state, myId, myRole)),
+          Expanded(
+            child: Stack(
+              children: [
+                _buildMessageList(state, myId, myRole),
+                if (_showNewMessagesPill) _buildNewMessagesPill(),
+              ],
+            ),
+          ),
           _buildInputBar(state),
         ],
       ),
@@ -316,6 +444,54 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
                     ),
                   ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNewMessagesPill() {
+    final cs = Theme.of(context).colorScheme;
+    return Positioned(
+      bottom: AppSpacing.md,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Material(
+          color: cs.primary,
+          borderRadius: AppRadius.borderFull,
+          elevation: 3,
+          child: InkWell(
+            borderRadius: AppRadius.borderFull,
+            onTap: () {
+              setState(() => _showNewMessagesPill = false);
+              _scrollToBottomSoon();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.arrow_downward_rounded,
+                    size: 16,
+                    color: cs.onPrimary,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    'Tin nhắn mới',
+                    style: TextStyle(
+                      color: cs.onPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -7,11 +7,35 @@ import '../providers/chat_provider.dart';
 import '../providers/chat_rooms_state.dart';
 import '../widgets/chat_room_card.dart';
 
-class ChatRoomsPage extends ConsumerWidget {
+class ChatRoomsPage extends ConsumerStatefulWidget {
   const ChatRoomsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChatRoomsPage> createState() => _ChatRoomsPageState();
+}
+
+class _ChatRoomsPageState extends ConsumerState<ChatRoomsPage> {
+  @override
+  void initState() {
+    super.initState();
+    _clearActiveRoomAfterFrame();
+  }
+
+  void _clearActiveRoomAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final activeRoom = ref.read(activeChatRoomProvider);
+      if (activeRoom != null) {
+        ref.read(activeChatRoomProvider.notifier).state = null;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (ref.watch(activeChatRoomProvider) != null) {
+      _clearActiveRoomAfterFrame();
+    }
     final state = ref.watch(chatRoomsProvider);
     final cs = Theme.of(context).colorScheme;
 
@@ -80,8 +104,12 @@ class ChatRoomsPage extends ConsumerWidget {
             const Divider(height: 1, indent: 72),
         itemBuilder: (context, index) {
           final room = state.rooms[index];
+          final hasActivity = ref
+              .watch(chatActivityRoomIdsProvider)
+              .contains(room.id);
           return ChatRoomCard(
             room: room,
+            hasActivity: hasActivity,
             onTap: () => context.push(
               '/chat/${room.id}',
               extra: {'room_name': room.name},

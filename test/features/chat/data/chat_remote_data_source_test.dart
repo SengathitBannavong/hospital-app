@@ -49,6 +49,45 @@ void main() {
       expect(dataSource.getParticipants(), throwsException);
     });
 
+    test('getMessagesPage parses pagination metadata', () async {
+      late Map<String, dynamic> query;
+      final dataSource = ChatRemoteDataSource(
+        dio: _dioReturning({
+          'code': 1000,
+          'message': 'OK',
+          'data': {
+            'messages': [
+              {
+                'message_id': 51,
+                'conversation_id': 3,
+                'sender_id': 7,
+                'sender_type': 'staff',
+                'type': 'text',
+                'text_content': 'latest',
+                'is_read': false,
+                'created_at': '2026-05-30T10:00:00Z',
+              },
+            ],
+            'total': 100,
+            'page': 2,
+            'limit': 50,
+          },
+        }, onQuery: (params) => query = Map<String, dynamic>.from(params)),
+      );
+
+      final result = await dataSource.getMessagesPage(
+        conversationId: 3,
+        page: 2,
+        limit: 50,
+      );
+
+      expect(query, {'conversation_id': 3, 'page': 2, 'limit': 50});
+      expect(result.total, 100);
+      expect(result.page, 2);
+      expect(result.limit, 50);
+      expect(result.messages.single.id, 51);
+    });
+
     test(
       'closeRoom posts conversation id and accepts success response',
       () async {
@@ -72,12 +111,14 @@ void main() {
 Dio _dioReturning(
   Map<String, dynamic> body, {
   void Function(Object? data)? onRequestData,
+  void Function(Map<String, dynamic> query)? onQuery,
 }) {
   final dio = Dio(BaseOptions(baseUrl: 'https://example.test/api/'));
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) {
         onRequestData?.call(options.data);
+        onQuery?.call(options.queryParameters);
         handler.resolve(
           Response<dynamic>(
             requestOptions: options,

@@ -255,8 +255,13 @@ Scope: real-time messaging between patients and support staff, including chat ro
 - [x] `chatWsProvider` opens the WebSocket connection on entering chat and disposes it on exit.
 - [x] `ChatMessagesNotifier` subscribes/unsubscribes to a room via WebSocket and receives new messages via stream.
 - [x] Incoming WebSocket messages are deduplicated by `message.id` before being added to state.
-- [ ] WebSocket reconnect on disconnect is not handled; retry/backoff logic is still missing.
-- [ ] WebSocket connection status (connected/disconnected) is not shown in the UI.
+- [x] WebSocket reconnect on disconnect is handled: `ChatWebSocketService` auto-reconnects (3s) and exposes a `connectionStates` stream; `ChatMessagesNotifier` runs a catch-up fetch on every reconnect to backfill messages dropped during the gap (the broadcast does not replay history).
+- [x] In-conversation sync is WebSocket-primary: realtime via the socket, catch-up on reconnect, and a slow 25s backstop poll for silent socket failures (replaces the old 4s poll).
+- [x] Rooms list polls `get_rooms` every 60s via a root-anchored provider; the timer is lifecycle-aware (paused only on real backgrounding, not the transient `inactive` event that would otherwise reset the countdown and stall polling).
+- [x] Rooms are merged in place across polls (`_mergePreservingOrder`) so rows keep their position — a room with a new message lights its unread dot/badge without the list reordering/jumping.
+- [x] Conversation view preserves scroll position when messages arrive while the user is scrolled up, showing a tap-to-jump "Tin nhắn mới" pill instead of snapping to newest; auto-scrolls only when at the bottom or on the user's own send.
+- [ ] WebSocket connection status (connected/disconnected) is not surfaced in the UI (the `connectionStates` stream exists but is consumed only for catch-up, not shown).
+- [ ] Rooms list cannot be push-updated: the WS broadcast omits `conversation_id` and there is no global user-level socket, so the 60s poll is the only awareness path until one of those lands.
 - [x] `ChatRoomCard` — displays room name, last message, timestamp, and unread badge count.
 - [x] `ChatMessageBubble` — message bubble distinguishing sent vs. received messages.
 - [x] `ChatAvatar` — chat room avatar.
@@ -267,7 +272,7 @@ Scope: real-time messaging between patients and support staff, including chat ro
 - [ ] No delete/leave room functionality in the UI.
 - [ ] No typing indicator via WebSocket.
 - [ ] Sending images/file attachments is not supported.
-- [ ] Tests needed for `ChatRoomsNotifier`, `ChatMessagesNotifier`, and JSON parsing.
+- [x] Tests exist for `ChatRoomsNotifier`, `ChatMessagesNotifier`, the WebSocket service, and JSON parsing (`test/features/chat/`, 27 passing).
 
 ## Backlog
 

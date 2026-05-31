@@ -15,8 +15,18 @@ class ChatRepository {
   Future<List<ChatMessage>> getMessages({
     required int conversationId,
     int page = 1,
-    int limit = 30,
+    int limit = 50,
   }) => _remoteDataSource.getMessages(
+    conversationId: conversationId,
+    page: page,
+    limit: limit,
+  );
+
+  Future<ChatMessagesPageResult> getMessagesPage({
+    required int conversationId,
+    int page = 1,
+    int limit = 50,
+  }) => _remoteDataSource.getMessagesPage(
     conversationId: conversationId,
     page: page,
     limit: limit,

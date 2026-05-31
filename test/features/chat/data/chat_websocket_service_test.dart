@@ -49,6 +49,29 @@ void main() {
       });
       await service.dispose();
     });
+
+    test('accepts wrapped inbound message frames', () async {
+      final channel = _FakeWebSocketChannel();
+      final service = ChatWebSocketService(
+        1,
+        connector: (_) => channel,
+        tokenReader: () async => 'token',
+      );
+      await service.connect();
+
+      channel.addInbound(
+        jsonEncode({
+          'type': 'message',
+          'data': {'message_id': 9, 'text_content': 'hello'},
+        }),
+      );
+
+      await expectLater(
+        service.messages,
+        emits({'message_id': 9, 'text_content': 'hello'}),
+      );
+      await service.dispose();
+    });
   });
 }
 
@@ -71,6 +94,10 @@ class _FakeWebSocketChannel implements WebSocketChannel {
 
   @override
   Stream<dynamic> get stream => _controller.stream;
+
+  void addInbound(String event) {
+    _controller.add(event);
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
