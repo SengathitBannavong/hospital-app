@@ -216,7 +216,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               setState(() => _isUploadingAvatar = false);
                             }
 
-                            if (!success && mounted) {
+                            if (success && mounted) {
+                              AppToast.showSuccess(
+                                'Cập nhật ảnh đại diện thành công.',
+                              );
+                            } else if (!success && mounted) {
                               AppToast.showError(
                                 ref.read(profileProvider).errorMessage ??
                                     'Không thể cập nhật ảnh đại diện.',
@@ -237,6 +241,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                   .updateProfile(request);
                               if (success && mounted) {
                                 setState(() => _isEditing = false);
+                                AppToast.showSuccess(
+                                  'Cập nhật hồ sơ thành công.',
+                                );
                               }
                               if (!success && mounted) {
                                 AppToast.showError(

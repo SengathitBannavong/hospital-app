@@ -163,10 +163,10 @@ Scope: notification list, mark read, delete, profile edit.
 - [x] Add global unread badge count (Home app-bar bell via `unreadCountProvider`).
 - [x] Register device token with `user/set_devtoken` (sends `device_token` + `platform`); driven by the optional Firebase service.
 - [x] Notification settings handled by the unified Settings page via `user/get_settings` / `user/set_settings` (the standalone `notification_settings_page.dart` was removed).
-- [ ] Add repository/provider tests for notification flow.
-- [ ] Manual QA: list load, pull-to-refresh, mark read, delete.
+- [x] Add repository/provider tests for notification flow.
+- [x] Manual QA: list load, pull-to-refresh, mark read, delete.
 - [x] App-side push registration is implemented (FCM client) but **optional** via `ENABLE_FIREBASE`. NOTE: the backend stores tokens but does not send pushes yet, so no push arrives until the backend FCM sender ships.
-- [ ] Add profile update success/error toast handling if demo requires visible feedback.
+- [x] Add profile update success/error toast handling if demo requires visible feedback.
 
 ## Chat 6: Util + SOS
 
