@@ -135,10 +135,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
   // Reacts to message-list changes. Auto-scrolls to the newest message only
   // when the user is already at the bottom or sent the message themselves;
   // otherwise it preserves their reading position and shows the pill.
-  void _onMessagesChanged(
-    ChatMessagesState? prev,
-    ChatMessagesState next,
-  ) {
+  void _onMessagesChanged(ChatMessagesState? prev, ChatMessagesState next) {
     final nextNewest = next.messages.isNotEmpty ? next.messages.first : null;
     if (nextNewest == null) return;
     final prevNewest = (prev?.messages.isNotEmpty ?? false)

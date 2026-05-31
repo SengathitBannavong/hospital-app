@@ -147,7 +147,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/chat/:room_id',
         builder: (context, state) {
-          final roomId = int.tryParse(state.pathParameters['room_id'] ?? '') ?? 0;
+          final roomId =
+              int.tryParse(state.pathParameters['room_id'] ?? '') ?? 0;
           final extra = state.extra as Map<String, dynamic>?;
           final roomName = extra?['room_name'] as String? ?? '';
           return ChatMessagesPage(roomId: roomId, roomName: roomName);
