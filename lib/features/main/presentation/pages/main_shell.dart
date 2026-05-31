@@ -1,25 +1,81 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/features/chat/data/models/chat_room.dart';
 import 'package:hospital_app/features/chat/presentation/providers/chat_provider.dart';
 
-class MainShell extends ConsumerWidget {
+class MainShell extends ConsumerStatefulWidget {
   const MainShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends ConsumerState<MainShell> {
+  StreamSubscription<ChatRoom>? _newMessageSub;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _newMessageSub = ref
+          .read(chatRoomsProvider.notifier)
+          .newMessageRooms
+          .listen(_showNewMessageBanner);
+    });
+  }
+
+  @override
+  void dispose() {
+    _newMessageSub?.cancel();
+    super.dispose();
+  }
+
+  void _showNewMessageBanner(ChatRoom room) {
+    if (!mounted) return;
+    if (ref.read(activeChatRoomProvider) == room.id) return;
+    if (_isCurrentChatRoom(room.id)) return;
+
+    final messenger = ScaffoldMessenger.of(context)
+      ..hideCurrentMaterialBanner();
+    messenger.showMaterialBanner(
+      MaterialBanner(
+        content: Text('Tin nhắn mới từ ${room.name}'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              messenger.hideCurrentMaterialBanner();
+              context.push('/chat/${room.id}', extra: {'room_name': room.name});
+            },
+            child: const Text('Mở'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isCurrentChatRoom(int roomId) {
+    final path = GoRouter.of(context).routeInformationProvider.value.uri.path;
+    return path == '/chat/$roomId';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final chatUnread = ref.watch(chatUnreadTotalProvider);
 
     return Scaffold(
-      body: navigationShell,
+      body: widget.navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
+        selectedIndex: widget.navigationShell.currentIndex,
         onDestinationSelected: (index) {
-          navigationShell.goBranch(
+          widget.navigationShell.goBranch(
             index,
-            initialLocation: index == navigationShell.currentIndex,
+            initialLocation: index == widget.navigationShell.currentIndex,
           );
         },
         destinations: [

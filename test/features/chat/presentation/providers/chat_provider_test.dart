@@ -33,6 +33,51 @@ void main() {
         );
   });
 
+  group('ChatRoomsNotifier', () {
+    test('emits new-message rooms and skips the active room', () async {
+      final fakeRepo = _FakeChatRepository(
+        rooms: [
+          _room(id: 1, unreadCount: 0),
+          _room(id: 2, unreadCount: 0),
+          _room(id: 3, unreadCount: 0),
+        ],
+      );
+      final container = _container(fakeRepo: fakeRepo);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(chatRoomsProvider.notifier);
+      await Future<void>.delayed(Duration.zero);
+      container.read(activeChatRoomProvider.notifier).state = 2;
+
+      final events = <ChatRoom>[];
+      final sub = notifier.newMessageRooms.listen(events.add);
+      addTearDown(sub.cancel);
+
+      fakeRepo.rooms = [
+        _room(id: 1, unreadCount: 1),
+        _room(id: 2, unreadCount: 1, lastMessageAt: '2026-05-30T10:05:00Z'),
+        _room(id: 3, lastMessageAt: '2026-05-30T10:05:00Z'),
+      ];
+      await notifier.refresh();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(events.map((room) => room.id), [1, 3]);
+      expect(container.read(chatUnreadTotalProvider), 2);
+    });
+
+    test('polling timer cancels on dispose', () {
+      final fakeRepo = _FakeChatRepository();
+      final container = _container(fakeRepo: fakeRepo);
+
+      final notifier = container.read(chatRoomsProvider.notifier);
+      expect(notifier.debugIsPolling, isTrue);
+
+      container.dispose();
+
+      expect(notifier.debugIsPolling, isFalse);
+    });
+  });
+
   group('ChatMessagesNotifier', () {
     test(
       'sendMessage inserts optimistic message and reconciles echo',
@@ -280,19 +325,9 @@ void main() {
 }
 
 class _FakeChatRepository extends ChatRepository {
-  _FakeChatRepository({this.messages = const []})
-    : super(
-        remoteDataSource: ChatRemoteDataSource(
-          dio: Dio(BaseOptions(baseUrl: 'https://example.test/api/')),
-        ),
-      );
-
-  List<ChatMessage> messages;
-  int sendMessageCalls = 0;
-
-  @override
-  Future<List<ChatRoom>> getRooms({int page = 1, int limit = 50}) async {
-    return const [
+  _FakeChatRepository({
+    this.messages = const [],
+    this.rooms = const [
       ChatRoom(
         id: 1,
         userId: 3,
@@ -304,7 +339,20 @@ class _FakeChatRepository extends ChatRepository {
         unreadCount: 0,
         avatarUrl: '',
       ),
-    ];
+    ],
+  }) : super(
+         remoteDataSource: ChatRemoteDataSource(
+           dio: Dio(BaseOptions(baseUrl: 'https://example.test/api/')),
+         ),
+       );
+
+  List<ChatMessage> messages;
+  List<ChatRoom> rooms;
+  int sendMessageCalls = 0;
+
+  @override
+  Future<List<ChatRoom>> getRooms({int page = 1, int limit = 50}) async {
+    return rooms;
   }
 
   @override
@@ -396,6 +444,24 @@ class _FakeChatWebSocketService extends ChatWebSocketService {
   Future<void> dispose() async {
     await _controller.close();
   }
+}
+
+ChatRoom _room({
+  required int id,
+  int unreadCount = 0,
+  String lastMessageAt = '2026-05-30T10:00:00Z',
+}) {
+  return ChatRoom(
+    id: id,
+    userId: 3,
+    staffId: 7,
+    status: 'open',
+    name: 'Phòng $id',
+    lastMessage: '',
+    lastMessageAt: lastMessageAt,
+    unreadCount: unreadCount,
+    avatarUrl: '',
+  );
 }
 
 ChatMessage _message({

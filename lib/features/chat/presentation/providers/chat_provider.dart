@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/services/chat_websocket_service.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/util/data/repository/util_repository.dart';
 import 'package:hospital_app/features/util/presentation/providers/util_providers.dart';
 import '../../data/models/chat_message.dart';
+import '../../data/models/chat_room.dart';
 import '../../data/repository/chat_repository.dart';
 import 'chat_messages_state.dart';
 import 'chat_rooms_state.dart';
@@ -16,12 +18,14 @@ final chatRepositoryProvider = Provider<ChatRepository>(
   (ref) => ChatRepository(),
 );
 
+final activeChatRoomProvider = StateProvider<int?>((ref) => null);
+
 // Rooms list
 
 final chatRoomsProvider =
     StateNotifierProvider<ChatRoomsNotifier, ChatRoomsState>((ref) {
       final repo = ref.watch(chatRepositoryProvider);
-      final notifier = ChatRoomsNotifier(repo)..load();
+      final notifier = ChatRoomsNotifier(repo, ref)..load();
       return notifier;
     });
 
@@ -39,10 +43,25 @@ final chatWebSocketServiceProvider = Provider.family<ChatWebSocketService, int>(
   },
 );
 
-class ChatRoomsNotifier extends StateNotifier<ChatRoomsState> {
-  ChatRoomsNotifier(this._repo) : super(ChatRoomsState.initial());
+class ChatRoomsNotifier extends StateNotifier<ChatRoomsState>
+    with WidgetsBindingObserver {
+  ChatRoomsNotifier(this._repo, this._ref) : super(ChatRoomsState.initial()) {
+    WidgetsBinding.instance.addObserver(this);
+    _startPolling();
+  }
 
   final ChatRepository _repo;
+  final Ref _ref;
+  final StreamController<ChatRoom> _newMessageController =
+      StreamController<ChatRoom>.broadcast();
+  Timer? _pollTimer;
+
+  static const Duration roomsPollInterval = Duration(seconds: 5);
+
+  Stream<ChatRoom> get newMessageRooms => _newMessageController.stream;
+
+  @visibleForTesting
+  bool get debugIsPolling => _pollTimer?.isActive ?? false;
 
   Future<void> load({bool refresh = false}) async {
     state = state.copyWith(
@@ -53,7 +72,10 @@ class ChatRoomsNotifier extends StateNotifier<ChatRoomsState> {
 
     try {
       final rooms = await _repo.getRooms();
+      if (!mounted) return;
+
       final totalUnread = rooms.fold<int>(0, (sum, r) => sum + r.unreadCount);
+      _emitNewMessageRooms(rooms);
 
       state = state.copyWith(
         rooms: rooms,
@@ -62,6 +84,8 @@ class ChatRoomsNotifier extends StateNotifier<ChatRoomsState> {
         totalUnread: totalUnread,
       );
     } catch (e) {
+      if (!mounted) return;
+
       state = state.copyWith(
         isLoading: false,
         isRefreshing: false,
@@ -89,6 +113,75 @@ class ChatRoomsNotifier extends StateNotifier<ChatRoomsState> {
       return r;
     }).toList();
     state = state.copyWith(rooms: updated);
+  }
+
+  void _emitNewMessageRooms(List<ChatRoom> rooms) {
+    if (state.rooms.isEmpty) return;
+
+    final previousById = {for (final room in state.rooms) room.id: room};
+    final activeRoomId = _ref.read(activeChatRoomProvider);
+    for (final room in rooms) {
+      if (room.id == activeRoomId) continue;
+
+      final previous = previousById[room.id];
+      if (previous == null) continue;
+
+      final unreadIncreased = room.unreadCount > previous.unreadCount;
+      final messageIsNewer = _isNewer(
+        room.lastMessageAt,
+        previous.lastMessageAt,
+      );
+      if (unreadIncreased || messageIsNewer) {
+        _newMessageController.add(room);
+      }
+    }
+  }
+
+  bool _isNewer(String current, String previous) {
+    final currentDate = DateTime.tryParse(current);
+    final previousDate = DateTime.tryParse(previous);
+    if (currentDate != null && previousDate != null) {
+      return currentDate.isAfter(previousDate);
+    }
+    if (currentDate != null && previous.isEmpty) return true;
+    return current.isNotEmpty && current.compareTo(previous) > 0;
+  }
+
+  void _startPolling() {
+    _pollTimer ??= Timer.periodic(
+      roomsPollInterval,
+      (_) => load(refresh: true),
+    );
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+    } else {
+      _stopPolling();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopPolling();
+    _newMessageController.close();
+    super.dispose();
+  }
+
+  @override
+  void dispose() {
+    _stopPolling();
+    WidgetsBinding.instance.removeObserver(this);
+    _newMessages.close();
+    super.dispose();
   }
 
   String _fmt(Object e) => e.toString().replaceFirst('Exception: ', '');
@@ -229,10 +322,12 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
   // WS broadcasts message_id, sender_id, type, text_content, media_url, etc.
   // No conversation_id in broadcast (per-room connection, so it's implicit).
   void handleWebSocketMessage(Map<String, dynamic> msg) {
+    if (!mounted) return;
     if (msg['message_id'] == null) return;
 
     try {
       final chatMsg = ChatMessage.fromJson(msg);
+      if (!mounted) return;
       _reconcilePendingEcho(chatMsg);
       _upsertMessage(chatMsg);
     } catch (_) {}
@@ -288,6 +383,7 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState> {
   }
 
   void _upsertMessage(ChatMessage msg, {bool? isSending}) {
+    if (!mounted) return;
     final resolvedMsg = _withResolvedSenderName(msg);
     final withoutDuplicate = state.messages
         .where((message) => message.id != resolvedMsg.id)

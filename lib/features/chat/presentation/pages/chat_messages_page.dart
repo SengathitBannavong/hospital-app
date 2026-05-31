@@ -32,24 +32,58 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
   final ImagePicker _imagePicker = ImagePicker();
+  late ProviderContainer _container;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _container = ProviderScope.containerOf(context, listen: false);
+  }
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _setActiveRoom(widget.roomId);
       ref.read(chatMessagesProvider(widget.roomId).notifier).markRead();
     });
   }
 
   @override
+  void didUpdateWidget(covariant ChatMessagesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.roomId != widget.roomId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _setActiveRoom(widget.roomId);
+      });
+    }
+  }
+
+  @override
   void dispose() {
+    _clearActiveRoomAfterDispose(widget.roomId);
     _inputController.dispose();
     _scrollController
       ..removeListener(_handleScroll)
       ..dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _setActiveRoom(int roomId) {
+    ref.read(activeChatRoomProvider.notifier).state = roomId;
+  }
+
+  void _clearActiveRoomAfterDispose(int roomId) {
+    Future<void>(() {
+      final activeRoom = _container.read(activeChatRoomProvider);
+      if (activeRoom == roomId) {
+        _container.read(activeChatRoomProvider.notifier).state = null;
+      }
+    });
   }
 
   void _handleScroll() {
