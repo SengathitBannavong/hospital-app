@@ -30,3 +30,33 @@ import GlobalFlowDiagram from '@site/static/img/diagrams/global-dataflow.svg';
 - If the **API** fails, the **Repository** catches the `DioException` and throws a Domain-specific Error.
 - The **Notifier** catches this error and sets its state to `AsyncValue.error`.
 - The **UI** listens to the error state and displays a `Toast` or Snackbar.
+
+## Realtime Data Flow (Chat)
+
+Chat does not follow the request/response cycle above; it has two distinct
+realtime paths.
+
+**Inside a conversation** — WebSocket-primary:
+
+```
+WebSocket (per room)     → ChatMessagesNotifier → state   (realtime)
+reconnect → catch-up GET → ChatMessagesNotifier → state   (gap fill)
+REST poll (25s backstop) → ChatMessagesNotifier → state   (safety net)
+```
+
+The per-room socket delivers messages instantly. Because the broadcast never
+replays history, every (re)connect triggers a catch-up fetch to backfill
+messages missed while the socket was down; a slow 25s poll covers silent socket
+failures. The notifier is `autoDispose`, so leaving the conversation tears down
+the socket and backstop poll.
+
+**Rooms list** — there is no socket; it relies on a lifecycle-aware 60s poll:
+
+```
+REST poll (60s) → ChatRoomsNotifier → merge-in-place → state
+```
+
+Fetched rooms are merged in place so existing rows keep their position (a room
+with a new message updates its unread dot/badge without reordering). The poll
+timer pauses only on real backgrounding, never on the transient `inactive`
+lifecycle event.

@@ -176,7 +176,7 @@ Scope: static info pages and SOS feature.
 - [ ] SOS page/button is not visible in the route tree or main shell.
 - [ ] SOS provider/repository/API endpoint is missing.
 - [ ] SOS confirmation/error states are missing.
-- [x] Info page (`/info`) is now a **hub** that links FAQ, Giới thiệu (About), and Liên hệ (Contact) as separate pushed pages with back buttons; the duplicate `/faq` route was removed.
+- [x] Info page (`/info`) is now a **hub** that links FAQ, About, and Contact as separate pushed pages with back buttons; the duplicate `/faq` route was removed.
 - [x] Define/expand static info pages needed for demo (hospital guide, departments, visiting hours, help/contact).
 - [ ] Public utility APIs are available but not wired: `util/faq`, `util/about`, `util/contact`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather`.
 - [ ] Feedback submission is not wired; Swagger exposes `util/feedback`.
@@ -198,7 +198,6 @@ Scope: features available in `swagger.yaml` for patient/public/mobile use, exclu
 - [ ] Route sharing/rating/history UI is missing even though route APIs exist.
 - [ ] Patient traffic awareness and reporting are missing even though public Flow APIs exist for density, heatmap, alerts, ping location, and obstacle reports.
 - [x] User settings page is wired for language/theme/notification preferences via `user/get_settings` and `user/set_settings`.
-
 
 
 ## Chat 8: Polish + Demo Prep
@@ -224,8 +223,6 @@ Scope: loading states, animations, error handling, demo script execution.
 Scope: user settings page covering account, appearance, notifications, and app information.
 
 
-
-
 - [x] Single Settings page (`/settings`) — consolidated from the old per-feature settings; reached via the gear icon in the Home, Profile, and Notification app bars (the standalone `notification_settings_page.dart` was removed).
 - [x] Backed by `user/get_settings` / `user/set_settings` — theme, notification on/off, and language load and save to the backend (partial updates).
 - [x] Theme: `SegmentedButton<ThemeMode>` (Light / System / Dark); applies live via `themeController` and **persists via the backend `theme` field**; restored on launch/login by `AppInitializer`.
@@ -236,7 +233,46 @@ Scope: user settings page covering account, appearance, notifications, and app i
 - [ ] Voice-guidance + travel-mode toggles dropped — backend `get/set_settings` does not expose those columns yet.
 - [ ] "Version" still static `1.0.0` (not from `sys/check_version`).
 
+## Chat 10: Chat Module
 
+Scope: real-time messaging between patients and support staff, including chat room list, message history, send message, and WebSocket real-time updates.
+
+- [x] Chat room list page exists: `lib/features/chat/presentation/pages/chat_rooms_page.dart`.
+- [x] Chat message history page exists: `lib/features/chat/presentation/pages/chat_messages_page.dart`.
+- [x] Route `/chat` is wired into the bottom navigation shell.
+- [x] Route `/chat/:room_id` is a full-screen page (outside the shell) that receives `room_id` and `room_name` via `extra`.
+- [x] `ChatRoom` model exists: `lib/features/chat/data/models/chat_room.dart` (id, name, lastMessage, lastMessageAt, unreadCount, avatarUrl).
+- [x] `ChatMessage` model exists: `lib/features/chat/data/models/chat_message.dart`.
+- [x] `ChatRepository` exists: `lib/features/chat/data/repository/chat_repository.dart`.
+- [x] `ChatRemoteDataSource` exists: `lib/features/chat/data/datasources/chat_remote_data_source.dart`.
+- [x] Repository supports: `getRooms`, `createRoom`, `getMessages` (paginated), `sendMessage`, `getUnreadCount`, `markRead`.
+- [x] Fixed runtime crash `_JsonMap is not a subtype of List`: `getRooms` and `getMessages` now handle both cases where the API returns `data` as a direct List or as a Map containing key `rooms`/`messages`/`data`.
+- [x] `chatRoomsProvider` (StateNotifier) exists: load, refresh, createRoom, markRoomRead, updateRoomLastMessage.
+- [x] `chatMessagesProvider` (StateNotifierProvider.family<int>) exists: load, loadMore (pagination), sendMessage, markRead.
+- [x] `chatUnreadTotalProvider` aggregates the total unread badge count across all rooms.
+- [x] `ChatRoomsState` and `ChatMessagesState` exist under `presentation/providers/`.
+- [x] `ChatWebSocketService` exists: `lib/core/services/chat_websocket_service.dart`.
+- [x] `chatWsProvider` opens the WebSocket connection on entering chat and disposes it on exit.
+- [x] `ChatMessagesNotifier` subscribes/unsubscribes to a room via WebSocket and receives new messages via stream.
+- [x] Incoming WebSocket messages are deduplicated by `message.id` before being added to state.
+- [x] WebSocket reconnect on disconnect is handled: `ChatWebSocketService` auto-reconnects (3s) and exposes a `connectionStates` stream; `ChatMessagesNotifier` runs a catch-up fetch on every reconnect to backfill messages dropped during the gap (the broadcast does not replay history).
+- [x] In-conversation sync is WebSocket-primary: realtime via the socket, catch-up on reconnect, and a slow 25s backstop poll for silent socket failures (replaces the old 4s poll).
+- [x] Rooms list polls `get_rooms` every 60s via a root-anchored provider; the timer is lifecycle-aware (paused only on real backgrounding, not the transient `inactive` event that would otherwise reset the countdown and stall polling).
+- [x] Rooms are merged in place across polls (`_mergePreservingOrder`) so rows keep their position — a room with a new message lights its unread dot/badge without the list reordering/jumping.
+- [x] Conversation view preserves scroll position when messages arrive while the user is scrolled up, showing a tap-to-jump "Tin nhắn mới" pill instead of snapping to newest; auto-scrolls only when at the bottom or on the user's own send.
+- [ ] WebSocket connection status (connected/disconnected) is not surfaced in the UI (the `connectionStates` stream exists but is consumed only for catch-up, not shown).
+- [ ] Rooms list cannot be push-updated: the WS broadcast omits `conversation_id` and there is no global user-level socket, so the 60s poll is the only awareness path until one of those lands.
+- [x] `ChatRoomCard` — displays room name, last message, timestamp, and unread badge count.
+- [x] `ChatMessageBubble` — message bubble distinguishing sent vs. received messages.
+- [x] `ChatAvatar` — chat room avatar.
+- [x] `ChatTimeLabel` — time separator label between message groups.
+- [ ] No UI for creating a new chat room (`createRoom` exists in the repository but has no screen).
+- [ ] Message pagination (`loadMore`) is not wired to the UI (scroll-to-top trigger missing).
+- [ ] `getUnreadCount` API is not wired to the badge icon on the bottom navigation.
+- [ ] No delete/leave room functionality in the UI.
+- [ ] No typing indicator via WebSocket.
+- [ ] Sending images/file attachments is not supported.
+- [x] Tests exist for `ChatRoomsNotifier`, `ChatMessagesNotifier`, the WebSocket service, and JSON parsing (`test/features/chat/`, 27 passing).
 
 ## Backlog
 

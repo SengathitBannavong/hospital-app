@@ -34,3 +34,21 @@ State is strictly grouped by the feature it supports.
 - **Compile-Time Safety**: Providers are tracked statically, preventing "ProviderNotFound" runtime errors.
 - **Dependency Injection**: Riverpod acts as a robust service locator, easily mocked for unit tests.
 - **Async Handling**: Native support for loading/error/data states out of the box via `AsyncValue`.
+
+## Provider Lifecycle: Chat Example
+
+Most feature providers are `autoDispose` and live only while their screen is
+mounted. The chat rooms provider is a deliberate exception worth calling out:
+
+- **`chatRoomsProvider`** is **root-anchored** (non-`autoDispose`) and watched
+  from `MyApp` whenever a user is logged in, so it stays alive app-wide and can
+  poll `get_rooms` every 60s for unread/last-message updates across all rooms.
+- It mixes in `WidgetsBindingObserver` and pauses its poll timer **only on real
+  backgrounding** (`paused`/`detached`/`hidden`), not on the transient
+  `inactive` event. Cancelling on `inactive` would recreate the timer on the
+  following `resume` and reset `Timer.periodic`'s countdown, so the poll would
+  never fire — a subtle bug worth remembering for any lifecycle-driven timer.
+- **`chatMessagesProvider`** is an `autoDispose` family keyed by room id. It is
+  WebSocket-primary (realtime + catch-up on reconnect + a 25s backstop poll) and
+  is torn down when the conversation closes, after which the global rooms poll is
+  the only active chat sync.
