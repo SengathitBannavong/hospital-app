@@ -180,8 +180,7 @@ class UtilRepository {
             return json
                 .whereType<Map>()
                 .map(
-                  (item) =>
-                      UtilPoi.fromJson(Map<String, dynamic>.from(item)),
+                  (item) => UtilPoi.fromJson(Map<String, dynamic>.from(item)),
                 )
                 .toList();
           }

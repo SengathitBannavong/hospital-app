@@ -72,10 +72,9 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
 
     setState(() => _isLoading = true);
     try {
-      await ref.read(assetRepositoryProvider).releaseAsset(
-        assetId: widget.assetId,
-        stationId: stationId,
-      );
+      await ref
+          .read(assetRepositoryProvider)
+          .releaseAsset(assetId: widget.assetId, stationId: stationId);
       if (mounted) {
         setState(() {
           _isBooked = false;
@@ -129,10 +128,7 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
                       ),
                       const SizedBox(height: AppSpacing.md),
                       _Row(label: 'Mã thiết bị', value: info.assetId),
-                      _Row(
-                        label: 'Trạng thái',
-                        value: info.status,
-                      ),
+                      _Row(label: 'Trạng thái', value: info.status),
                       if (info.condition != null)
                         _Row(label: 'Tình trạng', value: info.condition!),
                       if (info.batteryLevel != null)
@@ -176,8 +172,7 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
               ),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(
-                onPressed: () =>
-                    context.push('/asset/track/${widget.assetId}'),
+                onPressed: () => context.push('/asset/track/${widget.assetId}'),
                 icon: const Icon(Icons.location_on_outlined),
                 label: const Text('Theo dõi vị trí'),
               ),
@@ -218,9 +213,7 @@ class _Row extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
-            child: Text(value, style: context.textTheme.bodyMedium),
-          ),
+          Expanded(child: Text(value, style: context.textTheme.bodyMedium)),
         ],
       ),
     );

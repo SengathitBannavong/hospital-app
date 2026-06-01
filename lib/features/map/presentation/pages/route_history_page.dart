@@ -6,6 +6,7 @@ import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/map/data/models/route_history_entry.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
+
 class RouteHistoryPage extends ConsumerWidget {
   const RouteHistoryPage({super.key});
 
@@ -17,7 +18,8 @@ class RouteHistoryPage extends ConsumerWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/map'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/map'),
         ),
         title: const Text('Lịch sử tuyến đường'),
         actions: [
@@ -84,7 +86,9 @@ class RouteHistoryPage extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Xóa lịch sử'),
-        content: const Text('Bạn có chắc muốn xóa toàn bộ lịch sử tuyến đường?'),
+        content: const Text(
+          'Bạn có chắc muốn xóa toàn bộ lịch sử tuyến đường?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -110,7 +114,7 @@ class RouteHistoryPage extends ConsumerWidget {
 }
 
 class _HistoryCard extends ConsumerWidget {
-  const _HistoryCard({super.key, required this.entry});
+  const _HistoryCard({required this.entry});
 
   final RouteHistoryEntry entry;
 
@@ -132,10 +136,7 @@ class _HistoryCard extends ConsumerWidget {
         contentPadding: AppSpacing.cardPadding,
         leading: CircleAvatar(
           backgroundColor: context.colorScheme.primaryContainer,
-          child: Icon(
-            Icons.route_rounded,
-            color: context.colorScheme.primary,
-          ),
+          child: Icon(Icons.route_rounded, color: context.colorScheme.primary),
         ),
         title: Text(
           entry.displayName,
@@ -147,8 +148,10 @@ class _HistoryCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (entry.modeId != null)
-              Text('Chế độ: ${entry.modeId}',
-                  style: context.textTheme.bodySmall),
+              Text(
+                'Chế độ: ${entry.modeId}',
+                style: context.textTheme.bodySmall,
+              ),
             if (dateStr != null)
               Text(dateStr, style: context.textTheme.bodySmall),
           ],

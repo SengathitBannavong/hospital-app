@@ -72,10 +72,8 @@ class FlowHeatmapPage extends ConsumerWidget {
                   itemCount: sorted.length,
                   separatorBuilder: (_, _) =>
                       const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (context, index) => _HeatCell(
-                    cell: sorted[index],
-                    maxDensity: maxDensity,
-                  ),
+                  itemBuilder: (context, index) =>
+                      _HeatCell(cell: sorted[index], maxDensity: maxDensity),
                 ),
               ),
             ],
@@ -106,9 +104,9 @@ class _LegendBar extends StatelessWidget {
             child: Container(
               height: 8,
               margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 borderRadius: AppRadius.borderFull,
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [Colors.green, Colors.orange, Colors.red],
                 ),
               ),
@@ -138,7 +136,9 @@ class _HeatCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ratio = maxDensity > 0 ? (cell.density / maxDensity).clamp(0.0, 1.0) : 0.0;
+    final ratio = maxDensity > 0
+        ? (cell.density / maxDensity).clamp(0.0, 1.0)
+        : 0.0;
     final color = _heatColor(ratio);
     final pct = (ratio * 100).round();
 

@@ -14,8 +14,8 @@ final assetStationsProvider = FutureProvider<List<AssetStation>>((ref) {
 
 final wheelchairSearchProvider =
     FutureProvider.family<List<AssetDevice>, String>((ref, nodeId) {
-  return ref.watch(assetRepositoryProvider).findWheelchairs(nodeId: nodeId);
-});
+      return ref.watch(assetRepositoryProvider).findWheelchairs(nodeId: nodeId);
+    });
 
 final assetHealthProvider = FutureProvider.family<AssetTrack, String>((
   ref,

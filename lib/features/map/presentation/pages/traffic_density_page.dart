@@ -26,8 +26,9 @@ class TrafficDensityPage extends ConsumerWidget {
               icon: const Icon(Icons.refresh_rounded),
               tooltip: 'Làm mới',
               onPressed: () {
-                ref.invalidate(flowSnapshotProvider(selectedMapId));
-                ref.invalidate(bottlenecksProvider(selectedMapId));
+                ref
+                  ..invalidate(flowSnapshotProvider(selectedMapId))
+                  ..invalidate(bottlenecksProvider(selectedMapId));
               },
             ),
         ],
@@ -113,10 +114,7 @@ class _DensityContent extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        Text(
-          'Điểm tắc nghẽn',
-          style: context.textTheme.titleMedium,
-        ),
+        Text('Điểm tắc nghẽn', style: context.textTheme.titleMedium),
         const SizedBox(height: AppSpacing.md),
         bottlenecks.when(
           loading: () => const Center(
@@ -160,11 +158,12 @@ class _DensityContent extends ConsumerWidget {
               ..sort((a, b) => b.density.compareTo(a.density));
             return Column(
               children: sorted
-                  .map((cell) => Padding(
-                        padding:
-                            const EdgeInsets.only(bottom: AppSpacing.md),
-                        child: _BottleneckCard(cell: cell),
-                      ))
+                  .map(
+                    (cell) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: _BottleneckCard(cell: cell),
+                    ),
+                  )
                   .toList(),
             );
           },
@@ -239,8 +238,10 @@ class _BottleneckCard extends StatelessWidget {
                 ),
                 Text(
                   '$pct%',
-                  style: context.textTheme.labelMedium
-                      ?.copyWith(color: color, fontWeight: FontWeight.bold),
+                  style: context.textTheme.labelMedium?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),

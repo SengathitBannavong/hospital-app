@@ -48,7 +48,9 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
 
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(mapRepositoryProvider).reportObstacle(
+      await ref
+          .read(mapRepositoryProvider)
+          .reportObstacle(
             gridLocation: gridLocation,
             type: _obstacleType,
             note: _noteController.text.trim().isEmpty
@@ -98,10 +100,7 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Loại vật cản',
-                        style: context.textTheme.titleSmall,
-                      ),
+                      Text('Loại vật cản', style: context.textTheme.titleSmall),
                       const SizedBox(height: AppSpacing.sm),
                       Wrap(
                         spacing: AppSpacing.sm,
@@ -114,7 +113,7 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
                                 onSelected: _isSubmitting
                                     ? null
                                     : (_) =>
-                                        setState(() => _obstacleType = t.$1),
+                                          setState(() => _obstacleType = t.$1),
                               ),
                             )
                             .toList(),
@@ -201,10 +200,7 @@ class _SuccessState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            FilledButton(
-              onPressed: onBack,
-              child: const Text('Quay lại'),
-            ),
+            FilledButton(onPressed: onBack, child: const Text('Quay lại')),
           ],
         ),
       ),

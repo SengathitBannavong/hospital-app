@@ -139,8 +139,7 @@ class _Results extends ConsumerWidget {
           ),
           itemCount: devices.length,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-          itemBuilder: (context, index) =>
-              _DeviceCard(device: devices[index]),
+          itemBuilder: (context, index) => _DeviceCard(device: devices[index]),
         );
       },
     );
@@ -161,11 +160,8 @@ class _DeviceCard extends StatelessWidget {
       child: ListTile(
         contentPadding: AppSpacing.cardPadding,
         leading: CircleAvatar(
-          backgroundColor: statusColor.withOpacity(0.12),
-          child: Icon(
-            Icons.accessible_rounded,
-            color: statusColor,
-          ),
+          backgroundColor: statusColor.withValues(alpha: 0.12),
+          child: Icon(Icons.accessible_rounded, color: statusColor),
         ),
         title: Text(device.assetId),
         subtitle: Column(
@@ -179,8 +175,7 @@ class _DeviceCard extends StatelessWidget {
         ),
         trailing: device.isAvailable
             ? FilledButton.tonal(
-                onPressed: () =>
-                    context.push('/asset/book/${device.assetId}'),
+                onPressed: () => context.push('/asset/book/${device.assetId}'),
                 child: const Text('Mượn'),
               )
             : null,

@@ -44,11 +44,13 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
 
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(staffRepositoryProvider).requestStaff(
-        nodeId: nodeId,
-        assetId: _assetController.text.trim(),
-        note: '[$_assistanceType] ${_noteController.text.trim()}',
-      );
+      await ref
+          .read(staffRepositoryProvider)
+          .requestStaff(
+            nodeId: nodeId,
+            assetId: _assetController.text.trim(),
+            note: '[$_assistanceType] ${_noteController.text.trim()}',
+          );
       if (mounted) {
         setState(() {
           _isSubmitting = false;
@@ -75,16 +77,18 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
       ),
       body: SingleChildScrollView(
         padding: AppSpacing.pageWithTop,
-        child: _submitted ? _SuccessView() : _FormView(
-          nodeController: _nodeController,
-          assetController: _assetController,
-          noteController: _noteController,
-          assistanceType: _assistanceType,
-          onTypeChanged: (v) => setState(() => _assistanceType = v),
-          onSubmit: _isSubmitting ? null : _submit,
-          isSubmitting: _isSubmitting,
-          types: _types,
-        ),
+        child: _submitted
+            ? _SuccessView()
+            : _FormView(
+                nodeController: _nodeController,
+                assetController: _assetController,
+                noteController: _noteController,
+                assistanceType: _assistanceType,
+                onTypeChanged: (v) => setState(() => _assistanceType = v),
+                onSubmit: _isSubmitting ? null : _submit,
+                isSubmitting: _isSubmitting,
+                types: _types,
+              ),
       ),
     );
   }
@@ -196,7 +200,7 @@ class _SuccessView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.check_circle_outline_rounded,
               size: 64,
               color: Colors.green,

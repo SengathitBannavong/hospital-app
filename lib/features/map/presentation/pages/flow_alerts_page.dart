@@ -39,7 +39,7 @@ class FlowAlertsPage extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.check_circle_outline_rounded,
                     size: 56,
                     color: Colors.green,
@@ -59,8 +59,7 @@ class FlowAlertsPage extends ConsumerWidget {
             padding: AppSpacing.pageWithTop,
             itemCount: list.length,
             separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-            itemBuilder: (context, index) =>
-                _AlertCard(alert: list[index]),
+            itemBuilder: (context, index) => _AlertCard(alert: list[index]),
           );
         },
       ),
@@ -97,13 +96,10 @@ class _AlertCard extends StatelessWidget {
       child: ListTile(
         contentPadding: AppSpacing.cardPadding,
         leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.12),
+          backgroundColor: color.withValues(alpha: 0.12),
           child: Icon(_levelIcon(alert.level), color: color),
         ),
-        title: Text(
-          alert.message,
-          style: context.textTheme.bodyMedium,
-        ),
+        title: Text(alert.message, style: context.textTheme.bodyMedium),
         subtitle: alert.location != null
             ? Text(
                 'Vị trí: ${alert.location}',
@@ -130,7 +126,7 @@ class _LevelChip extends StatelessWidget {
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: AppRadius.borderFull,
       ),
       child: Text(

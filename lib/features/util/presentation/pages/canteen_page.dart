@@ -16,7 +16,8 @@ class CanteenPage extends ConsumerWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/info'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/info'),
         ),
         title: const Text('Căng-tin'),
         actions: [

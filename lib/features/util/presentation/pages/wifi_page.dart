@@ -18,7 +18,8 @@ class WifiPage extends ConsumerWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/info'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/info'),
         ),
         title: const Text('WiFi'),
         actions: [
@@ -68,17 +69,17 @@ class _WifiCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: context.colorScheme.primaryContainer,
-                  child: Icon(Icons.wifi_rounded, color: context.colorScheme.primary),
+                  child: Icon(
+                    Icons.wifi_rounded,
+                    color: context.colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        poi.poiName,
-                        style: context.textTheme.titleMedium,
-                      ),
+                      Text(poi.poiName, style: context.textTheme.titleMedium),
                       if (poi.poiType.isNotEmpty)
                         Text(
                           poi.poiType,

@@ -89,10 +89,7 @@ class _StationCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Row(
               children: [
-                _InfoChip(
-                  label: '$available xe trống',
-                  color: color,
-                ),
+                _InfoChip(label: '$available xe trống', color: color),
                 const SizedBox(width: AppSpacing.sm),
                 _InfoChip(
                   label: 'Sức chứa: $capacity',
@@ -131,7 +128,7 @@ class _InfoChip extends StatelessWidget {
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: AppRadius.borderFull,
       ),
       child: Text(

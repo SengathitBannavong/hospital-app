@@ -16,7 +16,8 @@ class WeatherPage extends ConsumerWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/info'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/info'),
         ),
         title: const Text('Thời tiết'),
         actions: [
@@ -98,10 +99,7 @@ class _WeatherDetail extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Chi tiết',
-                    style: context.textTheme.titleMedium,
-                  ),
+                  Text('Chi tiết', style: context.textTheme.titleMedium),
                   const SizedBox(height: AppSpacing.md),
                   _DetailRow(
                     icon: Icons.water_drop_outlined,
@@ -142,9 +140,7 @@ class _DetailRow extends StatelessWidget {
         children: [
           Icon(icon, size: 20, color: context.colorScheme.primary),
           const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(label, style: context.textTheme.bodyMedium),
-          ),
+          Expanded(child: Text(label, style: context.textTheme.bodyMedium)),
           Text(
             value,
             style: context.textTheme.bodyMedium?.copyWith(

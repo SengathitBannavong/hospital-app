@@ -118,9 +118,7 @@ class _InfoRow extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
-            child: Text(value, style: context.textTheme.bodyMedium),
-          ),
+          Expanded(child: Text(value, style: context.textTheme.bodyMedium)),
         ],
       ),
     );

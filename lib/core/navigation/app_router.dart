@@ -288,10 +288,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/parking',
         builder: (context, state) => const ParkingPage(),
       ),
-      GoRoute(
-        path: '/wifi',
-        builder: (context, state) => const WifiPage(),
-      ),
+      GoRoute(path: '/wifi', builder: (context, state) => const WifiPage()),
       GoRoute(
         path: '/weather',
         builder: (context, state) => const WeatherPage(),

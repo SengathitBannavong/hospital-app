@@ -16,7 +16,8 @@ class PharmacyPage extends ConsumerWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/info'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/info'),
         ),
         title: const Text('Nhà thuốc'),
         actions: [
@@ -41,10 +42,8 @@ class PharmacyPage extends ConsumerWidget {
             padding: AppSpacing.pageWithTop,
             itemCount: list.length,
             separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-            itemBuilder: (context, index) => _PoiCard(
-              poi: list[index],
-              icon: Icons.local_pharmacy_rounded,
-            ),
+            itemBuilder: (context, index) =>
+                _PoiCard(poi: list[index], icon: Icons.local_pharmacy_rounded),
           );
         },
       ),
@@ -69,8 +68,7 @@ class _PoiCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor:
-                      context.colorScheme.primaryContainer,
+                  backgroundColor: context.colorScheme.primaryContainer,
                   child: Icon(icon, color: context.colorScheme.primary),
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -83,10 +81,7 @@ class _PoiCard extends StatelessWidget {
                 if (poi.isAccessible == true)
                   const Tooltip(
                     message: 'Có thể tiếp cận',
-                    child: Icon(
-                      Icons.accessible_rounded,
-                      size: 18,
-                    ),
+                    child: Icon(Icons.accessible_rounded, size: 18),
                   ),
               ],
             ),
@@ -96,10 +91,7 @@ class _PoiCard extends StatelessWidget {
                 children: [
                   const Icon(Icons.access_time_rounded, size: 16),
                   const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    poi.openHours!,
-                    style: context.textTheme.bodySmall,
-                  ),
+                  Text(poi.openHours!, style: context.textTheme.bodySmall),
                 ],
               ),
             ],

@@ -31,13 +31,11 @@ class UtilPoi {
       poiType: json['poi_type']?.toString() ?? json['type']?.toString() ?? '',
       details: json['details']?.toString(),
       openHours: json['open_hours']?.toString(),
-      gridLocation:
-          json['grid_location'] == null
-              ? null
-              : _parseInt(json['grid_location']),
+      gridLocation: json['grid_location'] == null
+          ? null
+          : _parseInt(json['grid_location']),
       isAccessible: json['is_accessible'] as bool?,
-      capacity:
-          json['capacity'] == null ? null : _parseInt(json['capacity']),
+      capacity: json['capacity'] == null ? null : _parseInt(json['capacity']),
     );
   }
 

@@ -15,8 +15,7 @@ class BrokenAssetReportPage extends ConsumerStatefulWidget {
       _BrokenAssetReportPageState();
 }
 
-class _BrokenAssetReportPageState
-    extends ConsumerState<BrokenAssetReportPage> {
+class _BrokenAssetReportPageState extends ConsumerState<BrokenAssetReportPage> {
   final _assetIdController = TextEditingController();
   final _reasonController = TextEditingController();
   bool _isSubmitting = false;
@@ -49,10 +48,9 @@ class _BrokenAssetReportPageState
 
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(assetRepositoryProvider).reportBrokenAsset(
-        assetId: assetId,
-        reason: reason,
-      );
+      await ref
+          .read(assetRepositoryProvider)
+          .reportBrokenAsset(assetId: assetId, reason: reason);
       if (mounted) {
         setState(() {
           _isSubmitting = false;
@@ -150,7 +148,7 @@ class _SuccessState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          const Icon(
             Icons.check_circle_outline_rounded,
             size: 64,
             color: Colors.green,

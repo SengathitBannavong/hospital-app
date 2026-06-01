@@ -22,23 +22,17 @@ class AssetDevice {
   factory AssetDevice.fromJson(Map<String, dynamic> json) {
     return AssetDevice(
       assetId:
-          json['asset_id']?.toString() ??
-          json['device_code']?.toString() ??
-          '',
+          json['asset_id']?.toString() ?? json['device_code']?.toString() ?? '',
       status: json['status']?.toString() ?? 'unknown',
-      deviceId:
-          json['device_id'] == null ? null : _parseInt(json['device_id']),
-      batteryLevel:
-          json['battery_level'] == null
-              ? null
-              : _parseInt(json['battery_level']),
-      deviceType:
-          json['device_type']?.toString() ??
-          json['type']?.toString(),
-      stationId:
-          json['station_id'] == null ? null : _parseInt(json['station_id']),
-      distance:
-          json['distance'] == null ? null : _parseInt(json['distance']),
+      deviceId: json['device_id'] == null ? null : _parseInt(json['device_id']),
+      batteryLevel: json['battery_level'] == null
+          ? null
+          : _parseInt(json['battery_level']),
+      deviceType: json['device_type']?.toString() ?? json['type']?.toString(),
+      stationId: json['station_id'] == null
+          ? null
+          : _parseInt(json['station_id']),
+      distance: json['distance'] == null ? null : _parseInt(json['distance']),
     );
   }
 

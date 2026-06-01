@@ -34,7 +34,9 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
 
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(mapRepositoryProvider).rateRoute(
+      await ref
+          .read(mapRepositoryProvider)
+          .rateRoute(
             routeId: widget.routeId,
             rating: _rating,
             comment: _commentController.text.trim().isEmpty

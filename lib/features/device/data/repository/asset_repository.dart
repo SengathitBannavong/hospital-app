@@ -121,11 +121,7 @@ class AssetRepository {
     try {
       final response = await _dio.post(
         ApiEndpoints.assetReportBroken,
-        data: {
-          'asset_id': assetId,
-          'reason': reason,
-          if (imageUrl != null) 'image_url': imageUrl,
-        },
+        data: {'asset_id': assetId, 'reason': reason, 'image_url': ?imageUrl},
       );
       final api = AuthApiResponse<dynamic>.fromJson(
         response.data,

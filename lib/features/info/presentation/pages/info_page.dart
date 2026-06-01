@@ -17,7 +17,7 @@ class InfoPage extends StatelessWidget {
       ),
       body: ListView(
         padding: AppSpacing.pageWithTop,
-        children: [
+        children: const [
           // ── Help & Info ──────────────────────────────────────
           _SectionHeader(title: 'Trợ giúp & Giới thiệu'),
           _InfoTile(
@@ -36,7 +36,7 @@ class InfoPage extends StatelessWidget {
             route: '/contact',
           ),
 
-          const SizedBox(height: AppSpacing.xl),
+          SizedBox(height: AppSpacing.xl),
 
           // ── Hospital Utilities ───────────────────────────────
           _SectionHeader(title: 'Tiện ích bệnh viện'),
@@ -55,18 +55,14 @@ class InfoPage extends StatelessWidget {
             title: 'Bãi đỗ xe',
             route: '/parking',
           ),
-          _InfoTile(
-            icon: Icons.wifi_rounded,
-            title: 'WiFi',
-            route: '/wifi',
-          ),
+          _InfoTile(icon: Icons.wifi_rounded, title: 'WiFi', route: '/wifi'),
           _InfoTile(
             icon: Icons.wb_sunny_rounded,
             title: 'Thời tiết',
             route: '/weather',
           ),
 
-          const SizedBox(height: AppSpacing.xl),
+          SizedBox(height: AppSpacing.xl),
 
           // ── Asset / Device Services ──────────────────────────
           _SectionHeader(title: 'Dịch vụ thiết bị'),
@@ -81,7 +77,7 @@ class InfoPage extends StatelessWidget {
             route: '/asset/search',
           ),
 
-          const SizedBox(height: AppSpacing.xl),
+          SizedBox(height: AppSpacing.xl),
 
           // ── Staff Assistance ─────────────────────────────────
           _SectionHeader(title: 'Hỗ trợ nhân viên'),
@@ -91,7 +87,7 @@ class InfoPage extends StatelessWidget {
             route: '/staff',
           ),
 
-          const SizedBox(height: AppSpacing.xl),
+          SizedBox(height: AppSpacing.xl),
 
           // ── Traffic & Flow ───────────────────────────────────
           _SectionHeader(title: 'Giao thông & Lưu thông'),
@@ -111,7 +107,7 @@ class InfoPage extends StatelessWidget {
             route: '/flow/report-obstacle',
           ),
 
-          const SizedBox(height: AppSpacing.xl),
+          SizedBox(height: AppSpacing.xl),
 
           // ── Route Features ───────────────────────────────────
           _SectionHeader(title: 'Tuyến đường'),
@@ -121,7 +117,7 @@ class InfoPage extends StatelessWidget {
             route: '/route/history',
           ),
 
-          const SizedBox(height: AppSpacing.xl),
+          SizedBox(height: AppSpacing.xl),
 
           // ── Heatmap ──────────────────────────────────────────
           _SectionHeader(title: 'Bản đồ nhiệt'),
@@ -131,7 +127,7 @@ class InfoPage extends StatelessWidget {
             route: '/flow/heatmap',
           ),
 
-          const SizedBox(height: AppSpacing.xxl),
+          SizedBox(height: AppSpacing.xxl),
         ],
       ),
     );
