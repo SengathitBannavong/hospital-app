@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
+import 'package:hospital_app/features/map/data/models/flow_alert.dart';
 import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
 import 'package:hospital_app/features/map/data/models/flow_forecast_bucket.dart';
@@ -187,6 +188,14 @@ final mapObstaclesProvider = FutureProvider.family<List<MapObstacle>, int>((
 
 final routeHistoryProvider = FutureProvider.autoDispose<RouteHistory>((ref) {
   return ref.watch(mapRepositoryProvider).getRouteHistory();
+});
+
+final flowAlertsProvider = FutureProvider.autoDispose<List<FlowAlert>>((ref) {
+  return ref.watch(mapRepositoryProvider).getFlowAlerts();
+});
+
+final flowHeatmapProvider = FutureProvider.autoDispose<List<FlowCell>>((ref) {
+  return ref.watch(mapRepositoryProvider).getFlowHeatmap();
 });
 
 // Fetch map metadata by mapId. Rows and cols must come from the backend,

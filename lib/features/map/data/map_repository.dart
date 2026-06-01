@@ -267,6 +267,39 @@ class MapRepository {
     ))!;
   }
 
+  Future<void> rateRoute({
+    required String routeId,
+    required int rating,
+    String? comment,
+  }) async {
+    await _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routeRate,
+      data: {
+        'route_id': routeId,
+        'rating': rating,
+        if (comment != null && comment.isNotEmpty) 'comment': comment,
+      },
+      fromJson: (json) => json,
+    );
+  }
+
+  Future<String?> shareRoute({required String routeId}) async {
+    return _request<String?>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routeShare,
+      data: {'route_id': routeId},
+      fromJson: (json) {
+        if (json is Map) {
+          return json['share_url']?.toString() ??
+              json['url']?.toString() ??
+              json['link']?.toString();
+        }
+        return null;
+      },
+    );
+  }
+
   Future<List<FlowCell>> getFlowDensity({int? gridLocation}) async {
     final cells = await _request<List<FlowCell>>(
       method: _MapHttpMethod.get,

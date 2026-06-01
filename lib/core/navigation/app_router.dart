@@ -28,7 +28,24 @@ import 'package:hospital_app/features/notification/presentation/pages/notificati
 import 'package:hospital_app/features/profile/presentation/page/profile_page.dart';
 import 'package:hospital_app/features/settings/presentation/pages/settings_page.dart';
 import 'package:hospital_app/features/sos/presentation/pages/sos_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/asset_booking_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/asset_stations_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/asset_tracking_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/broken_asset_report_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/wheelchair_search_page.dart';
+import 'package:hospital_app/features/map/presentation/pages/flow_alerts_page.dart';
+import 'package:hospital_app/features/map/presentation/pages/flow_heatmap_page.dart';
+import 'package:hospital_app/features/map/presentation/pages/obstacle_report_page.dart';
+import 'package:hospital_app/features/map/presentation/pages/route_history_page.dart';
+import 'package:hospital_app/features/map/presentation/pages/route_rating_page.dart';
+import 'package:hospital_app/features/map/presentation/pages/traffic_density_page.dart';
+import 'package:hospital_app/features/staff/presentation/pages/request_staff_page.dart';
+import 'package:hospital_app/features/util/presentation/pages/canteen_page.dart';
 import 'package:hospital_app/features/util/presentation/pages/feedback_page.dart';
+import 'package:hospital_app/features/util/presentation/pages/parking_page.dart';
+import 'package:hospital_app/features/util/presentation/pages/pharmacy_page.dart';
+import 'package:hospital_app/features/util/presentation/pages/weather_page.dart';
+import 'package:hospital_app/features/util/presentation/pages/wifi_page.dart';
 
 class RouterNotifier extends ChangeNotifier {
   final Ref _ref;
@@ -220,6 +237,96 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       // Standalone help page — used by Settings to avoid shell-push conflict
       GoRoute(path: '/help', builder: (context, state) => const InfoPage()),
+
+      // ── Asset / Device ──────────────────────────────────────
+      GoRoute(
+        path: '/asset/stations',
+        builder: (context, state) => const AssetStationsPage(),
+      ),
+      GoRoute(
+        path: '/asset/search',
+        builder: (context, state) => const WheelchairSearchPage(),
+      ),
+      GoRoute(
+        path: '/asset/book/:asset_id',
+        builder: (context, state) {
+          final assetId = state.pathParameters['asset_id'] ?? '';
+          return AssetBookingPage(assetId: assetId);
+        },
+      ),
+      GoRoute(
+        path: '/asset/track/:asset_id',
+        builder: (context, state) {
+          final assetId = state.pathParameters['asset_id'] ?? '';
+          return AssetTrackingPage(assetId: assetId);
+        },
+      ),
+      GoRoute(
+        path: '/asset/report/:asset_id',
+        builder: (context, state) {
+          final assetId = state.pathParameters['asset_id'] ?? '';
+          return BrokenAssetReportPage(assetId: assetId);
+        },
+      ),
+
+      // ── Staff ────────────────────────────────────────────────
+      GoRoute(
+        path: '/staff',
+        builder: (context, state) => const RequestStaffPage(),
+      ),
+
+      // ── Hospital Utilities ───────────────────────────────────
+      GoRoute(
+        path: '/pharmacy',
+        builder: (context, state) => const PharmacyPage(),
+      ),
+      GoRoute(
+        path: '/canteen',
+        builder: (context, state) => const CanteenPage(),
+      ),
+      GoRoute(
+        path: '/parking',
+        builder: (context, state) => const ParkingPage(),
+      ),
+      GoRoute(
+        path: '/wifi',
+        builder: (context, state) => const WifiPage(),
+      ),
+      GoRoute(
+        path: '/weather',
+        builder: (context, state) => const WeatherPage(),
+      ),
+
+      // ── Route Features ───────────────────────────────────────
+      GoRoute(
+        path: '/route/history',
+        builder: (context, state) => const RouteHistoryPage(),
+      ),
+      GoRoute(
+        path: '/route/rate/:route_id',
+        builder: (context, state) {
+          final routeId = state.pathParameters['route_id'] ?? '';
+          return RouteRatingPage(routeId: routeId);
+        },
+      ),
+
+      // ── Traffic & Flow ───────────────────────────────────────
+      GoRoute(
+        path: '/flow/alerts',
+        builder: (context, state) => const FlowAlertsPage(),
+      ),
+      GoRoute(
+        path: '/flow/density',
+        builder: (context, state) => const TrafficDensityPage(),
+      ),
+      GoRoute(
+        path: '/flow/heatmap',
+        builder: (context, state) => const FlowHeatmapPage(),
+      ),
+      GoRoute(
+        path: '/flow/report-obstacle',
+        builder: (context, state) => const ObstacleReportPage(),
+      ),
     ],
   );
 });

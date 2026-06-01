@@ -100,4 +100,24 @@ class ApiEndpoints {
   static const String utilFeedback = 'util/feedback';
   static const String utilFeedbackSummary = 'util/feedback_summary';
   static const String utilUpload = 'util/upload';
+  static const String utilPharmacy = 'util/pharmacy';
+  static const String utilCanteen = 'util/canteen';
+  static const String utilParking = 'util/parking';
+  static const String utilWifi = 'util/wifi';
+
+  // Asset / Device
+  static const String assetStations = 'asset/asset_stations';
+  static const String assetFindWheelchairs = 'asset/find_wheelchairs';
+  static const String assetHealth = 'asset/asset_health';
+  static const String assetTrack = 'asset/track_asset';
+  static const String assetBook = 'asset/book_asset';
+  static const String assetRelease = 'asset/release_asset';
+  static const String assetReportBroken = 'asset/report_broken_asset';
+
+  // Staff
+  static const String staffRequestStaff = 'staff/request_staff';
+
+  // Route extras
+  static const String routeRate = 'route/rate';
+  static const String routeShare = 'route/share';
 }
