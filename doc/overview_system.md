@@ -28,6 +28,23 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | auth/change_password | ignored (void) | `null` | MATCH |
 | user/delete_account | ignored (void) | `{id}` | MATCH |
 
+#### Session / auth enforcement
+Backend allows **one active JWT per user**. The latest login wins; an older
+device discovers this on its next protected API call, not via push. Code
+`3009 accountLoggedInElsewhere` means "Account logged in on another device".
+
+Rejection shapes:
+- Most REST calls: HTTP 200 with `{code:3009,message:"Account logged in on
+  another device",data:null}`.
+- Chat WebSocket token validation: HTTP 401 with `{code:3009,error:"..."}`.
+
+FE force-logs-out for session rejection codes `1004 invalidToken`, `3001
+tokenInvalid`, `3002 tokenExpired`, `3003 userNotAuthenticated`, and `3009
+accountLoggedInElsewhere`, plus HTTP 401 when a token is currently held. REST
+logout is global/idempotent and redirects to `/login`; `3009` shows the specific
+VN "logged in elsewhere" message, while other session rejects show the generic
+session-ended message.
+
 ### System / Utility
 | Endpoint | Frontend expects | Backend returns | Verdict |
 | --- | --- | --- | --- |
@@ -295,6 +312,9 @@ not the holder.
 7. **Chat response shapes** 🟡 — current parser accepts list and nested
    `{rooms/messages/data}` shapes. Confirm exact backend payloads before
    tightening models.
+8. **Chat WebSocket session rejection** 🟡 — WS token validation can return
+   HTTP 401 / code `3009`, but that path does not yet go through the FE
+   force-logout handler.
 
 ### Resolved / confirmed good
 - `auth/login` is a **MATCH** — the app parses `data` as a flat `AuthUser`
@@ -306,3 +326,5 @@ not the holder.
   parking,wifi}` are dead on the client. Weather stays on `util/weather` (Home).
 - Response wrapping `{code,message,data}` is handled everywhere by the app's
   wrappers.
+- REST token rejection force-logout is implemented for `1004`, `3001`, `3002`,
+  `3003`, `3009`, and held-token HTTP 401 responses.
