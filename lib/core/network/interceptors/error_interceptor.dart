@@ -42,9 +42,7 @@ class ErrorInterceptor extends Interceptor {
       // The token was rejected — most often because the account logged in from
       // another device (server invalidates the old session), or the token
       // expired. Force a logout so the user is bounced back to login.
-      unawaited(
-        _handleSessionRejected(bodyCode, _extractServerMessage(err)),
-      );
+      unawaited(_handleSessionRejected(bodyCode, _extractServerMessage(err)));
     } else if (statusCode == ApiResponseCodes.httpForbidden) {
       AppToast.showWarning("Forbidden - 403: Handle permission issues");
     } else if (statusCode == ApiResponseCodes.httpInternalServerError) {

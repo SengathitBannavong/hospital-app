@@ -1,30 +1,26 @@
 # Hospital App Project Checklist
 
-Last checked: 2026-05-25 (Notification, Home, Navigation, Firebase)
+Last checked: 2026-06-02 (branch `api-backed-features-missing`)
 
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
 
-## Current State (2026-05-25)
+## Current State (2026-06-02)
 
-Overall user-facing progress ≈ **68%** (per-module table in [`doc/overview_process.md`](doc/overview_process.md)).
+Overall user-facing progress is higher than the old 68% snapshot, but has not
+been recalculated in [`doc/overview_process.md`](doc/overview_process.md).
 
-**In `main`** (PR #29): notifications with pagination/load-more, unread bell,
+**Current branch:** notifications with pagination/load-more, unread bell,
 notification settings, device-token registration, and **optional** Firebase push
-(off by default); an Info hub (FAQ / About / Contact); a cleaned home dashboard;
-and a **4-tab bottom nav** (Home · Medical · Map · Profile) with Notification /
-Info / FAQ / About / Contact as pushed routes.
-
-**Open PR `add-setting-page → main`:** a unified `/settings` page (theme,
-notification, language — persisted via `user/get_settings` / `user/set_settings`;
-theme restored on launch) reached from the Home, Profile, and Notification gears,
-plus backend API-contract fixes (notification list parsing, single-id delete).
+(off by default); unified Settings; chat; SOS; asset/wheelchair flows; staff
+request; feedback; dynamic FAQ/About/Contact; map POI-backed utility metadata;
+and REST force-logout on token rejection.
 
 **Known limitations:** the backend stores device tokens but does **not** send
 pushes yet and has no real notification triggers, so notifications are seed-only
-in practice; `auth/logout` is local-only; `auth/resend_otp` has no backend route.
-Not yet in the app: SOS, chat, asset/wheelchair, staff request, dynamic utility
-content.
+in practice; `auth/logout` is local-only; `auth/resend_otp` has no backend route;
+chat WebSocket `401`/`3009` still needs force-logout wiring; active route
+guidance, voice guidance, and Medical QR check-in/out remain backlog.
 
 ## Overall Status
 
@@ -32,13 +28,13 @@ content.
 - [x] Riverpod is used for auth, map, medical, and profile state.
 - [x] GoRouter app shell uses a 4-tab bottom navigation (Home, Medical, Map, Profile). Notification, Info, FAQ, About, and Contact are top-level pushed routes with back buttons (no longer bottom-nav tabs).
 - [x] API client/endpoints exist for auth, map, route, medical, and profile.
-- [x] Home page aggregates real task count and live notifications (unread bell in the app bar + summary card); demo placeholder cards and the FAB counter were removed. Utilities, route status, and asset shortcuts are still not aggregated.
+- [x] Home page aggregates real task count, live notifications, weather, and SOS/map/info shortcuts; demo placeholder cards and the FAB counter were removed. Active route status and asset summaries are still not aggregated.
 - [x] Notification endpoints/repositories/pages are wired into the app shell, with pagination/load-more, mark-read, delete, settings, and an unread badge.
 - [x] Firebase Cloud Messaging push is implemented client-side but **optional** (off by default; gated behind the `ENABLE_FIREBASE` dart-define). API keys are sourced from dart-defines, not committed. See `FIREBASE.md`.
-- [ ] SOS endpoints/repositories/pages are not wired into the app shell yet.
+- [x] SOS endpoints/repositories/pages are wired, with a `/sos` route and Home shortcut.
 - [x] Static info pages are visible in the current route tree (`/info`).
 - [x] Single Settings page at `/settings`, reached via the gear icon in the Home, Profile, and Notification app bars: theme (persisted to backend), notification + language preferences (via `user/get_settings` / `user/set_settings`), change password, logout, and app info.
-- [ ] Several patient/public Swagger-backed features are not wired into the mobile app yet: voice support, active route guidance, asset booking, staff request, chat/FAQ, utilities, and feedback.
+- [ ] Remaining patient/public gaps: voice guidance, backend-synced active route guidance, Medical QR check-in/out, and chat product polish.
 - [ ] Demo flow and final QA checklist still need execution.
 
 ## Chat 1: Auth Module
@@ -79,10 +75,10 @@ Scope: mobile dashboard, patient summary cards, quick actions, and public/patien
 - [x] Home includes pull-to-refresh, manual refresh, a Settings gear, a notification bell with unread badge, logout, and animated summary cards.
 - [x] Removed the local appointment counter, the static "doctors available" demo card, and the FAB appointment counter.
 - [x] Home shows live notifications: an unread bell in the app bar (badge from `unreadCountProvider`) and a summary card, both wired to `notification/get_list` and opening `/notification` via push.
-- [x] Home quick actions de-duplicated (Map/Medical/Profile removed since they are tabs); a single "Thông tin" shortcut opens the Info hub. Shortcuts are still missing for SOS, utilities, wheelchair booking, staff request, and chat/support.
-- [ ] Home does not show live utility data even though Swagger exposes `util/weather`, `util/parking`, `util/pharmacy`, `util/canteen`, and `util/wifi`.
+- [x] Home quick actions de-duplicated (Map/Medical/Profile removed since they are tabs); Home exposes Info and SOS shortcuts. Asset/chat/staff entry points exist elsewhere but are not summarized on Home.
+- [x] Home shows live weather from `util/weather`; pharmacy/canteen/parking are map POI metadata, not standalone Home utility cards.
 - [ ] Home does not show active route status even though Swagger exposes `route/get_active` and route lifecycle APIs.
-- [ ] Home does not surface device/asset state even though Swagger exposes wheelchair/device APIs.
+- [ ] Home does not surface device/asset state summaries even though wheelchair/device flows are wired elsewhere.
 - [x] Removed the FAB appointment counter; remaining placeholder content cleaned for demo.
 - [ ] Add tests for Home task-count loading, error state, refresh behavior, and navigation shortcuts.
 
@@ -172,31 +168,32 @@ Scope: notification list, mark read, delete, profile edit.
 
 Scope: static info pages and SOS feature.
 
-- [ ] SOS request model is missing.
-- [ ] SOS page/button is not visible in the route tree or main shell.
-- [ ] SOS provider/repository/API endpoint is missing.
-- [ ] SOS confirmation/error states are missing.
-- [x] Info page (`/info`) is now a **hub** that links FAQ, About, and Contact as separate pushed pages with back buttons; the duplicate `/faq` route was removed.
+- [x] SOS request/detail models exist.
+- [x] SOS page/button is visible via `/sos` and the Home shortcut.
+- [x] SOS provider/repository/API endpoints are wired to `sos/create` and `sos/get_detail`.
+- [x] SOS confirmation/error states are present.
+- [x] Info page (`/info`) is now a **hub** that links FAQ, About, and Contact as separate pushed pages with back buttons.
 - [x] Define/expand static info pages needed for demo (hospital guide, departments, visiting hours, help/contact).
-- [ ] Public utility APIs are available but not wired: `util/faq`, `util/about`, `util/contact`, `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather`.
-- [ ] Feedback submission is not wired; Swagger exposes `util/feedback`.
+- [x] Public utility APIs are partially wired: `util/faq`, `util/about`, `util/contact`, `util/weather`, `util/feedback`, and `util/feedback_summary`.
+- [x] Pharmacy/canteen/parking utility info is intentionally POI-backed via `map/get_nodes` metadata and shown on map POI tap.
+- [x] Feedback submission is wired through `/feedback`.
 - [x] Language + notification + theme preferences are wired to `user/get_settings` / `user/set_settings`. (Dynamic `util/languages` list still not used — the picker is static vi/en.)
 - [ ] File upload is not wired; Swagger exposes `util/upload`, useful for feedback/report images if backend accepts attachments.
 - [x] Add navigation entry points for static info pages.
-- [ ] Add navigation entry points for SOS.
+- [x] Add navigation entry points for SOS.
 
-## Chat 7: Patient/Public API-backed Features Missing From Mobile
+## Chat 7: Patient/Public API-backed Features
 
 Scope: features available in `swagger.yaml` for patient/public/mobile use, excluding admin-only web, flow-control, and engine-management screens.
 
-- [ ] Device/asset feature is missing from the app: `asset/asset_stations`, `asset/find_wheelchairs`, `asset/book_asset`, `asset/release_asset`, `asset/asset_health`, `asset/track_asset`, and `asset/report_broken_asset`.
-- [ ] Staff assistance request is missing: `staff/request_staff`.
-- [ ] Chat/support UI is missing: `chat/create_room`, `chat/get_rooms`, `chat/get_messages`, `chat/send_message`, `chat/get_unread_count`, `chat/mark_read`, and `ws/chat`.
-- [ ] FAQ/help center is static-only; `util/faq`, `util/about`, and `util/contact` are not wired.
-- [ ] Hospital utility pages are missing even though `util/pharmacy`, `util/canteen`, `util/parking`, `util/wifi`, and `util/weather` are available.
-- [ ] Feedback UI is missing even though `util/feedback` is available.
-- [ ] Route sharing/rating/history UI is missing even though route APIs exist.
-- [ ] Patient traffic awareness and reporting are missing even though public Flow APIs exist for density, heatmap, alerts, ping location, and obstacle reports.
+- [x] Device/asset feature is wired: `asset/asset_stations`, `asset/find_wheelchairs`, `asset/book_asset`, `asset/release_asset`, `asset/asset_health`, `asset/track_asset`, and `asset/report_broken_asset`.
+- [x] Staff assistance request is wired: `staff/request_staff`.
+- [x] Chat/support UI is wired for rooms, messages, send, unread aggregation, mark-read, and `ws/chat`; create-room UI and some polish remain backlog.
+- [x] FAQ/help center uses `util/faq`, `util/about`, and `util/contact`.
+- [x] Hospital utilities are no longer standalone list pages: weather stays on Home, while pharmacy/canteen/parking are POI metadata on the Map. WiFi is dropped unless backend adds it as a navigable POI.
+- [x] Feedback UI is wired to `util/feedback`.
+- [x] Route history UI and route rating page are wired; route sharing has a repository method but no visible UI yet.
+- [x] Patient traffic awareness and reporting are wired through the Map flow overlays, route history sheet, and obstacle reporting.
 - [x] User settings page is wired for language/theme/notification preferences via `user/get_settings` and `user/set_settings`.
 
 
@@ -281,41 +278,50 @@ FE+BE = both. **Effort:** S ≈ half a day · M ≈ 1–3 days · L ≈ a week+.
 **P0** = do next.
 
 ### Recently shipped (context)
-Notifications (pagination, unread bell, settings, device-token, optional push) ·
-unified Settings page (theme/notification/language, backend-persisted) · Info hub ·
-home cleanup · 4-tab nav · backend API-contract fixes. _(PRs #29, #31.)_
+Recent git history now includes: notifications (pagination, unread bell,
+settings, device-token, optional push) · unified Settings page
+(theme/notification/language, backend-persisted) · chat rooms/messages/WebSocket
+sync · SOS screen + home shortcut · dynamic FAQ/About/Contact + feedback ·
+asset/wheelchair stations/search/book/release/track/report · staff request ·
+route history/rating/share contract fixes · Info cleanup with
+pharmacy/canteen/parking as map POI metadata · REST force-logout for token
+rejection including `3009 accountLoggedInElsewhere`.
+
+Generated `VersionCheckResponse` files are committed after the branch rebase
+(`53cc0f4`), and `flutter analyze` was clean after conflict resolution.
 
 ### P0 — Correctness, then demo-ready
 | # | Item | Area | Effort | Notes / acceptance |
 |---|------|------|--------|--------------------|
 | 1 | **Push sender + notification triggers** | BE | L | Send via FCM/APNs and fire on real events (queue ready, appointment, prescription, SOS). Until this lands, notifications are seed-only. Unlocks SOS/queue/staff alerts. |
-| 2 | **Fix Flow API contract mismatches** | FE+BE | S | `flow/edge_status` (app sends no required param + expects a list, backend wants a param + returns one) and `flow/get_density` (missing param, single vs list). Detail in `doc/overview_system.md`. |
-| 3 | **auth/logout (server) + auth/resend_otp route** | BE | S | logout is local-only; `resend_otp` service exists but has no route. |
-| 4 | **Pre-demo QA pass** | FE | S | `dart format`, `dart analyze lib test`, `flutter test`; manually walk auth / map / medical / notification / settings flows. |
-| 5 | **Demo prep** | — | S | seeded test account, backend URL/config, short demo script with an offline fallback. |
+| 2 | **Chat WebSocket force-logout path** | FE | S | REST token rejection is handled globally, but WS validation can still return HTTP 401 / code `3009` outside Dio. Wire it to `SessionManager` and redirect to `/login`. |
+| 3 | **Fix Flow API contract mismatches** | FE+BE | S | `flow/edge_status` (app sends no required param + expects a list, backend wants a param + returns one) and `flow/get_density` (missing param, single vs list). Detail in `doc/overview_system.md`. |
+| 4 | **auth/logout (server) + auth/resend_otp route** | BE | S | logout is local-only; `resend_otp` service exists but has no route. Single-active-JWT REST rejection is already handled. |
+| 5 | **Pre-demo QA pass** | FE | S | `dart format`, `flutter analyze`, `flutter test`; manually walk auth / map / medical / notification / settings / chat / SOS / asset / staff flows. |
+| 6 | **Demo prep** | — | S | seeded test account, backend URL/config, short demo script with an offline fallback. |
 
 ### P1 — High-value patient features
 | # | Item | Area | Effort | Notes / acceptance |
 |---|------|------|--------|--------------------|
-| 6 | **SOS** | FE+BE | M | Screens exist on `feature/medical-sos-util`. Wire `sos/create` + `sos/get_detail`, add a home entry point, confirm/error states. Should also create a notification (needs #1). |
 | 7 | **Active route guidance** | FE+BE | L | `route/get_steps`, `get_next`, `get_eta`, `pass_node`, `cancel` — turn the simulated dot into backend-synced live guidance. |
-| 8 | **Home dashboard enrichment** | FE | M | Real shortcuts/summaries: SOS, utilities, active-route status, assets (task + notification already wired). |
-| 9 | **Utility pages + dynamic FAQ/About/Contact** | FE+BE | M | `util/faq`, `about`, `contact`, `pharmacy`, `canteen`, `parking`, `wifi`, `weather`, `feedback` — replace the static info pages with backend data. |
-| 10 | **Voice guidance wiring** | FE | S | `voice_service.dart` exists with zero call sites — wire into navigation. |
+| 8 | **Home dashboard enrichment** | FE | M | Add useful live summaries for active route, assets/wheelchairs, chat/support, and SOS status. Task, notification, weather, map, and SOS entry points already exist. |
+| 9 | **Chat product gaps** | FE+BE | M | Add create-room UI, scroll-to-top pagination trigger, bottom-nav unread badge via `getUnreadCount`, connection status UI, and optional leave/delete room. Attachments/typing indicators remain later scope. |
+| 10 | **Medical QR check-in/out** | FE | M | Camera scan + treatment/room validation on top of the existing check-in/out APIs. |
+| 11 | **SOS escalation polish** | FE+BE | M | SOS screen and APIs are wired; add backend notification/escalation behavior and demo-ready status copy once #1 exists. |
 
 ### P2 — Later
 | # | Item | Area | Effort | Notes |
 |---|------|------|--------|-------|
-| 11 | **Chat / support** | FE+BE | L | `ws/chat` exists; add rooms/messages/send/unread/mark-read + UI. |
-| 12 | **Asset / wheelchair** | FE+BE | L | stations, find, health, track, book, release, report-broken. |
-| 13 | **Staff request** | FE+BE | S | `staff/request_staff` (+ notification on response). |
-| 14 | **Multi-stop navigation UI** | FE | M | repo wrappers exist for `order_multi`/`order_unordered`; needs a destination-picker flow. |
-| 15 | **Medical QR check-in/out** | FE | M | camera scan + treatment/room validation on top of the existing check-in/out APIs. |
+| 12 | **Multi-stop navigation UI** | FE | M | repo wrappers exist for `order_multi`/`order_unordered`; needs a destination-picker flow. |
+| 13 | **Route sharing/rating UI polish** | FE | S | Repository/router hooks exist; confirm discoverability and result-state handling in the Map flow. |
+| 14 | **Voice guidance wiring** | FE | S | `voice_service.dart` exists with no navigation call sites — wire spoken prompts into simulated/live guidance. |
+| 15 | **Chat attachments + typing indicators** | FE+BE | M | Image/file send exists in tests/repo paths only where supported; add UI and backend/WebSocket typing contract if needed. |
+| 16 | **Utility POI metadata completeness** | FE+BE | S | Pharmacy/canteen/parking are map POIs now. Confirm backend `map/get_nodes` includes `open_hours`, `details`, `capacity`, `is_accessible`, and `wheelchair_accessible` for all relevant POIs. WiFi is intentionally not a navigable POI unless backend adds it to nodes. |
 
 ### Cross-cutting / tech debt
 - [ ] **Restore voice-guidance + travel-mode** settings toggles once BE exposes those columns in `get/set_settings`.
 - [ ] **Real app version** in Settings from `sys/check_version` (currently static `1.0.0`).
-- [ ] **Tests** for notification, settings, home, and medical providers/repos; expand auth (repo errors, router redirects, widget flows).
+- [ ] **Tests** for settings, home, medical, SOS, asset, staff, and remaining chat UI flows; expand auth (repo errors, router redirects, widget flows). Notification/chat/map provider coverage already exists.
 - [ ] **Backend `getEdges` perf** (~17s) — biggest map-load slowdown.
 - [ ] Profile update success/error toast feedback.
 - [ ] Map verify-only: non-walking `speed_factor`, meters-per-cell label truthfulness.
