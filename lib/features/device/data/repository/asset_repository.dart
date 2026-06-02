@@ -10,6 +10,13 @@ import '../models/asset_track.dart';
 class AssetRepository {
   final Dio _dio = ApiClient.instance;
 
+  // Shown when track_asset rejects with accessDenied (1009). The backend does
+  // not expose booked_by/user_id/is_mine, so 1009 is the only ownership signal:
+  // the asset is in use by another user, or the caller may not track it.
+  static const _trackAccessDeniedMessage =
+      'Thiết bị này đang được người dùng khác sử dụng, '
+      'hoặc bạn không có quyền theo dõi thiết bị này.';
+
   Future<List<AssetStation>> getStations() async {
     try {
       final response = await _dio.get(ApiEndpoints.assetStations);
@@ -68,8 +75,15 @@ class AssetRepository {
         response.data,
         (json) => _parseSingleOrList(json, AssetTrack.fromJson),
       );
+      // track_asset enforces ownership server-side.
+      if (api.code == ApiResponseCodes.accessDenied) {
+        throw Exception(_trackAccessDeniedMessage);
+      }
       return _requireSuccess(api);
     } on DioException catch (e) {
+      if (_isAccessDenied(e)) {
+        throw Exception(_trackAccessDeniedMessage);
+      }
       throw Exception(_error(e));
     }
   }
@@ -176,5 +190,18 @@ class AssetRepository {
       return data['message']?.toString() ?? e.message ?? 'Đã xảy ra lỗi';
     }
     return e.message ?? 'Đã xảy ra lỗi';
+  }
+
+  // True when the error body carries the custom accessDenied (1009) code,
+  // e.g. when the backend returns it over a non-2xx HTTP status.
+  bool _isAccessDenied(DioException e) {
+    final data = e.response?.data;
+    if (data is Map) {
+      final code = data['code'];
+      if (code is int) return code == ApiResponseCodes.accessDenied;
+      return int.tryParse(code?.toString() ?? '') ==
+          ApiResponseCodes.accessDenied;
+    }
+    return false;
   }
 }

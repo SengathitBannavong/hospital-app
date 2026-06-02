@@ -42,6 +42,11 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
       return;
     }
 
+    final extraNote = _noteController.text.trim();
+    final note = extraNote.isEmpty
+        ? '[$_assistanceType]'
+        : '[$_assistanceType] $extraNote';
+
     setState(() => _isSubmitting = true);
     try {
       await ref
@@ -49,7 +54,7 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
           .requestStaff(
             nodeId: nodeId,
             assetId: _assetController.text.trim(),
-            note: '[$_assistanceType] ${_noteController.text.trim()}',
+            note: note,
           );
       if (mounted) {
         setState(() {

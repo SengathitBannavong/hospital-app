@@ -129,7 +129,9 @@ class _HistoryCard extends ConsumerWidget {
       final mi = date.minute.toString().padLeft(2, '0');
       dateStr = '$d/$mo/${date.year} $h:$mi';
     }
-    final routeId = entry.id ?? entry.routeId;
+    // route/rate and route/share require the backend route_id. The DB row id
+    // (entry.id) is NOT a valid route_id, so we never fall back to it.
+    final routeId = entry.routeId?.trim();
 
     return Card(
       child: ListTile(
@@ -156,35 +158,32 @@ class _HistoryCard extends ConsumerWidget {
               Text(dateStr, style: context.textTheme.bodySmall),
           ],
         ),
-        trailing: routeId != null
-            ? PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded, size: 20),
-                onSelected: (value) =>
-                    _handleAction(context, ref, value, routeId),
-                itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: 'rate',
-                    child: Row(
-                      children: [
-                        Icon(Icons.star_outline_rounded),
-                        SizedBox(width: 8),
-                        Text('Đánh giá'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'share',
-                    child: Row(
-                      children: [
-                        Icon(Icons.share_outlined),
-                        SizedBox(width: 8),
-                        Text('Chia sẻ'),
-                      ],
-                    ),
-                  ),
+        trailing: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert_rounded, size: 20),
+          onSelected: (value) => _handleAction(context, ref, value, routeId),
+          itemBuilder: (_) => const [
+            PopupMenuItem(
+              value: 'rate',
+              child: Row(
+                children: [
+                  Icon(Icons.star_outline_rounded),
+                  SizedBox(width: 8),
+                  Text('Đánh giá'),
                 ],
-              )
-            : const Icon(Icons.chevron_right_rounded),
+              ),
+            ),
+            PopupMenuItem(
+              value: 'share',
+              child: Row(
+                children: [
+                  Icon(Icons.share_outlined),
+                  SizedBox(width: 8),
+                  Text('Chia sẻ'),
+                ],
+              ),
+            ),
+          ],
+        ),
         onTap: () => context.push('/map'),
       ),
     );
@@ -194,8 +193,17 @@ class _HistoryCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     String action,
-    String routeId,
+    String? routeId,
   ) async {
+    // Without a backend route_id, neither rate nor share can be called.
+    if (routeId == null || routeId.isEmpty) {
+      AppToast.showError(
+        'Tuyến đường này thiếu mã (route_id) nên không thể '
+        'đánh giá hoặc chia sẻ.',
+      );
+      return;
+    }
+
     if (action == 'rate') {
       context.push('/route/rate/$routeId');
     } else if (action == 'share') {
@@ -203,12 +211,8 @@ class _HistoryCard extends ConsumerWidget {
         final url = await ref
             .read(mapRepositoryProvider)
             .shareRoute(routeId: routeId);
-        if (url != null && url.isNotEmpty) {
-          await Clipboard.setData(ClipboardData(text: url));
-          AppToast.showSuccess('Đã sao chép link chia sẻ!');
-        } else {
-          AppToast.showSuccess('Tuyến đường đã được chia sẻ thành công!');
-        }
+        await Clipboard.setData(ClipboardData(text: url));
+        AppToast.showSuccess('Đã sao chép link chia sẻ!');
       } catch (e) {
         AppToast.showError(e.toString().replaceFirst('Exception: ', ''));
       }

@@ -89,6 +89,8 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | route/pass_node | — | `{recorded:true}` | n/a (stub, not wired) |
 | route/get_history | `RouteHistory {routes, total, page, limit}` | same | MATCH |
 | route/clear_history | `RouteClearHistory {cleared:true}` | `{cleared:true}` | MATCH |
+| route/rate | success wrapper (data ignored) | success wrapper | MATCH |
+| route/share | `data.share_url` (string) | `{share_url}` | MATCH (no `url`/`link` fallback — FE throws if `share_url` absent) |
 
 ### Flow
 | Endpoint | Frontend expects | Backend returns | Verdict |
@@ -101,6 +103,25 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | flow/edge_status | `EdgeStatus[]` (list) | single `{edge_id, current_count, fill_percentage}` | **MISMATCH** (list vs single) |
 | flow/report_obstacle | `ObstacleReport` | same | MATCH |
 | flow/get_obstacles | `MapObstacle[]` (list) | `{reports, total, page, limit}` | **VERIFY** (app must read `.reports`) |
+
+### Asset / Device
+Official asset `status` values are exactly **`available` | `in_use` | `maintenance`**.
+There is no `booked`/`reserved`/`occupied`/`borrowed`/`broken` token — FE must not infer those.
+- `available` → bookable
+- `in_use` → currently booked / in use
+- `maintenance` → unavailable (not bookable, not booked; FE shows a disabled maintenance notice)
+
+The backend does **not** return `booked_by` / `user_id` / `is_mine`; ownership is enforced
+server-side by `asset/track_asset`, which returns **accessDenied (1009)** when the caller is
+not the holder.
+
+| Endpoint | Frontend expects | Backend returns | Verdict |
+| --- | --- | --- | --- |
+| asset/asset_stations | `AssetStation[]` | station list | MATCH |
+| asset/find_wheelchairs | `AssetDevice[]` | device list | MATCH |
+| asset/asset_health | `AssetTrack {status…}` | asset status payload | MATCH |
+| asset/track_asset | `AssetTrack` or **1009** if not owner | status payload / accessDenied | MATCH (FE maps 1009 → ownership message) |
+| asset/book_asset / release_asset / report_broken_asset | success wrapper | success wrapper | MATCH |
 
 ### Notification
 | Endpoint | Frontend expects | Backend returns | Verdict |
@@ -198,6 +219,8 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | route/pass_node | n/a | `{route_id, grid_location}` | n/a (stub) |
 | route/get_history | query `{limit, page}` | optional `page`, `limit` | MATCH |
 | route/clear_history | no body | auth, none | MATCH |
+| route/rate | `{route_id, rating, comment?}` | requires `route_id` (NOT the DB row id), `rating` | MATCH |
+| route/share | `{route_id}` | requires `route_id` (NOT the DB row id) | MATCH |
 
 ### Flow
 | Endpoint | Frontend sends | Backend wants | Verdict |
@@ -211,6 +234,18 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | flow/ping_location | `{grid_location, grid_row, grid_col, route_id?}` | `{grid_location, grid_row, grid_col}` + optional route_id | MATCH |
 | flow/report_obstacle | `{grid_location, report_type, description?, route_id?}` | `{grid_location, report_type}` + optional | MATCH |
 | flow/get_obstacles | query `{status?}` | optional `status, page, limit` | MATCH (request) |
+
+### Asset / Device & Staff
+| Endpoint | Frontend sends | Backend wants | Verdict |
+| --- | --- | --- | --- |
+| asset/asset_stations | no params | auth, none | MATCH |
+| asset/find_wheelchairs | query `{node_id, radius}` | `node_id` + optional `radius` | MATCH |
+| asset/asset_health | query `{asset_id}` | `asset_id` | MATCH |
+| asset/track_asset | query `{asset_id}` | `asset_id` (ownership enforced → 1009) | MATCH |
+| asset/book_asset | `{asset_id}` | `asset_id` | MATCH |
+| asset/release_asset | `{asset_id, station_id}` | `asset_id, station_id` | MATCH |
+| asset/report_broken_asset | `{asset_id, reason, image_url?}` | `asset_id, reason` + optional | MATCH |
+| staff/request_staff | `{node_id, asset_id?, note?}` | `node_id` + optional `asset_id`, `note` | MATCH (assistance type embedded in `note`) |
 
 ### Notification
 | Endpoint | Frontend sends | Backend wants | Verdict |
