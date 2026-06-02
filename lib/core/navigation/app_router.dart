@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:hospital_app/core/network/session_manager.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/auth/data/models/auth_user.dart';
 import 'package:hospital_app/features/auth/presentation/pages/change_password_page.dart';
@@ -46,6 +47,11 @@ class RouterNotifier extends ChangeNotifier {
       authStateProvider,
       (previous, next) => notifyListeners(),
     );
+    // Let the network layer force a logout when the backend rejects the token
+    // (e.g. logged in from another device). Clearing auth state makes
+    // redirect() bounce the user to /login.
+    SessionManager.onForceLogout =
+        () => _ref.read(authStateProvider.notifier).logout();
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
