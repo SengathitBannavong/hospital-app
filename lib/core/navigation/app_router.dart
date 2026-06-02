@@ -33,19 +33,10 @@ import 'package:hospital_app/features/device/presentation/pages/asset_stations_p
 import 'package:hospital_app/features/device/presentation/pages/asset_tracking_page.dart';
 import 'package:hospital_app/features/device/presentation/pages/broken_asset_report_page.dart';
 import 'package:hospital_app/features/device/presentation/pages/wheelchair_search_page.dart';
-import 'package:hospital_app/features/map/presentation/pages/flow_alerts_page.dart';
-import 'package:hospital_app/features/map/presentation/pages/flow_heatmap_page.dart';
 import 'package:hospital_app/features/map/presentation/pages/obstacle_report_page.dart';
-import 'package:hospital_app/features/map/presentation/pages/route_history_page.dart';
 import 'package:hospital_app/features/map/presentation/pages/route_rating_page.dart';
-import 'package:hospital_app/features/map/presentation/pages/traffic_density_page.dart';
 import 'package:hospital_app/features/staff/presentation/pages/request_staff_page.dart';
-import 'package:hospital_app/features/util/presentation/pages/canteen_page.dart';
 import 'package:hospital_app/features/util/presentation/pages/feedback_page.dart';
-import 'package:hospital_app/features/util/presentation/pages/parking_page.dart';
-import 'package:hospital_app/features/util/presentation/pages/pharmacy_page.dart';
-import 'package:hospital_app/features/util/presentation/pages/weather_page.dart';
-import 'package:hospital_app/features/util/presentation/pages/wifi_page.dart';
 
 class RouterNotifier extends ChangeNotifier {
   final Ref _ref;
@@ -275,30 +266,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const RequestStaffPage(),
       ),
 
-      // ── Hospital Utilities ───────────────────────────────────
-      GoRoute(
-        path: '/pharmacy',
-        builder: (context, state) => const PharmacyPage(),
-      ),
-      GoRoute(
-        path: '/canteen',
-        builder: (context, state) => const CanteenPage(),
-      ),
-      GoRoute(
-        path: '/parking',
-        builder: (context, state) => const ParkingPage(),
-      ),
-      GoRoute(path: '/wifi', builder: (context, state) => const WifiPage()),
-      GoRoute(
-        path: '/weather',
-        builder: (context, state) => const WeatherPage(),
-      ),
-
       // ── Route Features ───────────────────────────────────────
-      GoRoute(
-        path: '/route/history',
-        builder: (context, state) => const RouteHistoryPage(),
-      ),
       GoRoute(
         path: '/route/rate/:route_id',
         builder: (context, state) {
@@ -308,18 +276,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // ── Traffic & Flow ───────────────────────────────────────
-      GoRoute(
-        path: '/flow/alerts',
-        builder: (context, state) => const FlowAlertsPage(),
-      ),
-      GoRoute(
-        path: '/flow/density',
-        builder: (context, state) => const TrafficDensityPage(),
-      ),
-      GoRoute(
-        path: '/flow/heatmap',
-        builder: (context, state) => const FlowHeatmapPage(),
-      ),
       GoRoute(
         path: '/flow/report-obstacle',
         builder: (context, state) => const ObstacleReportPage(),

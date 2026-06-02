@@ -116,6 +116,16 @@ class MapPoiMetadataPanel extends StatelessWidget {
                   icon: Icons.access_time_rounded,
                   label: poi.openHours!,
                 ),
+              if (poi.capacity != null)
+                _InfoChip(
+                  icon: Icons.groups_rounded,
+                  label: 'Capacity ${poi.capacity}',
+                ),
+              if (poi.isAccessible)
+                const _InfoChip(
+                  icon: Icons.check_circle_outline_rounded,
+                  label: 'Accessible',
+                ),
               if (poi.wheelchairAccessible)
                 const _InfoChip(
                   icon: Icons.accessible_rounded,

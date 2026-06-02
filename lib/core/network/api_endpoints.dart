@@ -100,10 +100,6 @@ class ApiEndpoints {
   static const String utilFeedback = 'util/feedback';
   static const String utilFeedbackSummary = 'util/feedback_summary';
   static const String utilUpload = 'util/upload';
-  static const String utilPharmacy = 'util/pharmacy';
-  static const String utilCanteen = 'util/canteen';
-  static const String utilParking = 'util/parking';
-  static const String utilWifi = 'util/wifi';
 
   // Asset / Device
   static const String assetStations = 'asset/asset_stations';

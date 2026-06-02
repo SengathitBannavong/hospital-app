@@ -4,7 +4,6 @@ import 'package:hospital_app/features/util/data/models/contact_info.dart';
 import 'package:hospital_app/features/util/data/models/faq_item.dart';
 import 'package:hospital_app/features/util/data/models/feedback_summary.dart';
 import 'package:hospital_app/features/util/data/models/language_option.dart';
-import 'package:hospital_app/features/util/data/models/util_poi.dart';
 import 'package:hospital_app/features/util/data/models/weather.dart';
 import 'package:hospital_app/features/util/data/repository/util_repository.dart';
 
@@ -37,20 +36,4 @@ final languagesProvider = FutureProvider<List<LanguageOption>>((ref) {
 
 final weatherProvider = FutureProvider<Weather>((ref) {
   return ref.watch(utilRepositoryProvider).getWeather();
-});
-
-final pharmacyProvider = FutureProvider<List<UtilPoi>>((ref) {
-  return ref.watch(utilRepositoryProvider).getPharmacy();
-});
-
-final canteenProvider = FutureProvider<List<UtilPoi>>((ref) {
-  return ref.watch(utilRepositoryProvider).getCanteen();
-});
-
-final parkingProvider = FutureProvider<List<UtilPoi>>((ref) {
-  return ref.watch(utilRepositoryProvider).getParking();
-});
-
-final wifiProvider = FutureProvider<List<UtilPoi>>((ref) {
-  return ref.watch(utilRepositoryProvider).getWifi();
 });

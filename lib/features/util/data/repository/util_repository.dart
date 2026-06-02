@@ -12,7 +12,6 @@ import 'package:hospital_app/features/util/data/models/feedback_summary.dart';
 import 'package:hospital_app/features/util/data/models/language_option.dart';
 import 'package:hospital_app/features/util/data/models/upload_result.dart';
 import 'package:hospital_app/features/util/data/models/util_feedback_response.dart';
-import 'package:hospital_app/features/util/data/models/util_poi.dart';
 import 'package:hospital_app/features/util/data/models/util_version_check.dart';
 import 'package:hospital_app/features/util/data/models/weather.dart';
 
@@ -149,48 +148,6 @@ class UtilRepository {
         (json) => UtilFeedbackResponse.fromJson(json as Map<String, dynamic>),
       );
       return _requireSuccess(apiResponse);
-    } on DioException catch (e) {
-      throw Exception(_extractErrorMessage(e));
-    }
-  }
-
-  Future<List<UtilPoi>> getPharmacy() async {
-    return _getPois(ApiEndpoints.utilPharmacy);
-  }
-
-  Future<List<UtilPoi>> getCanteen() async {
-    return _getPois(ApiEndpoints.utilCanteen);
-  }
-
-  Future<List<UtilPoi>> getParking() async {
-    return _getPois(ApiEndpoints.utilParking);
-  }
-
-  Future<List<UtilPoi>> getWifi() async {
-    return _getPois(ApiEndpoints.utilWifi);
-  }
-
-  Future<List<UtilPoi>> _getPois(String endpoint) async {
-    try {
-      final response = await _dio.get(endpoint);
-      final apiResponse = AuthApiResponse<List<UtilPoi>>.fromJson(
-        response.data,
-        (json) {
-          if (json is List) {
-            return json
-                .whereType<Map>()
-                .map(
-                  (item) => UtilPoi.fromJson(Map<String, dynamic>.from(item)),
-                )
-                .toList();
-          }
-          return const <UtilPoi>[];
-        },
-      );
-      if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? const <UtilPoi>[];
-      }
-      throw Exception(apiResponse.message);
     } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }

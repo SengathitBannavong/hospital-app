@@ -38,32 +38,6 @@ class InfoPage extends StatelessWidget {
 
           SizedBox(height: AppSpacing.xl),
 
-          // ── Hospital Utilities ───────────────────────────────
-          _SectionHeader(title: 'Tiện ích bệnh viện'),
-          _InfoTile(
-            icon: Icons.local_pharmacy_rounded,
-            title: 'Nhà thuốc',
-            route: '/pharmacy',
-          ),
-          _InfoTile(
-            icon: Icons.restaurant_rounded,
-            title: 'Căng-tin',
-            route: '/canteen',
-          ),
-          _InfoTile(
-            icon: Icons.local_parking_rounded,
-            title: 'Bãi đỗ xe',
-            route: '/parking',
-          ),
-          _InfoTile(icon: Icons.wifi_rounded, title: 'WiFi', route: '/wifi'),
-          _InfoTile(
-            icon: Icons.wb_sunny_rounded,
-            title: 'Thời tiết',
-            route: '/weather',
-          ),
-
-          SizedBox(height: AppSpacing.xl),
-
           // ── Asset / Device Services ──────────────────────────
           _SectionHeader(title: 'Dịch vụ thiết bị'),
           _InfoTile(
@@ -86,45 +60,10 @@ class InfoPage extends StatelessWidget {
             title: 'Yêu cầu hỗ trợ',
             route: '/staff',
           ),
-
-          SizedBox(height: AppSpacing.xl),
-
-          // ── Traffic & Flow ───────────────────────────────────
-          _SectionHeader(title: 'Giao thông & Lưu thông'),
-          _InfoTile(
-            icon: Icons.warning_amber_rounded,
-            title: 'Cảnh báo giao thông',
-            route: '/flow/alerts',
-          ),
-          _InfoTile(
-            icon: Icons.people_rounded,
-            title: 'Mật độ đông người',
-            route: '/flow/density',
-          ),
           _InfoTile(
             icon: Icons.report_rounded,
             title: 'Báo cáo vật cản',
             route: '/flow/report-obstacle',
-          ),
-
-          SizedBox(height: AppSpacing.xl),
-
-          // ── Route Features ───────────────────────────────────
-          _SectionHeader(title: 'Tuyến đường'),
-          _InfoTile(
-            icon: Icons.history_rounded,
-            title: 'Lịch sử tuyến đường',
-            route: '/route/history',
-          ),
-
-          SizedBox(height: AppSpacing.xl),
-
-          // ── Heatmap ──────────────────────────────────────────
-          _SectionHeader(title: 'Bản đồ nhiệt'),
-          _InfoTile(
-            icon: Icons.grid_on_rounded,
-            title: 'Bản đồ nhiệt mật độ',
-            route: '/flow/heatmap',
           ),
 
           SizedBox(height: AppSpacing.xxl),

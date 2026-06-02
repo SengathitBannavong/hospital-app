@@ -35,6 +35,15 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | sys/check_version | legacy path no longer used by app startup | same | n/a |
 | sys/get_voice_key | reads `api_key` (returns String?) | `{provider, api_key, language, enabled}` | MATCH |
 | sys/get_voice_files | builds `Map<String,String>` from `files` | `{language, base_url, files:[{key,url,text}]}` | MATCH |
+| util/weather | `Weather {city, temp_c, humidity, description[], wind_speed}` | weather payload | MATCH (Home page weather card) |
+
+> **Hospital utilities (pharmacy / canteen / parking / wifi):** the dedicated
+> `util/{pharmacy,canteen,parking,wifi}` list endpoints are **no longer called by
+> the app**. Pharmacy/canteen/parking are POIs — their metadata (`poi_type`,
+> `open_hours`, `details`, `capacity`, `is_accessible`, `wheelchair_accessible`)
+> already comes from `map/get_nodes` and is shown on POI tap via
+> `MapPoiMetadataPanel`. The standalone list screens were removed; only
+> `util/weather` remains in use.
 
 ### Profile
 | Endpoint | Frontend expects | Backend returns | Verdict |
@@ -292,5 +301,8 @@ not the holder.
   (correcting the earlier "expects nested user" assumption).
 - All of Notification, Settings, Profile, Utility version-check, and the core
   Medical/Map/Route request+response contracts line up.
+- Hospital utilities are now POI-backed: pharmacy/canteen/parking read from
+  `map/get_nodes` metadata (shown on POI tap), so `util/{pharmacy,canteen,
+  parking,wifi}` are dead on the client. Weather stays on `util/weather` (Home).
 - Response wrapping `{code,message,data}` is handled everywhere by the app's
   wrappers.
