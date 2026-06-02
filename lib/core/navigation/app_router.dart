@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:hospital_app/core/network/session_manager.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/auth/data/models/auth_user.dart';
 import 'package:hospital_app/features/auth/presentation/pages/change_password_page.dart';
@@ -28,6 +29,14 @@ import 'package:hospital_app/features/notification/presentation/pages/notificati
 import 'package:hospital_app/features/profile/presentation/page/profile_page.dart';
 import 'package:hospital_app/features/settings/presentation/pages/settings_page.dart';
 import 'package:hospital_app/features/sos/presentation/pages/sos_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/asset_booking_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/asset_stations_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/asset_tracking_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/broken_asset_report_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/wheelchair_search_page.dart';
+import 'package:hospital_app/features/map/presentation/pages/obstacle_report_page.dart';
+import 'package:hospital_app/features/map/presentation/pages/route_rating_page.dart';
+import 'package:hospital_app/features/staff/presentation/pages/request_staff_page.dart';
 import 'package:hospital_app/features/util/presentation/pages/feedback_page.dart';
 
 class RouterNotifier extends ChangeNotifier {
@@ -38,6 +47,11 @@ class RouterNotifier extends ChangeNotifier {
       authStateProvider,
       (previous, next) => notifyListeners(),
     );
+    // Let the network layer force a logout when the backend rejects the token
+    // (e.g. logged in from another device). Clearing auth state makes
+    // redirect() bounce the user to /login.
+    SessionManager.onForceLogout = () =>
+        _ref.read(authStateProvider.notifier).logout();
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
@@ -220,6 +234,58 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       // Standalone help page — used by Settings to avoid shell-push conflict
       GoRoute(path: '/help', builder: (context, state) => const InfoPage()),
+
+      // ── Asset / Device ──────────────────────────────────────
+      GoRoute(
+        path: '/asset/stations',
+        builder: (context, state) => const AssetStationsPage(),
+      ),
+      GoRoute(
+        path: '/asset/search',
+        builder: (context, state) => const WheelchairSearchPage(),
+      ),
+      GoRoute(
+        path: '/asset/book/:asset_id',
+        builder: (context, state) {
+          final assetId = state.pathParameters['asset_id'] ?? '';
+          return AssetBookingPage(assetId: assetId);
+        },
+      ),
+      GoRoute(
+        path: '/asset/track/:asset_id',
+        builder: (context, state) {
+          final assetId = state.pathParameters['asset_id'] ?? '';
+          return AssetTrackingPage(assetId: assetId);
+        },
+      ),
+      GoRoute(
+        path: '/asset/report/:asset_id',
+        builder: (context, state) {
+          final assetId = state.pathParameters['asset_id'] ?? '';
+          return BrokenAssetReportPage(assetId: assetId);
+        },
+      ),
+
+      // ── Staff ────────────────────────────────────────────────
+      GoRoute(
+        path: '/staff',
+        builder: (context, state) => const RequestStaffPage(),
+      ),
+
+      // ── Route Features ───────────────────────────────────────
+      GoRoute(
+        path: '/route/rate/:route_id',
+        builder: (context, state) {
+          final routeId = state.pathParameters['route_id'] ?? '';
+          return RouteRatingPage(routeId: routeId);
+        },
+      ),
+
+      // ── Traffic & Flow ───────────────────────────────────────
+      GoRoute(
+        path: '/flow/report-obstacle',
+        builder: (context, state) => const ObstacleReportPage(),
+      ),
     ],
   );
 });

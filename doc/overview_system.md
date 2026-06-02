@@ -28,6 +28,23 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | auth/change_password | ignored (void) | `null` | MATCH |
 | user/delete_account | ignored (void) | `{id}` | MATCH |
 
+#### Session / auth enforcement
+Backend allows **one active JWT per user**. The latest login wins; an older
+device discovers this on its next protected API call, not via push. Code
+`3009 accountLoggedInElsewhere` means "Account logged in on another device".
+
+Rejection shapes:
+- Most REST calls: HTTP 200 with `{code:3009,message:"Account logged in on
+  another device",data:null}`.
+- Chat WebSocket token validation: HTTP 401 with `{code:3009,error:"..."}`.
+
+FE force-logs-out for session rejection codes `1004 invalidToken`, `3001
+tokenInvalid`, `3002 tokenExpired`, `3003 userNotAuthenticated`, and `3009
+accountLoggedInElsewhere`, plus HTTP 401 when a token is currently held. REST
+logout is global/idempotent and redirects to `/login`; `3009` shows the specific
+VN "logged in elsewhere" message, while other session rejects show the generic
+session-ended message.
+
 ### System / Utility
 | Endpoint | Frontend expects | Backend returns | Verdict |
 | --- | --- | --- | --- |
@@ -35,6 +52,15 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | sys/check_version | legacy path no longer used by app startup | same | n/a |
 | sys/get_voice_key | reads `api_key` (returns String?) | `{provider, api_key, language, enabled}` | MATCH |
 | sys/get_voice_files | builds `Map<String,String>` from `files` | `{language, base_url, files:[{key,url,text}]}` | MATCH |
+| util/weather | `Weather {city, temp_c, humidity, description[], wind_speed}` | weather payload | MATCH (Home page weather card) |
+
+> **Hospital utilities (pharmacy / canteen / parking / wifi):** the dedicated
+> `util/{pharmacy,canteen,parking,wifi}` list endpoints are **no longer called by
+> the app**. Pharmacy/canteen/parking are POIs — their metadata (`poi_type`,
+> `open_hours`, `details`, `capacity`, `is_accessible`, `wheelchair_accessible`)
+> already comes from `map/get_nodes` and is shown on POI tap via
+> `MapPoiMetadataPanel`. The standalone list screens were removed; only
+> `util/weather` remains in use.
 
 ### Profile
 | Endpoint | Frontend expects | Backend returns | Verdict |
@@ -89,6 +115,8 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | route/pass_node | — | `{recorded:true}` | n/a (stub, not wired) |
 | route/get_history | `RouteHistory {routes, total, page, limit}` | same | MATCH |
 | route/clear_history | `RouteClearHistory {cleared:true}` | `{cleared:true}` | MATCH |
+| route/rate | success wrapper (data ignored) | success wrapper | MATCH |
+| route/share | `data.share_url` (string) | `{share_url}` | MATCH (no `url`/`link` fallback — FE throws if `share_url` absent) |
 
 ### Flow
 | Endpoint | Frontend expects | Backend returns | Verdict |
@@ -101,6 +129,25 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | flow/edge_status | `EdgeStatus[]` (list) | single `{edge_id, current_count, fill_percentage}` | **MISMATCH** (list vs single) |
 | flow/report_obstacle | `ObstacleReport` | same | MATCH |
 | flow/get_obstacles | `MapObstacle[]` (list) | `{reports, total, page, limit}` | **VERIFY** (app must read `.reports`) |
+
+### Asset / Device
+Official asset `status` values are exactly **`available` | `in_use` | `maintenance`**.
+There is no `booked`/`reserved`/`occupied`/`borrowed`/`broken` token — FE must not infer those.
+- `available` → bookable
+- `in_use` → currently booked / in use
+- `maintenance` → unavailable (not bookable, not booked; FE shows a disabled maintenance notice)
+
+The backend does **not** return `booked_by` / `user_id` / `is_mine`; ownership is enforced
+server-side by `asset/track_asset`, which returns **accessDenied (1009)** when the caller is
+not the holder.
+
+| Endpoint | Frontend expects | Backend returns | Verdict |
+| --- | --- | --- | --- |
+| asset/asset_stations | `AssetStation[]` | station list | MATCH |
+| asset/find_wheelchairs | `AssetDevice[]` | device list | MATCH |
+| asset/asset_health | `AssetTrack {status…}` | asset status payload | MATCH |
+| asset/track_asset | `AssetTrack` or **1009** if not owner | status payload / accessDenied | MATCH (FE maps 1009 → ownership message) |
+| asset/book_asset / release_asset / report_broken_asset | success wrapper | success wrapper | MATCH |
 
 ### Notification
 | Endpoint | Frontend expects | Backend returns | Verdict |
@@ -198,6 +245,8 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | route/pass_node | n/a | `{route_id, grid_location}` | n/a (stub) |
 | route/get_history | query `{limit, page}` | optional `page`, `limit` | MATCH |
 | route/clear_history | no body | auth, none | MATCH |
+| route/rate | `{route_id, rating, comment?}` | requires `route_id` (NOT the DB row id), `rating` | MATCH |
+| route/share | `{route_id}` | requires `route_id` (NOT the DB row id) | MATCH |
 
 ### Flow
 | Endpoint | Frontend sends | Backend wants | Verdict |
@@ -211,6 +260,18 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 | flow/ping_location | `{grid_location, grid_row, grid_col, route_id?}` | `{grid_location, grid_row, grid_col}` + optional route_id | MATCH |
 | flow/report_obstacle | `{grid_location, report_type, description?, route_id?}` | `{grid_location, report_type}` + optional | MATCH |
 | flow/get_obstacles | query `{status?}` | optional `status, page, limit` | MATCH (request) |
+
+### Asset / Device & Staff
+| Endpoint | Frontend sends | Backend wants | Verdict |
+| --- | --- | --- | --- |
+| asset/asset_stations | no params | auth, none | MATCH |
+| asset/find_wheelchairs | query `{node_id, radius}` | `node_id` + optional `radius` | MATCH |
+| asset/asset_health | query `{asset_id}` | `asset_id` | MATCH |
+| asset/track_asset | query `{asset_id}` | `asset_id` (ownership enforced → 1009) | MATCH |
+| asset/book_asset | `{asset_id}` | `asset_id` | MATCH |
+| asset/release_asset | `{asset_id, station_id}` | `asset_id, station_id` | MATCH |
+| asset/report_broken_asset | `{asset_id, reason, image_url?}` | `asset_id, reason` + optional | MATCH |
+| staff/request_staff | `{node_id, asset_id?, note?}` | `node_id` + optional `asset_id`, `note` | MATCH (assistance type embedded in `note`) |
 
 ### Notification
 | Endpoint | Frontend sends | Backend wants | Verdict |
@@ -251,11 +312,19 @@ likely differ / not fully confirmed) · n/a (app doesn't call it).
 7. **Chat response shapes** 🟡 — current parser accepts list and nested
    `{rooms/messages/data}` shapes. Confirm exact backend payloads before
    tightening models.
+8. **Chat WebSocket session rejection** 🟡 — WS token validation can return
+   HTTP 401 / code `3009`, but that path does not yet go through the FE
+   force-logout handler.
 
 ### Resolved / confirmed good
 - `auth/login` is a **MATCH** — the app parses `data` as a flat `AuthUser`
   (correcting the earlier "expects nested user" assumption).
 - All of Notification, Settings, Profile, Utility version-check, and the core
   Medical/Map/Route request+response contracts line up.
+- Hospital utilities are now POI-backed: pharmacy/canteen/parking read from
+  `map/get_nodes` metadata (shown on POI tap), so `util/{pharmacy,canteen,
+  parking,wifi}` are dead on the client. Weather stays on `util/weather` (Home).
 - Response wrapping `{code,message,data}` is handled everywhere by the app's
   wrappers.
+- REST token rejection force-logout is implemented for `1004`, `3001`, `3002`,
+  `3003`, `3009`, and held-token HTTP 401 responses.

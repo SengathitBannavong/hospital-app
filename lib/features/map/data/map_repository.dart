@@ -267,6 +267,49 @@ class MapRepository {
     ))!;
   }
 
+  Future<void> rateRoute({
+    required String routeId,
+    required int rating,
+    String? comment,
+  }) async {
+    await _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routeRate,
+      data: {
+        'route_id': routeId,
+        'rating': rating,
+        if (comment != null && comment.isNotEmpty) 'comment': comment,
+      },
+      fromJson: (json) => json,
+    );
+  }
+
+  /// Shares a route and returns the backend-issued share URL.
+  ///
+  /// Contract: the response payload exposes the link as `share_url`. There is
+  /// no `url`/`link` fallback — if `share_url` is absent or empty the response
+  /// violates the contract and we throw rather than silently returning null.
+  Future<String> shareRoute({required String routeId}) async {
+    final shareUrl = await _request<String?>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routeShare,
+      data: {'route_id': routeId},
+      fromJson: (json) {
+        if (json is Map) {
+          final url = json['share_url']?.toString();
+          if (url != null && url.isNotEmpty) {
+            return url;
+          }
+        }
+        return null;
+      },
+    );
+    if (shareUrl == null || shareUrl.isEmpty) {
+      throw Exception('Phản hồi chia sẻ không hợp lệ: thiếu trường share_url.');
+    }
+    return shareUrl;
+  }
+
   Future<List<FlowCell>> getFlowDensity({int? gridLocation}) async {
     final cells = await _request<List<FlowCell>>(
       method: _MapHttpMethod.get,

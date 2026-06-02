@@ -17,43 +17,104 @@ class InfoPage extends StatelessWidget {
       ),
       body: ListView(
         padding: AppSpacing.pageWithTop,
-        children: [
-          Card(
-            child: ListTile(
-              leading: Icon(
-                Icons.help_outline_rounded,
-                color: context.colorScheme.primary,
-              ),
-              title: const Text('FAQ'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => context.push('/faq'),
-            ),
+        children: const [
+          // ── Help & Info ──────────────────────────────────────
+          _SectionHeader(title: 'Trợ giúp & Giới thiệu'),
+          _InfoTile(
+            icon: Icons.help_outline_rounded,
+            title: 'FAQ',
+            route: '/faq',
           ),
-          const SizedBox(height: AppSpacing.md),
-          Card(
-            child: ListTile(
-              leading: Icon(
-                Icons.info_outline_rounded,
-                color: context.colorScheme.primary,
-              ),
-              title: const Text('Giới thiệu'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => context.push('/about'),
-            ),
+          _InfoTile(
+            icon: Icons.info_outline_rounded,
+            title: 'Giới thiệu',
+            route: '/about',
           ),
-          const SizedBox(height: AppSpacing.md),
-          Card(
-            child: ListTile(
-              leading: Icon(
-                Icons.contact_support_outlined,
-                color: context.colorScheme.primary,
-              ),
-              title: const Text('Liên hệ'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => context.push('/contact'),
-            ),
+          _InfoTile(
+            icon: Icons.contact_support_outlined,
+            title: 'Liên hệ',
+            route: '/contact',
           ),
+
+          SizedBox(height: AppSpacing.xl),
+
+          // ── Asset / Device Services ──────────────────────────
+          _SectionHeader(title: 'Dịch vụ thiết bị'),
+          _InfoTile(
+            icon: Icons.accessible_rounded,
+            title: 'Trạm xe lăn',
+            route: '/asset/stations',
+          ),
+          _InfoTile(
+            icon: Icons.search_rounded,
+            title: 'Tìm xe lăn gần đây',
+            route: '/asset/search',
+          ),
+
+          SizedBox(height: AppSpacing.xl),
+
+          // ── Staff Assistance ─────────────────────────────────
+          _SectionHeader(title: 'Hỗ trợ nhân viên'),
+          _InfoTile(
+            icon: Icons.support_agent_rounded,
+            title: 'Yêu cầu hỗ trợ',
+            route: '/staff',
+          ),
+          _InfoTile(
+            icon: Icons.report_rounded,
+            title: 'Báo cáo vật cản',
+            route: '/flow/report-obstacle',
+          ),
+
+          SizedBox(height: AppSpacing.xxl),
         ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Text(
+        title,
+        style: context.textTheme.titleSmall?.copyWith(
+          color: context.colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({
+    required this.icon,
+    required this.title,
+    required this.route,
+  });
+
+  final IconData icon;
+  final String title;
+  final String route;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: ListTile(
+          leading: Icon(icon, color: context.colorScheme.primary),
+          title: Text(title),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => context.push(route),
+        ),
       ),
     );
   }

@@ -134,10 +134,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ],
         ],
       ),
-      body: profile == null && profileState.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : profile == null && profileState.errorMessage != null
-          ? _buildErrorState(profileState.errorMessage!)
+      body: profile == null
+          ? (profileState.errorMessage != null
+                ? _buildErrorState(profileState.errorMessage!)
+                : const Center(child: CircularProgressIndicator()))
           : RefreshIndicator(
               onRefresh: () => ref
                   .read(profileProvider.notifier)
@@ -154,7 +154,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         ProfileAvatar(
-                          imageUrl: profile?.avatar,
+                          imageUrl: profile.avatar,
                           isReadOnly:
                               !_isEditing ||
                               profileState.isSaving ||
@@ -232,7 +232,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         if (_isEditing)
                           ProfileForm(
                             key: ValueKey(profile),
-                            initialProfile: profile!,
+                            initialProfile: profile,
                             isSubmitting: profileState.isSaving,
                             onCancel: () => setState(() => _isEditing = false),
                             onSave: (request) async {
@@ -255,7 +255,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           )
                         else
                           ProfileInfo(
-                            profile: profile!,
+                            profile: profile,
                             onEdit: () => setState(() => _isEditing = true),
                             onFeedback: () => context.push('/feedback'),
                             onDeleteAccount: _handleDeleteAccount,
