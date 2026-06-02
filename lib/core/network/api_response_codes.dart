@@ -30,6 +30,9 @@ class ApiResponseCodes {
   static const int userAlreadyExists = 3006;
   static const int userNotFound = 3007;
   static const int passwordIncorrect = 3008;
+  // Only one active JWT per user — the latest login wins. The old device's
+  // token is rejected with this code on the next protected call.
+  static const int accountLoggedInElsewhere = 3009;
   static const int permissionDenied = 3101;
   static const int adminRoleRequired = 3102;
 

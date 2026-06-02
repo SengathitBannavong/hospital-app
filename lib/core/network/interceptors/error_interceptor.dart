@@ -7,6 +7,28 @@ import 'package:hospital_app/core/network/token_repository.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 
 class ErrorInterceptor extends Interceptor {
+  // Token/session-rejection codes carried in the {code,message,data} body.
+  // 3009 = account logged in on another device (only one active JWT per user).
+  static const _sessionRejectedCodes = <int>{
+    ApiResponseCodes.invalidToken,
+    ApiResponseCodes.tokenInvalid,
+    ApiResponseCodes.tokenExpired,
+    ApiResponseCodes.userNotAuthenticated,
+    ApiResponseCodes.accountLoggedInElsewhere,
+  };
+
+  // This backend wraps most responses as HTTP 200 + {code,...}, so a rejected
+  // token (e.g. 3009) arrives as a *success* HTTP response with an error code —
+  // it never reaches onError. Inspect every response body for a session code.
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final code = _bodyCode(response.data);
+    if (code != null && _sessionRejectedCodes.contains(code)) {
+      unawaited(_handleSessionRejected(code, _bodyMessage(response.data)));
+    }
+    return handler.next(response);
+  }
+
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     String errorMessage =
@@ -14,11 +36,15 @@ class ErrorInterceptor extends Interceptor {
 
     // Handle global status code actions
     final statusCode = err.response?.statusCode;
-    if (_isSessionRejected(err)) {
+    final bodyCode = _bodyCode(err.response?.data);
+    if (statusCode == ApiResponseCodes.httpUnauthorized ||
+        (bodyCode != null && _sessionRejectedCodes.contains(bodyCode))) {
       // The token was rejected — most often because the account logged in from
       // another device (server invalidates the old session), or the token
       // expired. Force a logout so the user is bounced back to login.
-      unawaited(_handleSessionRejected(err));
+      unawaited(
+        _handleSessionRejected(bodyCode, _extractServerMessage(err)),
+      );
     } else if (statusCode == ApiResponseCodes.httpForbidden) {
       AppToast.showWarning("Forbidden - 403: Handle permission issues");
     } else if (statusCode == ApiResponseCodes.httpInternalServerError) {
@@ -31,38 +57,38 @@ class ErrorInterceptor extends Interceptor {
     return handler.next(err.copyWith(message: errorMessage));
   }
 
-  // A rejected token shows up either as HTTP 401, or as one of the custom
-  // session/token codes in the {code,message,data} body.
-  bool _isSessionRejected(DioException err) {
-    if (err.response?.statusCode == ApiResponseCodes.httpUnauthorized) {
-      return true;
-    }
-    final code = _extractBodyCode(err);
-    return code == ApiResponseCodes.invalidToken ||
-        code == ApiResponseCodes.tokenInvalid ||
-        code == ApiResponseCodes.tokenExpired ||
-        code == ApiResponseCodes.userNotAuthenticated;
-  }
-
-  Future<void> _handleSessionRejected(DioException err) async {
+  Future<void> _handleSessionRejected(int? code, String? serverMessage) async {
     // Only force a logout if we actually held a session, so a 401 during the
     // login request itself (bad credentials) doesn't show a misleading message.
     if (!await TokenRepository.hasToken()) return;
     final loggedOut = await SessionManager.forceLogout();
     if (loggedOut) {
-      AppToast.showWarning(
-        _extractServerMessage(err) ??
-            'Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.',
-      );
+      AppToast.showWarning(_sessionMessage(code, serverMessage));
     }
   }
 
-  int? _extractBodyCode(DioException err) {
-    final data = err.response?.data;
+  String _sessionMessage(int? code, String? serverMessage) {
+    if (code == ApiResponseCodes.accountLoggedInElsewhere) {
+      return 'Tài khoản đã đăng nhập trên thiết bị khác. '
+          'Vui lòng đăng nhập lại.';
+    }
+    return serverMessage ??
+        'Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.';
+  }
+
+  int? _bodyCode(dynamic data) {
     if (data is Map) {
       final code = data['code'];
       if (code is int) return code;
       return int.tryParse(code?.toString() ?? '');
+    }
+    return null;
+  }
+
+  String? _bodyMessage(dynamic data) {
+    if (data is Map) {
+      final message = data['message'];
+      if (message is String && message.trim().isNotEmpty) return message;
     }
     return null;
   }
