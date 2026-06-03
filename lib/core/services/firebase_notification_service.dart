@@ -111,6 +111,21 @@ class FirebaseNotificationService {
     }
   }
 
+  /// Returns the current FCM token without (re-)registering it with the
+  /// backend. Used at logout to tell the server which device push token to
+  /// deactivate. Returns null when Firebase is disabled or not initialized.
+  Future<String?> getCurrentToken() async {
+    if (!isEnabled || !_initialized) {
+      return null;
+    }
+    try {
+      return await _messaging.getToken();
+    } catch (e) {
+      debugPrint('[FCM] getCurrentToken error: $e');
+      return null;
+    }
+  }
+
   Future<void> _registerTokenWithBackend(String token) async {
     try {
       final platform = Platform.isIOS ? 'ios' : 'android';

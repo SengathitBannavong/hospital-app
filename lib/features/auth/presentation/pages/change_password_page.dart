@@ -99,8 +99,9 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
       // Handle 401 - token invalid scenario
       if (errorMessage.contains('401') ||
           errorMessage.contains('Unauthorized')) {
-        // Token is invalid, logout and redirect to login
-        await ref.read(authStateProvider.notifier).logout();
+        // Token is invalid, logout and redirect to login. The session is
+        // already rejected, so skip the backend logout call.
+        await ref.read(authStateProvider.notifier).logout(notifyBackend: false);
         if (mounted) {
           AppToast.showError(
             'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.',

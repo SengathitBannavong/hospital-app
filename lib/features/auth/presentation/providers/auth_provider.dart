@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/network/token_repository.dart';
+import 'package:hospital_app/core/services/firebase_notification_service.dart';
 import 'package:hospital_app/features/auth/data/models/otp_response.dart';
 import '../../data/auth_repository.dart';
 import '../../data/models/auth_user.dart';
@@ -42,7 +43,22 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
     state = user;
   }
 
-  Future<void> logout() async {
+  // Logs the user out and clears the local session.
+  //
+  // For an explicit user-initiated logout, [notifyBackend] is true so the
+  // server can deactivate this device's push token ([fcmToken]). Forced/
+  // automatic logouts (session rejected by the backend, post-delete-account)
+  // pass notifyBackend: false — the session is already invalid or the account
+  // is gone, so there is nothing useful to call and we avoid a doomed request.
+  Future<void> logout({String? fcmToken, bool notifyBackend = true}) async {
+    if (notifyBackend) {
+      // Resolve the current device push token (null when Firebase is disabled)
+      // so the backend can deactivate it. Callers may also pass one explicitly.
+      final token =
+          fcmToken ??
+          await FirebaseNotificationService.instance.getCurrentToken();
+      await _repository.logout(fcmToken: token);
+    }
     await TokenRepository.deleteToken();
     state = null;
   }
@@ -133,8 +149,9 @@ class AuthNotifier extends StateNotifier<AuthUser?> {
   // Delete user account (requires authentication)
   Future<void> deleteAccount({required String password}) async {
     await _repository.deleteAccount(password: password);
-    // After successful deletion, logout
-    await logout();
+    // After successful deletion the account no longer exists, so there is no
+    // backend session to notify — just clear the local session.
+    await logout(notifyBackend: false);
   }
 
   // Resend OTP verification code

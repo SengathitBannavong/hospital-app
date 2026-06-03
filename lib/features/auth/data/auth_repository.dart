@@ -203,6 +203,25 @@ class AuthRepository {
     }
   }
 
+  // Notify the backend of a logout (requires authentication).
+  //
+  // Server-side this only deactivates the supplied push token (sets the FCM
+  // token's is_active = false); the local session is cleared by the caller
+  // regardless. Best-effort: a network/server failure must never block the
+  // user from logging out, so errors are swallowed.
+  Future<void> logout({String? fcmToken}) async {
+    try {
+      await ApiClient.instance.post(
+        ApiEndpoints.logout,
+        data: {
+          if (fcmToken != null && fcmToken.isNotEmpty) 'fcm_token': fcmToken,
+        },
+      );
+    } on DioException {
+      // Ignore — local logout proceeds regardless.
+    }
+  }
+
   // Helper to extract error message from DioException
   String _extractErrorMessage(DioException e) {
     if (e.response?.data is Map<String, dynamic>) {
