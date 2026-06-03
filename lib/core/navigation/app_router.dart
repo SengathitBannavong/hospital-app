@@ -53,9 +53,8 @@ class RouterNotifier extends ChangeNotifier {
     // Let the network layer force a logout when the backend rejects the token
     // (e.g. logged in from another device). Clearing auth state makes
     // redirect() bounce the user to /login.
-    SessionManager.onForceLogout = () => _ref
-        .read(authStateProvider.notifier)
-        .logout(notifyBackend: false);
+    SessionManager.onForceLogout = () =>
+        _ref.read(authStateProvider.notifier).logout(notifyBackend: false);
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
