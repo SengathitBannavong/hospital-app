@@ -3,19 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
+import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/presentation/widgets/poi_picker.dart';
 import 'package:hospital_app/features/staff/presentation/providers/staff_providers.dart';
 
 class RequestStaffPage extends ConsumerStatefulWidget {
-  const RequestStaffPage({super.key});
+  const RequestStaffPage({super.key, this.initialPoi});
+
+  /// Pre-selected location, e.g. when opened from a POI on the map.
+  final MapPoi? initialPoi;
 
   @override
   ConsumerState<RequestStaffPage> createState() => _RequestStaffPageState();
 }
 
 class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
-  final _nodeController = TextEditingController();
   final _assetController = TextEditingController();
   final _noteController = TextEditingController();
+  MapPoi? _poi;
   String _assistanceType = 'Hỗ trợ di chuyển';
   bool _isSubmitting = false;
   bool _submitted = false;
@@ -28,17 +33,27 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _poi = widget.initialPoi;
+  }
+
+  @override
   void dispose() {
-    _nodeController.dispose();
     _assetController.dispose();
     _noteController.dispose();
     super.dispose();
   }
 
+  Future<void> _pickPoi() async {
+    final poi = await showPoiPicker(context, title: 'Chọn vị trí hiện tại');
+    if (poi != null) setState(() => _poi = poi);
+  }
+
   Future<void> _submit() async {
-    final nodeId = _nodeController.text.trim();
+    final nodeId = _poi?.poiCode ?? '';
     if (nodeId.isEmpty) {
-      AppToast.showError('Vui lòng nhập mã vị trí của bạn.');
+      AppToast.showError('Vui lòng chọn vị trí của bạn.');
       return;
     }
 
@@ -85,7 +100,8 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
         child: _submitted
             ? _SuccessView()
             : _FormView(
-                nodeController: _nodeController,
+                selectedPoi: _poi,
+                onPickLocation: _pickPoi,
                 assetController: _assetController,
                 noteController: _noteController,
                 assistanceType: _assistanceType,
@@ -101,7 +117,8 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
 
 class _FormView extends StatelessWidget {
   const _FormView({
-    required this.nodeController,
+    required this.selectedPoi,
+    required this.onPickLocation,
     required this.assetController,
     required this.noteController,
     required this.assistanceType,
@@ -111,7 +128,8 @@ class _FormView extends StatelessWidget {
     required this.types,
   });
 
-  final TextEditingController nodeController;
+  final MapPoi? selectedPoi;
+  final VoidCallback onPickLocation;
   final TextEditingController assetController;
   final TextEditingController noteController;
   final String assistanceType;
@@ -144,15 +162,11 @@ class _FormView extends StatelessWidget {
                   .toList(),
             ),
             const SizedBox(height: AppSpacing.lg),
-            TextField(
-              controller: nodeController,
-              enabled: !isSubmitting,
-              decoration: const InputDecoration(
-                labelText: 'Mã vị trí hiện tại *',
-                hintText: 'vd: ENT-01',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on_outlined),
-              ),
+            PoiPickerField(
+              label: 'Vị trí hiện tại *',
+              hint: 'Chọn vị trí của bạn...',
+              selected: selectedPoi,
+              onTap: isSubmitting ? () {} : onPickLocation,
             ),
             const SizedBox(height: AppSpacing.md),
             TextField(

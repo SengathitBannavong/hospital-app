@@ -15,51 +15,62 @@ class _FlowLegend extends StatelessWidget {
       shadowColor: scheme.shadow,
       borderRadius: AppRadius.borderSm,
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.sm),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isStale ? 'Flow heatmap · stale' : 'Flow heatmap',
-              style: context.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            if (noData)
-              Row(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: 6,
+        ),
+        child: noData
+            ? Tooltip(
+                message: 'No live flow data',
+                child: Icon(
+                  Icons.warning_amber_rounded,
+                  size: 16,
+                  color: scheme.error,
+                ),
+              )
+            : Row(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 14,
-                    color: scheme.error,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'No live flow data',
-                    style: context.textTheme.labelSmall?.copyWith(
-                      color: scheme.error,
+                  Container(
+                    width: 8,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          MapTokens.debugTap.withValues(alpha: 0.7),
+                          MapTokens.debugPoi.withValues(alpha: 0.7),
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              )
-            else
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const _LegendSwatch(color: Color(0xFFFFD166)),
                   const SizedBox(width: 4),
-                  Text('0', style: context.textTheme.labelSmall),
-                  const SizedBox(width: AppSpacing.sm),
-                  const _LegendSwatch(color: Color(0xFFE63946)),
-                  const SizedBox(width: 4),
-                  Text('1 density', style: context.textTheme.labelSmall),
+                  SizedBox(
+                    height: 44,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('1', style: context.textTheme.labelSmall),
+                        Text('0', style: context.textTheme.labelSmall),
+                      ],
+                    ),
+                  ),
+                  if (isStale) ...[
+                    const SizedBox(width: 4),
+                    Tooltip(
+                      message: 'Stale data',
+                      child: Icon(
+                        Icons.schedule_rounded,
+                        size: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ],
               ),
-          ],
-        ),
       ),
     );
   }

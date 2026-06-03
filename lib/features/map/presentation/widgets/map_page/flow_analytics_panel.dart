@@ -2,6 +2,7 @@ part of '../../pages/map_page.dart';
 
 class _FlowAnalyticsPanel extends StatelessWidget {
   final bool isStale;
+  final VoidCallback onClose;
   final bool heatmapActive;
   final bool edgeStatusActive;
   final bool bottlenecksActive;
@@ -19,6 +20,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
 
   const _FlowAnalyticsPanel({
     required this.isStale,
+    required this.onClose,
     required this.heatmapActive,
     required this.edgeStatusActive,
     required this.bottlenecksActive,
@@ -59,6 +61,18 @@ class _FlowAnalyticsPanel extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color: scheme.primary,
                   ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Đóng',
+                  onPressed: onClose,
                 ),
               ],
             ),

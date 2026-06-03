@@ -36,36 +36,6 @@ class InfoPage extends StatelessWidget {
             route: '/contact',
           ),
 
-          SizedBox(height: AppSpacing.xl),
-
-          // ── Asset / Device Services ──────────────────────────
-          _SectionHeader(title: 'Dịch vụ thiết bị'),
-          _InfoTile(
-            icon: Icons.accessible_rounded,
-            title: 'Trạm xe lăn',
-            route: '/asset/stations',
-          ),
-          _InfoTile(
-            icon: Icons.search_rounded,
-            title: 'Tìm xe lăn gần đây',
-            route: '/asset/search',
-          ),
-
-          SizedBox(height: AppSpacing.xl),
-
-          // ── Staff Assistance ─────────────────────────────────
-          _SectionHeader(title: 'Hỗ trợ nhân viên'),
-          _InfoTile(
-            icon: Icons.support_agent_rounded,
-            title: 'Yêu cầu hỗ trợ',
-            route: '/staff',
-          ),
-          _InfoTile(
-            icon: Icons.report_rounded,
-            title: 'Báo cáo vật cản',
-            route: '/flow/report-obstacle',
-          ),
-
           SizedBox(height: AppSpacing.xxl),
         ],
       ),

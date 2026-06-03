@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
@@ -73,7 +74,7 @@ class _MapPageState extends ConsumerState<MapPage>
   Size _lastGridSize = Size.zero;
   double _lastMinScale = 0;
   int _lastRouteSignature = 0;
-  bool _searchExpanded = true;
+  bool _searchExpanded = false;
   bool _arrivalOrderCommitted = false;
   bool _navCollapsed = false;
   bool _routePillCollapsed = false;
@@ -408,16 +409,17 @@ class _MapPageState extends ConsumerState<MapPage>
               dest: dest,
             ),
 
-          _buildStatusOverlay(
-            mediaTop: mediaTop,
-            hasRoute: hasRoute,
-            flowSnapshot: flowSnapshot,
-            isOnline: isOnline,
-            lastSyncedAt: lastSyncedAt,
-            locationSource: locationSource,
-            inlineNotice: inlineNotice,
-            activeMapId: activeMapId,
-          ),
+          if (!_searchExpanded)
+            _buildStatusOverlay(
+              mediaTop: mediaTop,
+              hasRoute: hasRoute,
+              flowSnapshot: flowSnapshot,
+              isOnline: isOnline,
+              lastSyncedAt: lastSyncedAt,
+              locationSource: locationSource,
+              inlineNotice: inlineNotice,
+              activeMapId: activeMapId,
+            ),
 
           _buildFloorSelectorOverlay(
             mediaTop: mediaTop,
@@ -654,7 +656,7 @@ class _MapPageState extends ConsumerState<MapPage>
     required MapPoi? dest,
   }) {
     return Positioned(
-      top: mediaTop + AppSpacing.md + 52,
+      top: mediaTop + AppSpacing.md + (_searchExpanded ? 52 : 0),
       left: AppSpacing.md,
       child: AnimatedSize(
         duration: MapMotion.medium,
@@ -719,7 +721,7 @@ class _MapPageState extends ConsumerState<MapPage>
     required int activeMapId,
   }) {
     return Positioned(
-      top: mediaTop + AppSpacing.md + (hasRoute ? 104 : 52),
+      top: mediaTop + AppSpacing.md + (hasRoute ? 52 : 0),
       left: AppSpacing.md,
       child: AnimatedSize(
         duration: MapMotion.medium,
@@ -812,6 +814,7 @@ class _MapPageState extends ConsumerState<MapPage>
         bottom: mediaBottom + 252,
         child: _FlowAnalyticsPanel(
           isStale: flow?.isStale ?? false,
+          onClose: () => setState(() => _showAnalyticsPanel = false),
           heatmapActive: flowVisible,
           edgeStatusActive: edgeStatusVisible,
           bottlenecksActive: bottlenecksVisible,
@@ -864,40 +867,16 @@ class _MapPageState extends ConsumerState<MapPage>
           ),
           const SizedBox(height: AppSpacing.sm),
           _MapFab(
-            icon: Icons.map_outlined,
-            tooltip: 'Map legend',
-            onPressed: _showLegend,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _MapFab(
-            icon: Icons.history_rounded,
-            tooltip: 'Route history',
-            onPressed: _showRouteHistory,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _MapFab(
-            icon: _showAnalyticsPanel
-                ? Icons.analytics_rounded
-                : Icons.analytics_outlined,
-            tooltip: 'Flow Analytics Options',
-            active: _showAnalyticsPanel,
-            onPressed: () {
-              setState(() {
-                _showAnalyticsPanel = !_showAnalyticsPanel;
-              });
-            },
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _MapFab(
             icon: Icons.center_focus_strong_rounded,
             tooltip: 'Recenter',
             onPressed: _recenter,
           ),
           const SizedBox(height: AppSpacing.sm),
           _MapFab(
-            icon: Icons.cleaning_services_rounded,
-            tooltip: 'Clear cache',
-            onPressed: _showClearCacheDialog,
+            icon: Icons.more_horiz_rounded,
+            tooltip: 'More map tools',
+            active: _showAnalyticsPanel,
+            onPressed: _showMoreMenu,
           ),
         ],
       ),
@@ -1148,6 +1127,10 @@ class _MapPageState extends ConsumerState<MapPage>
                     _setCurrentLocationFromPoi(poi);
                   }
                 : null,
+            onRequestAssistance: () {
+              Navigator.of(sheetContext).maybePop();
+              context.push('/staff', extra: poi);
+            },
           ),
         );
       },
@@ -1283,43 +1266,52 @@ class _MapPageState extends ConsumerState<MapPage>
     );
   }
 
-  Future<void> _showClearCacheDialog() async {
-    final shouldClear = await showDialog<bool>(
+  Future<void> _showMoreMenu() async {
+    await showModalBottomSheet<void>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Clear offline cache'),
-          content: const Text(
-            'This removes downloaded map and route data from this device. '
-            'The app will re-download the data the next time it is needed.',
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.map_outlined),
+                title: const Text('Map legend'),
+                onTap: () {
+                  Navigator.of(sheetContext).maybePop();
+                  _showLegend();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.history_rounded),
+                title: const Text('Route history'),
+                onTap: () {
+                  Navigator.of(sheetContext).maybePop();
+                  _showRouteHistory();
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  _showAnalyticsPanel
+                      ? Icons.analytics_rounded
+                      : Icons.analytics_outlined,
+                ),
+                title: const Text('Flow analytics'),
+                trailing: _showAnalyticsPanel
+                    ? const Icon(Icons.check_rounded)
+                    : null,
+                onTap: () {
+                  Navigator.of(sheetContext).maybePop();
+                  setState(() => _showAnalyticsPanel = !_showAnalyticsPanel);
+                },
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Clear'),
-            ),
-          ],
         );
       },
     );
-    if (!mounted || shouldClear != true) return;
-
-    await ref.read(mapCacheProvider).clearAll();
-    if (!mounted) return;
-    final id = _defaultMapId;
-    ref
-      ..invalidate(mapMetaProvider(id))
-      ..invalidate(mapNodesProvider(id))
-      ..invalidate(mapEdgesProvider(id))
-      ..invalidate(flowSnapshotProvider(id))
-      ..invalidate(mapObstaclesProvider(id))
-      ..invalidate(mapLastSyncedAtProvider(id))
-      ..invalidate(routeResultProvider);
-    ref.read(mapInlineNoticeProvider.notifier).state = 'Cache cleared';
   }
 
   Future<void> _showRoutePanel() async {

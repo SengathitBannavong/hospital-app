@@ -13,16 +13,36 @@ class MainShell extends ConsumerWidget {
     final chatUnread = ref.watch(chatUnreadTotalProvider);
     final hasChatActivity = ref.watch(chatHasActivityProvider);
 
+    final destinationCount = 5;
+
+    void goToIndex(int index) {
+      if (index < 0 || index >= destinationCount) return;
+      navigationShell.goBranch(
+        index,
+        initialLocation: index == navigationShell.currentIndex,
+      );
+    }
+
     return Scaffold(
-      body: navigationShell,
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (details) {
+          final velocity = details.primaryVelocity ?? 0;
+          // Ignore small/ambiguous swipes.
+          if (velocity.abs() < 200) return;
+          if (velocity < 0) {
+            // Swiped left -> move to next page.
+            goToIndex(navigationShell.currentIndex + 1);
+          } else {
+            // Swiped right -> move to previous page.
+            goToIndex(navigationShell.currentIndex - 1);
+          }
+        },
+        child: navigationShell,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) {
-          navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
-          );
-        },
+        onDestinationSelected: goToIndex,
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -32,17 +52,12 @@ class MainShell extends ConsumerWidget {
           const NavigationDestination(
             icon: Icon(Icons.local_hospital_outlined),
             selectedIcon: Icon(Icons.local_hospital_rounded),
-            label: 'Y tế',
+            label: 'Utilities',
           ),
           const NavigationDestination(
             icon: Icon(Icons.map_outlined),
             selectedIcon: Icon(Icons.map_rounded),
             label: 'Bản đồ',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Hồ sơ',
           ),
           NavigationDestination(
             icon: _ChatNavIcon(
@@ -56,6 +71,11 @@ class MainShell extends ConsumerWidget {
               child: const Icon(Icons.chat_bubble_rounded),
             ),
             label: 'Chat',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
+            label: 'Hồ sơ',
           ),
         ],
       ),

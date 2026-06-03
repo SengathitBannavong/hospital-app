@@ -21,9 +21,12 @@ import 'package:hospital_app/features/chat/presentation/pages/chat_rooms_page.da
 import 'package:hospital_app/features/chat/presentation/pages/chat_messages_page.dart';
 import 'package:hospital_app/features/info/presentation/pages/info_page.dart';
 import 'package:hospital_app/features/main/presentation/pages/main_shell.dart';
+import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/presentation/pages/map_page.dart';
+import 'package:hospital_app/features/medical/data/models/medical_task.dart';
 import 'package:hospital_app/features/medical/presentation/pages/prescription_page.dart';
 import 'package:hospital_app/features/medical/presentation/pages/queue_page.dart';
+import 'package:hospital_app/features/medical/presentation/pages/task_detail_page.dart';
 import 'package:hospital_app/features/medical/presentation/pages/task_list_page.dart';
 import 'package:hospital_app/features/notification/presentation/pages/notification_page.dart';
 import 'package:hospital_app/features/profile/presentation/page/profile_page.dart';
@@ -123,6 +126,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     path: 'prescription',
                     builder: (context, state) => const PrescriptionPage(),
                   ),
+                  GoRoute(
+                    path: 'task',
+                    builder: (context, state) {
+                      final task = state.extra as MedicalTask;
+                      return TaskDetailPage(task: task);
+                    },
+                  ),
                 ],
               ),
             ],
@@ -135,20 +145,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/profile',
-                builder: (context, state) => const ProfilePage(),
-              ),
-            ],
-          ),
           // Chat Branch
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/chat',
                 builder: (context, state) => const ChatRoomsPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (context, state) => const ProfilePage(),
               ),
             ],
           ),
@@ -269,7 +279,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // ── Staff ────────────────────────────────────────────────
       GoRoute(
         path: '/staff',
-        builder: (context, state) => const RequestStaffPage(),
+        builder: (context, state) {
+          final poi = state.extra as MapPoi?;
+          return RequestStaffPage(initialPoi: poi);
+        },
       ),
 
       // ── Route Features ───────────────────────────────────────
