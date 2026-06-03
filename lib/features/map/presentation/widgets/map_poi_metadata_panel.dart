@@ -8,6 +8,7 @@ class MapPoiMetadataPanel extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onSetDestination;
   final VoidCallback? onSetCurrentLocation;
+  final VoidCallback? onRequestAssistance;
 
   const MapPoiMetadataPanel({
     super.key,
@@ -15,6 +16,7 @@ class MapPoiMetadataPanel extends StatelessWidget {
     required this.onClose,
     required this.onSetDestination,
     this.onSetCurrentLocation,
+    this.onRequestAssistance,
   });
 
   @override
@@ -155,6 +157,17 @@ class MapPoiMetadataPanel extends StatelessWidget {
               label: const Text('Set destination'),
             ),
           ),
+          if (onRequestAssistance != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onRequestAssistance,
+                icon: const Icon(Icons.support_agent_rounded),
+                label: const Text('Yêu cầu hỗ trợ'),
+              ),
+            ),
+          ],
         ],
       ),
     );

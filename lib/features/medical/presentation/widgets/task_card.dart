@@ -6,17 +6,11 @@ class TaskCard extends StatelessWidget {
   const TaskCard({
     super.key,
     required this.task,
-    this.onCheckin,
-    this.onCheckout,
-    this.onCancel,
-    this.onCheckResult,
+    this.onTap,
   });
 
   final MedicalTask task;
-  final VoidCallback? onCheckin;
-  final VoidCallback? onCheckout;
-  final VoidCallback? onCancel;
-  final VoidCallback? onCheckResult;
+  final VoidCallback? onTap;
 
   Color _statusColor(BuildContext context, String status) {
     final scheme = Theme.of(context).colorScheme;
@@ -37,12 +31,29 @@ class TaskCard extends StatelessWidget {
     final statusColor = _statusColor(context, task.status);
 
     return Card(
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(task.taskName, style: Theme.of(context).textTheme.titleMedium),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.borderLg,
+        child: Padding(
+          padding: AppSpacing.cardPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    task.taskName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                if (onTap != null)
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+              ],
+            ),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: AppSpacing.sm,
@@ -97,41 +108,8 @@ class TaskCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
-            if (onCheckin != null ||
-                onCheckout != null ||
-                onCancel != null ||
-                onCheckResult != null) ...[
-              const Divider(height: AppSpacing.lg),
-              Wrap(
-                spacing: AppSpacing.sm,
-                children: [
-                  if (onCheckin != null)
-                    OutlinedButton(
-                      onPressed: onCheckin,
-                      child: const Text('Check-in'),
-                    ),
-                  if (onCheckout != null)
-                    OutlinedButton(
-                      onPressed: onCheckout,
-                      child: const Text('Check-out'),
-                    ),
-                  if (onCheckResult != null)
-                    TextButton(
-                      onPressed: onCheckResult,
-                      child: const Text('Kết quả'),
-                    ),
-                  if (onCancel != null)
-                    TextButton(
-                      onPressed: onCancel,
-                      style: TextButton.styleFrom(
-                        foregroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                      child: const Text('Hủy'),
-                    ),
-                ],
-              ),
             ],
-          ],
+          ),
         ),
       ),
     );

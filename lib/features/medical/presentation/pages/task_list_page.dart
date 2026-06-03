@@ -13,81 +13,6 @@ class TaskListPage extends ConsumerWidget {
     return error.toString().replaceFirst('Exception: ', '');
   }
 
-  void _showSnackBar(
-    BuildContext context,
-    String message, {
-    bool isError = false,
-  }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError
-            ? Theme.of(context).colorScheme.error
-            : Theme.of(context).colorScheme.primary,
-      ),
-    );
-  }
-
-  Future<void> _runAction(
-    BuildContext context,
-    WidgetRef ref,
-    Future<bool> Function() action,
-    String successMessage,
-  ) async {
-    try {
-      await action();
-      if (!context.mounted) return;
-      _showSnackBar(context, successMessage);
-      ref
-        ..invalidate(medicalTasksProvider)
-        ..invalidate(medicalHistoryProvider);
-    } catch (error) {
-      if (!context.mounted) return;
-      _showSnackBar(context, _cleanError(error), isError: true);
-    }
-  }
-
-  Future<void> _showResultStatus(
-    BuildContext context,
-    WidgetRef ref,
-    int treatmentId,
-  ) async {
-    try {
-      // เช็คผลตรวจจาก treatment_id
-      final result = await ref
-          .read(medicalRepositoryProvider)
-          .getResultStatus(treatmentId: treatmentId);
-
-      if (!context.mounted) return;
-
-      if (result == null) {
-        _showSnackBar(context, 'Không có dữ liệu kết quả');
-        return;
-      }
-
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Kết quả'),
-          content: Text(
-            'Treatment: ${result.treatmentId}\n'
-            'Trạng thái: ${result.status}\n'
-            'Có kết quả: ${result.hasResult ? 'Có' : 'Chưa'}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Đóng'),
-            ),
-          ],
-        ),
-      );
-    } catch (error) {
-      if (!context.mounted) return;
-      _showSnackBar(context, _cleanError(error), isError: true);
-    }
-  }
-
   Future<void> _refreshAll(WidgetRef ref) async {
     ref
       ..invalidate(medicalTasksProvider)
@@ -121,56 +46,7 @@ class TaskListPage extends ConsumerWidget {
         for (final task in tasks) ...[
           TaskCard(
             task: task,
-            onCheckin: () => _runAction(
-              context,
-              ref,
-              () => ref
-                  .read(medicalRepositoryProvider)
-                  .checkinRoom(treatmentId: task.treatmentId),
-              'Check-in thành công',
-            ),
-            onCheckout: () => _runAction(
-              context,
-              ref,
-              () => ref
-                  .read(medicalRepositoryProvider)
-                  .checkoutRoom(treatmentId: task.treatmentId),
-              'Check-out thành công',
-            ),
-            onCancel: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Hủy chỉ định'),
-                  content: const Text('Bạn có chắc chắn muốn hủy không?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Không'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: const Text('Có'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (!context.mounted) return;
-
-              if (confirmed == true) {
-                await _runAction(
-                  context,
-                  ref,
-                  () => ref
-                      .read(medicalRepositoryProvider)
-                      .cancelTask(treatmentId: task.treatmentId),
-                  'Đã hủy chỉ định',
-                );
-              }
-            },
-            onCheckResult: () =>
-                _showResultStatus(context, ref, task.treatmentId),
+            onTap: () => context.push('/medical/task', extra: task),
           ),
           const SizedBox(height: AppSpacing.md),
         ],
@@ -218,27 +94,79 @@ class TaskListPage extends ConsumerWidget {
   }
 
   Widget _buildQuickActions(BuildContext context) {
-    return Row(
+    final cards = <_ActionCard>[
+      _ActionCard(
+        title: 'Hàng đợi',
+        subtitle: 'Xem số thứ tự',
+        icon: Icons.people_outline,
+        color: AppColors.taskInProgress,
+        onTap: () => context.push('/medical/queue'),
+      ),
+      _ActionCard(
+        title: 'Đơn thuốc',
+        subtitle: 'Lịch sử đơn thuốc',
+        icon: Icons.receipt_long,
+        color: AppColors.taskWaiting,
+        onTap: () => context.push('/medical/prescription'),
+      ),
+      _ActionCard(
+        title: 'Trạm xe lăn',
+        subtitle: 'Các trạm xe lăn',
+        icon: Icons.local_parking_rounded,
+        color: AppColors.secondary,
+        onTap: () => context.push('/asset/stations'),
+      ),
+      _ActionCard(
+        title: 'Tìm xe lăn gần đây',
+        subtitle: 'Xe lăn còn trống',
+        icon: Icons.accessible_rounded,
+        color: AppColors.deptNeurology,
+        onTap: () => context.push('/asset/search'),
+      ),
+      _ActionCard(
+        title: 'Hỗ trợ nhân viên',
+        subtitle: 'Yêu cầu hỗ trợ',
+        icon: Icons.support_agent_rounded,
+        color: AppColors.success,
+        onTap: () => context.push('/staff'),
+      ),
+      _ActionCard(
+        title: 'Báo cáo vật cản',
+        subtitle: 'Báo lối đi bị chặn',
+        icon: Icons.report_rounded,
+        color: AppColors.warning,
+        onTap: () => context.push('/flow/report-obstacle'),
+      ),
+      _ActionCard(
+        title: 'Thông tin & FAQ',
+        subtitle: 'Hướng dẫn, câu hỏi',
+        icon: Icons.info_outline_rounded,
+        color: AppColors.statusOffline,
+        onTap: () => context.push('/info'),
+      ),
+    ];
+
+    // Lay the cards out two-per-row so every service is visible at a glance.
+    return Column(
       children: [
-        Expanded(
-          child: _ActionCard(
-            title: 'Hàng đợi',
-            subtitle: 'Xem số thứ tự',
-            icon: Icons.people_outline,
-            color: AppColors.taskInProgress,
-            onTap: () => context.push('/medical/queue'),
+        for (var i = 0; i < cards.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: AppSpacing.md),
+          // IntrinsicHeight gives the stretched Row a bounded height inside
+          // the scrollable ListView so both cards share the taller's height.
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: cards[i]),
+                const SizedBox(width: AppSpacing.md),
+                if (i + 1 < cards.length)
+                  Expanded(child: cards[i + 1])
+                else
+                  const Expanded(child: SizedBox()),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: _ActionCard(
-            title: 'Đơn thuốc',
-            subtitle: 'Lịch sử đơn thuốc',
-            icon: Icons.receipt_long,
-            color: AppColors.taskWaiting,
-            onTap: () => context.push('/medical/prescription'),
-          ),
-        ),
+        ],
       ],
     );
   }
@@ -253,13 +181,28 @@ class TaskListPage extends ConsumerWidget {
         actions: [
           IconButton(
             onPressed: () async {
-              await _runAction(
-                context,
-                ref,
+              final messenger = ScaffoldMessenger.of(context);
+              final scheme = Theme.of(context).colorScheme;
+              try {
                 // เรียก API เพื่อ sync dữ liệu HIS
-                () => ref.read(medicalRepositoryProvider).syncNow(),
-                'Đã đồng bộ HIS',
-              );
+                await ref.read(medicalRepositoryProvider).syncNow();
+                ref
+                  ..invalidate(medicalTasksProvider)
+                  ..invalidate(medicalHistoryProvider);
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: const Text('Đã đồng bộ HIS'),
+                    backgroundColor: scheme.primary,
+                  ),
+                );
+              } catch (error) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(_cleanError(error)),
+                    backgroundColor: scheme.error,
+                  ),
+                );
+              }
             },
             icon: const Icon(Icons.sync_rounded),
             tooltip: 'Sync HIS',

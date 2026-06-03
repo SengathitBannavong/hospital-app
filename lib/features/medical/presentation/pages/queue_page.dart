@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/hospital_theme.dart';
+import '../../../map/data/models/map_poi.dart';
+import '../../../map/presentation/widgets/poi_picker.dart';
 import '../../data/models/room_open.dart';
 import '../providers/medical_providers.dart';
 import '../widgets/queue_item.dart';
@@ -13,27 +15,13 @@ class QueuePage extends ConsumerStatefulWidget {
 }
 
 class _QueuePageState extends ConsumerState<QueuePage> {
-  final TextEditingController _poiController = TextEditingController();
-  int? _poiId;
+  MapPoi? _poi;
 
-  @override
-  void dispose() {
-    _poiController.dispose();
-    super.dispose();
-  }
+  int? get _poiId => _poi?.poiId;
 
-  void _submitPoiId() {
-    final value = int.tryParse(_poiController.text.trim());
-    if (value == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập POI ID hợp lệ')),
-      );
-      return;
-    }
-
-    setState(() {
-      _poiId = value;
-    });
+  Future<void> _pickPoi() async {
+    final poi = await showPoiPicker(context, title: 'Chọn phòng khám');
+    if (poi != null) setState(() => _poi = poi);
   }
 
   Future<void> _refresh() async {
@@ -101,33 +89,16 @@ class _QueuePageState extends ConsumerState<QueuePage> {
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             const SizedBox(height: AppSpacing.md),
-            Card(
-              child: Padding(
-                padding: AppSpacing.cardPadding,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Nhập POI ID phòng khám'),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextField(
-                      controller: _poiController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(hintText: 'Ví dụ: 3'),
-                      onSubmitted: (_) => _submitPoiId(),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    ElevatedButton(
-                      onPressed: _submitPoiId,
-                      child: const Text('Xem hàng đợi'),
-                    ),
-                  ],
-                ),
-              ),
+            PoiPickerField(
+              label: 'Phòng khám',
+              hint: 'Chọn phòng khám...',
+              selected: _poi,
+              onTap: _pickPoi,
             ),
             const SizedBox(height: AppSpacing.lg),
             if (poiId == null)
               const Text(
-                'Hãy nhập POI ID để xem trạng thái hàng đợi và giờ mở cửa.',
+                'Hãy chọn phòng khám để xem trạng thái hàng đợi và giờ mở cửa.',
               )
             else ...[
               ref

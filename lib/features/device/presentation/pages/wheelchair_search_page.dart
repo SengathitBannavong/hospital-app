@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/device/data/models/asset_device.dart';
 import 'package:hospital_app/features/device/presentation/providers/asset_providers.dart';
+import 'package:hospital_app/features/map/data/models/map_poi.dart';
+import 'package:hospital_app/features/map/presentation/widgets/poi_picker.dart';
 
 class WheelchairSearchPage extends ConsumerStatefulWidget {
   const WheelchairSearchPage({super.key});
@@ -14,19 +16,11 @@ class WheelchairSearchPage extends ConsumerStatefulWidget {
 }
 
 class _WheelchairSearchPageState extends ConsumerState<WheelchairSearchPage> {
-  final _controller = TextEditingController();
-  String? _searchedNodeId;
+  MapPoi? _selectedPoi;
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _search() {
-    final q = _controller.text.trim();
-    if (q.isEmpty) return;
-    setState(() => _searchedNodeId = q);
+  Future<void> _pickPoi() async {
+    final poi = await showPoiPicker(context, title: 'Chọn vị trí của bạn');
+    if (poi != null) setState(() => _selectedPoi = poi);
   }
 
   @override
@@ -43,26 +37,15 @@ class _WheelchairSearchPageState extends ConsumerState<WheelchairSearchPage> {
         children: [
           Padding(
             padding: AppSpacing.pageWithTop,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'Nhập mã POI vị trí (vd: ENT-01)',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.location_on_outlined),
-                    ),
-                    onSubmitted: (_) => _search(),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                FilledButton(onPressed: _search, child: const Text('Tìm')),
-              ],
+            child: PoiPickerField(
+              label: 'Vị trí của bạn',
+              hint: 'Chọn vị trí để tìm xe lăn gần đó...',
+              selected: _selectedPoi,
+              onTap: _pickPoi,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          Expanded(child: _Results(nodeId: _searchedNodeId)),
+          Expanded(child: _Results(nodeId: _selectedPoi?.poiCode)),
         ],
       ),
     );

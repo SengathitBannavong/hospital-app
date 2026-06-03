@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
@@ -1148,6 +1149,10 @@ class _MapPageState extends ConsumerState<MapPage>
                     _setCurrentLocationFromPoi(poi);
                   }
                 : null,
+            onRequestAssistance: () {
+              Navigator.of(sheetContext).maybePop();
+              context.push('/staff', extra: poi);
+            },
           ),
         );
       },
