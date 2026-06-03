@@ -4,7 +4,7 @@ This overview is from the mobile app user's point of view. It measures what a
 patient/user can actually use in the Flutter app, not raw backend endpoint
 coverage.
 
-_Reflects `main` @ `01d23fe`, 2026-06-03._ Bottom nav is **5 tabs** —
+_Reflects `main` @ `0952fa4`, 2026-06-03._ Bottom nav is **5 tabs** —
 Home · Utilities (Medical) · Map · Chat · Profile — with swipe-to-switch between
 tabs. Notification, Info, FAQ, About, Contact, SOS, Settings, Feedback, and
 individual chat rooms are pushed routes.
@@ -25,11 +25,11 @@ missing endpoint count:
 | --- | --- | --- | --- | --- |
 | Authentication | `████████▌░` 85% | Login, register, OTP verify, forgot password, reset password, change password, **logout now calls `POST /api/auth/logout`** (deactivates this device's FCM token server-side; forced/session-rejected and post-delete logouts skip the call and clear locally), fixed signup/forgot-password OTP handoff. | Signup OTP resend still depends on a backend route. | `auth/resend_otp` (route missing) |
 | Home | `████████▌░` 85% | Map-first dashboard, real task count, unread notification **bell** badge, notification summary card, **6-shortcut quick-access grid** (queue, find wheelchair, staff, prescription, obstacle report, SOS), **weather summary card**, **startup app-update check**, pull-to-refresh, settings + logout menu. | Richer contextual summaries (active route, asset/SOS status). | No direct missing endpoint for current home. |
-| Profile | `████████▌░` 85% | View/edit profile, avatar upload with normalized media URLs, delete account, **device-token registration** (`set_devtoken`), `/settings` entry, **"Đánh giá ứng dụng" entry to feedback form**. | Profile-specific polish and richer account metadata. | None for current profile/settings flow. |
+| Profile | `████████▌░` 85% | View/edit profile, avatar upload with normalized media URLs, **device-token registration** (`set_devtoken`), `/settings` entry, **"Đánh giá ứng dụng" entry to feedback form**, **red logout button**. Delete-account now lives under **Settings → Tài khoản** (red tile, confirm + password flow) rather than on the profile screen. | Profile-specific polish and richer account metadata. | None for current profile/settings flow. |
 | Medical Tasks | `█████████░` 90% | View tasks, **per-task detail page** with check in/out room, result status, cancel; sync now; history-backed task flow; utility action grid. | Deeper task status + result follow-up. | None from current medical list. |
 | Queue | `████████░░` 80% | View queue status for a room/POI, picked via the shared **location picker** (`PoiPickerField`) instead of a typed code. | Broader queue browsing, stronger empty/error states. | None. |
 | Prescription | `████████░░` 80% | View prescription data. | Prescription history/details. | None. |
-| Notifications | `█████████▌` 95% | List + **pagination/load-more** + pull-to-refresh, mark read, mark all read, delete, **unread bell badge**, unified `/settings` page (`get_settings`/`set_settings`), device token, **optional FCM push** (off by default), provider/page tests. | Backend does not actually send pushes (stores tokens only, "Bucket B") and has no real notification triggers, so the list is seed-only in practice. | None (device token now wired). |
+| Notifications | `█████████▌` 95% | List + **pagination/load-more** + pull-to-refresh, mark read, mark all read, delete, **unread bell badge**, **60s polling fallback** (surfaces new items + read-state without manual refresh, since there is no backend push/WS), unified `/settings` page (`get_settings`/`set_settings`), device token, **optional FCM push** (off by default, now genuinely optional — lazy `FirebaseMessaging` so disabled builds never touch Firebase), provider/page tests. | Backend does not actually send pushes (stores tokens only, "Bucket B") and has no real notification triggers, so the list is seed-only in practice; polling masks the missing push within ~60s. | None (device token now wired). |
 | Indoor Map | `████████░░` 80% | Floor/map loading, grid rendering, POIs, local search, QR position set, offline cache, sync fallback. | Department/landmark browsing as user features; backend search as the normal path. | Optional/unused: `GET /api/map/get_depts`, `GET /api/map/get_landmarks` |
 | Navigation | `███████░░░` 70% | Current position, route preview, route drawing, simulated moving dot, pause/resume/stop, route history, clear history, order-on-arrival log. | Real active-route lifecycle, backend route steps/next-step/pass-node sync, ETA, cancel/share, dynamic modes. **`route/rate` has a complete `RouteRatingPage` + repo call wired but no navigation entry point — an orphan route, not reachable in any user flow.** | Not wired: `route/get_steps`, `route/get_next`, `route/get_active`, `POST route/get_eta`, `route/cancel`. Repo wrapper, no entry point: `route/pass_node`, `route/share`. Page + endpoint built but route unreachable: `route/rate`. |
 | Multi-stop Navigation | `██░░░░░░░░` 20% | Repository wrappers for ordered/unordered multi-stop calls. | No user flow for choosing multiple destinations or optimizing order. | UI for `POST route/order_multi`, `POST route/order_unordered` |
@@ -47,7 +47,8 @@ Overall user-facing progress is about `82%`.
 
 The strongest completed areas are authentication, medical tasks (now with a
 per-task detail page), prescriptions, **notifications (pagination + settings +
-optional push + tests)**, profile basics with device-token registration, indoor
+60s polling fallback + optional push + tests)**, profile basics with
+device-token registration, indoor
 map, QR positioning, the **dynamic Info/Utility hub** (FAQ/About/Contact +
 weather + app-update check + feedback), **SOS quick-send**, asset/wheelchair and
 staff-request flows (now surfaced on the Home grid and via a shared location
