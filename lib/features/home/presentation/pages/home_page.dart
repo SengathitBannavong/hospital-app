@@ -185,23 +185,72 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: AppSpacing.md),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 100),
-                child: Row(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: _QuickActionCard(
-                        title: 'Thông tin',
-                        icon: Icons.info_outline_rounded,
-                        onTap: () => context.push('/info'),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _QuickActionCard(
+                            title: 'Hàng đợi',
+                            icon: Icons.people_outline,
+                            onTap: () => context.push('/medical/queue'),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: _QuickActionCard(
+                            title: 'Tìm xe lăn',
+                            icon: Icons.accessible_rounded,
+                            onTap: () => context.push('/asset/search'),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: _QuickActionCard(
-                        title: 'SOS',
-                        icon: Icons.emergency_rounded,
-                        color: AppColors.emergency,
-                        onTap: () => context.push('/sos'),
-                      ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _QuickActionCard(
+                            title: 'Hỗ trợ',
+                            icon: Icons.support_agent_rounded,
+                            onTap: () => context.push('/staff'),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: _QuickActionCard(
+                            title: 'Đơn thuốc',
+                            icon: Icons.receipt_long,
+                            onTap: () => context.push(
+                              '/medical/prescription',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _QuickActionCard(
+                            title: 'Báo vật cản',
+                            icon: Icons.report_rounded,
+                            color: AppColors.warning,
+                            onTap: () => context.push(
+                              '/flow/report-obstacle',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: _QuickActionCard(
+                            title: 'SOS',
+                            icon: Icons.emergency_rounded,
+                            color: AppColors.emergency,
+                            onTap: () => context.push('/sos'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
