@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/utils/app_toast.dart';
-import '../../../../core/utils/delete_account_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../util/presentation/providers/util_providers.dart';
 import '../../data/models/profile_update_request.dart';
@@ -53,56 +52,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     AppToast.showSuccess('Đã đăng xuất thành công.');
     context.go('/login');
-  }
-
-  Future<void> _handleDeleteAccount() async {
-    final confirmed = await DeleteAccountService.showDeleteAccountConfirmation(
-      context,
-    );
-
-    if (confirmed == true && mounted) {
-      final password = await DeleteAccountService.showPasswordConfirmation(
-        context,
-      );
-
-      if (password == null || password.isEmpty) return;
-
-      if (!mounted) return;
-
-      final rootNavigator = Navigator.of(context, rootNavigator: true);
-      var loadingDialogOpen = false;
-
-      // Show loading indicator
-      showDialog(
-        context: context,
-        useRootNavigator: true,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-      loadingDialogOpen = true;
-
-      try {
-        await ref
-            .read(authStateProvider.notifier)
-            .deleteAccount(password: password);
-
-        if (mounted) {
-          DeleteAccountService.showDeleteAccountSuccess(context);
-        }
-      } catch (e) {
-        if (mounted) {
-          DeleteAccountService.showError(
-            context,
-            e.toString().replaceFirst('Exception: ', ''),
-          );
-        }
-      } finally {
-        if (loadingDialogOpen && rootNavigator.canPop()) {
-          rootNavigator.pop();
-          loadingDialogOpen = false;
-        }
-      }
-    }
   }
 
   @override
@@ -258,7 +207,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             profile: profile,
                             onEdit: () => setState(() => _isEditing = true),
                             onFeedback: () => context.push('/feedback'),
-                            onDeleteAccount: _handleDeleteAccount,
                             onLogout: _handleLogout,
                           ),
                         const SizedBox(height: AppSpacing.xxl),

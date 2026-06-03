@@ -31,7 +31,14 @@ class FirebaseNotificationService {
 
   static const bool isEnabled = bool.fromEnvironment('ENABLE_FIREBASE');
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  // Lazy: `FirebaseMessaging.instance` calls `Firebase.app()`, which throws
+  // when Firebase was never initialized (e.g. ENABLE_FIREBASE=false). Resolving
+  // it eagerly in a field initializer would crash the moment this singleton is
+  // constructed — even from guarded callers like getCurrentToken(). Only touch
+  // it after the isEnabled/_initialized guards have passed.
+  FirebaseMessaging? _messagingInstance;
+  FirebaseMessaging get _messaging =>
+      _messagingInstance ??= FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
@@ -107,6 +114,21 @@ class FirebaseNotificationService {
       return token;
     } catch (e) {
       debugPrint('[FCM] Token error: $e');
+      return null;
+    }
+  }
+
+  /// Returns the current FCM token without (re-)registering it with the
+  /// backend. Used at logout to tell the server which device push token to
+  /// deactivate. Returns null when Firebase is disabled or not initialized.
+  Future<String?> getCurrentToken() async {
+    if (!isEnabled || !_initialized) {
+      return null;
+    }
+    try {
+      return await _messaging.getToken();
+    } catch (e) {
+      debugPrint('[FCM] getCurrentToken error: $e');
       return null;
     }
   }

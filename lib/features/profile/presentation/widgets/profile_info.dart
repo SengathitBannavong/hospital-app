@@ -6,7 +6,6 @@ class ProfileInfo extends StatelessWidget {
   final UserProfile profile;
   final VoidCallback onEdit;
   final VoidCallback? onFeedback;
-  final VoidCallback? onDeleteAccount;
   final VoidCallback? onLogout;
 
   const ProfileInfo({
@@ -14,7 +13,6 @@ class ProfileInfo extends StatelessWidget {
     required this.profile,
     required this.onEdit,
     this.onFeedback,
-    this.onDeleteAccount,
     this.onLogout,
   });
 
@@ -64,18 +62,6 @@ class ProfileInfo extends StatelessWidget {
             label: const Text('Đánh giá ứng dụng'),
           ),
         ],
-        if (onDeleteAccount != null) ...[
-          const SizedBox(height: AppSpacing.md),
-          OutlinedButton.icon(
-            onPressed: onDeleteAccount,
-            icon: const Icon(Icons.delete_outline),
-            label: const Text('Xóa tài khoản'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.emergency,
-              side: const BorderSide(color: AppColors.emergency),
-            ),
-          ),
-        ],
         if (onLogout != null) ...[
           const SizedBox(height: AppSpacing.md),
           OutlinedButton.icon(
@@ -83,7 +69,8 @@ class ProfileInfo extends StatelessWidget {
             icon: const Icon(Icons.logout_rounded),
             label: const Text('Đăng xuất'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: context.colorScheme.primary,
+              foregroundColor: AppColors.error,
+              side: const BorderSide(color: AppColors.error),
             ),
           ),
         ],

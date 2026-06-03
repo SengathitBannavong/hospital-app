@@ -198,6 +198,15 @@ class MockAuthRepository implements AuthRepository {
   @override
   Future<void> deleteAccount({required String password}) async {}
 
+  bool logoutCalled = false;
+  String? lastLogoutFcmToken;
+
+  @override
+  Future<void> logout({String? fcmToken}) async {
+    logoutCalled = true;
+    lastLogoutFcmToken = fcmToken;
+  }
+
   @override
   Future<OtpResponse?> resendOtp({
     required String phoneNumber,
