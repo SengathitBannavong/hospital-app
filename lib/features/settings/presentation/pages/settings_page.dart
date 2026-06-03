@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/app_toast.dart';
+import '../../../../core/utils/delete_account_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../map/presentation/providers/map_provider.dart';
 import '../../../notification/data/models/notification_settings_model.dart';
@@ -118,6 +119,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   style: TextStyle(color: AppColors.error),
                 ),
                 onTap: () => _confirmLogout(context),
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.error,
+                ),
+                title: const Text(
+                  'Xóa tài khoản',
+                  style: TextStyle(color: AppColors.error),
+                ),
+                subtitle: const Text('Xóa vĩnh viễn tài khoản và dữ liệu'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: _handleDeleteAccount,
               ),
             ],
           ),
@@ -241,6 +256,51 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    final confirmed = await DeleteAccountService.showDeleteAccountConfirmation(
+      context,
+    );
+    if (confirmed != true || !mounted) return;
+
+    final password = await DeleteAccountService.showPasswordConfirmation(
+      context,
+    );
+    if (password == null || password.isEmpty || !mounted) return;
+
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+    var loadingDialogOpen = false;
+
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+    loadingDialogOpen = true;
+
+    try {
+      await ref
+          .read(authStateProvider.notifier)
+          .deleteAccount(password: password);
+
+      if (mounted) {
+        DeleteAccountService.showDeleteAccountSuccess(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        DeleteAccountService.showError(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    } finally {
+      if (loadingDialogOpen && rootNavigator.canPop()) {
+        rootNavigator.pop();
+        loadingDialogOpen = false;
+      }
+    }
   }
 
   Future<void> _confirmClearMapCache(BuildContext context) async {
