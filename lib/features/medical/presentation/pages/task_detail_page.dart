@@ -114,10 +114,9 @@ class TaskDetailPage extends ConsumerWidget {
     await _runAction(
       context,
       ref,
-      () =>
-          ref.read(medicalRepositoryProvider).cancelTask(
-            treatmentId: task.treatmentId,
-          ),
+      () => ref
+          .read(medicalRepositoryProvider)
+          .cancelTask(treatmentId: task.treatmentId),
       'Đã hủy chỉ định',
     );
   }

@@ -221,9 +221,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           child: _QuickActionCard(
                             title: 'Đơn thuốc',
                             icon: Icons.receipt_long,
-                            onTap: () => context.push(
-                              '/medical/prescription',
-                            ),
+                            onTap: () => context.push('/medical/prescription'),
                           ),
                         ),
                       ],
@@ -236,9 +234,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             title: 'Báo vật cản',
                             icon: Icons.report_rounded,
                             color: AppColors.warning,
-                            onTap: () => context.push(
-                              '/flow/report-obstacle',
-                            ),
+                            onTap: () => context.push('/flow/report-obstacle'),
                           ),
                         ),
                         const SizedBox(width: AppSpacing.md),

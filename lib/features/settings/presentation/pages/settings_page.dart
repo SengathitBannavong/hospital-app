@@ -162,10 +162,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const _SectionHeader(title: 'Dữ liệu ngoại tuyến'),
         Card(
           child: ListTile(
-            leading: Icon(
-              Icons.cleaning_services_rounded,
-              color: cs.primary,
-            ),
+            leading: Icon(Icons.cleaning_services_rounded, color: cs.primary),
             title: const Text('Xóa bộ nhớ đệm bản đồ'),
             subtitle: const Text(
               'Gỡ dữ liệu bản đồ và lộ trình đã tải về thiết bị',
