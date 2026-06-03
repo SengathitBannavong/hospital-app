@@ -33,14 +33,35 @@ The Map module heavily relies on custom canvas painting over standard widget tre
 ├── 🏗️ Stack
 │   ├── 🖌️ CustomPaint (MapGridPainter)
 │   │   └── 🗺️ Renders Nodes, Edges, Route Path
-│   ├── 🔍 SearchPanel (Floating Top)
-│   ├── 🔘 FloatingActionButton (Recenter)
+│   ├── 🔍 Collapsed search (icon → expands; status cluster hides while open)
+│   ├── 🟢 Status cluster + route pill (top-left)
+│   ├── 🔘 Left FAB rail — 3 buttons
+│   │   ├── 📷 Scan QR code
+│   │   ├── 🎯 Recenter
+│   │   └── ⋯ More (_showMoreMenu)
 │   └── 🗂️ SlidingUpPanel (Route Details Sheet)
 │       └── 🏗️ Column
 │           ├── ⏱️ ETA Display
 │           └── ⏯️ Playback Controls (Play/Pause)
-└── 📷 Scanner Overlay (mobile_scanner)
+└── 🗂️ More sheet → Map legend · Route history · Flow analytics
 ```
+
+:::note[Map declutter]
+The left FAB rail was cut from six buttons to three (**QR, recenter, more**);
+the legend, route history, and flow-analytics entries fold into the **More**
+sheet (`_showMoreMenu`). Offline-cache clearing moved to **Settings**, where a
+destructive action belongs. Search collapses to an icon by default and expands
+on tap, hiding the status cluster while open; FABs sit at the 48 dp tap-target
+floor.
+:::
+
+:::tip[Shared POI picker]
+`poi_picker.dart` exposes the reusable `PoiPickerField` / `showPoiPicker`, a
+searchable bottom-sheet of the active map's POIs. It is shared by the queue,
+wheelchair-search, and request-staff flows so users pick a location instead of
+typing a code. The map POI panel also gains a "Yêu cầu hỗ trợ" action that opens
+request-staff pre-filled with the selected POI.
+:::
 
 ## State Taxonomy
 

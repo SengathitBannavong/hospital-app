@@ -34,22 +34,30 @@ The UI is composed of animated, highly-reusable components designed to give a pr
 └── 📜 SingleChildScrollView
     └── 🏗️ Column
         ├── 🗺️ MapPreviewCard → /map
-        ├── 🌟 FadeSlideTransition
-        │   └── 📱 Row of _QuickActionCard
-        │       ├── "Thông tin" → push('/info')
-        │       └── "SOS" (red) → push('/sos')
-        ├── 🌟 FadeSlideTransition
+        ├── 🌟 FadeSlideTransition — "Truy cập nhanh"
+        │   └── 📱 6-shortcut grid of _QuickActionCard (3 rows × 2)
+        │       ├── "Hàng đợi"     → push('/medical/queue')
+        │       ├── "Tìm xe lăn"   → push('/asset/search')
+        │       ├── "Hỗ trợ"       → push('/staff')
+        │       ├── "Đơn thuốc"    → push('/medical/prescription')
+        │       ├── "Báo vật cản"  (warning) → push('/flow/report-obstacle')
+        │       └── "SOS"          (emergency) → push('/sos')
+        ├── 🌟 FadeSlideTransition — "Tổng quan"
         │   └── 📇 MedicalInfoCard (Active Tasks — real count)
         ├── 🌟 FadeSlideTransition
         │   └── 🌤️ _WeatherSummaryCard (weatherProvider · util/weather)
-        └── 🌟 FadeSlideTransition
+        └── 🌟 FadeSlideTransition — "Thông báo"
             └── 🔔 Notification summary card → push('/notification')
 ```
 
-:::note[Demo content removed]
-The fake appointment counter (and its `FloatingActionButton`), the static
-"doctors available" card, and the nav-duplicating quick actions (Map / Medical /
-Profile) were removed. The Home screen now shows only real data plus an Info shortcut.
+:::note[Quick-access grid]
+The earlier two-card "Thông tin / SOS" row was expanded into a **6-shortcut
+grid** that lifts the top patient flows — queue, find-wheelchair, staff support,
+prescription, obstacle report, SOS — one tap from launch instead of being buried
+under Utilities. SOS and obstacle-report keep their emergency/warning colors via
+`_QuickActionCard.color`. The fake appointment counter, the static "doctors
+available" card, and the nav-duplicating Map/Medical/Profile actions remain
+removed.
 :::
 
 - **Core Reusable Components**: `FadeSlideTransition`, `MedicalInfoCard`, `NotificationBadge`.

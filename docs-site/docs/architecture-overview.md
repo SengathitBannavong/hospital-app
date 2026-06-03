@@ -30,7 +30,8 @@ The application code inside `lib/` is strictly separated into two main directori
 ## UI Shell & Navigation
 
 The app shell is built using `go_router`. It implements a 5-tab bottom
-navigation shell that allows seamless switching between the primary feature
-branches (Home, Medical, Map, Profile, and Chat) while maintaining navigation
-state. Secondary destinations (Notification, Info, FAQ, About, Contact, SOS,
-Settings, Feedback, and chat room details) are pushed routes.
+navigation shell — in order **Home, Medical (labeled "Utilities"), Map, Chat,
+Profile** — that allows seamless switching between the primary feature branches
+while maintaining navigation state, with a swipe gesture to move between tabs.
+Secondary destinations (Notification, Info, FAQ, About, Contact, SOS, Settings,
+Feedback, and chat room details) are pushed routes.

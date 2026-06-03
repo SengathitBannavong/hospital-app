@@ -14,30 +14,52 @@ State logic is consolidated within `medical_providers.dart`, leveraging Riverpod
 
 | Provider | Description |
 | :--- | :--- |
-| **`taskProvider`** | Fetches and caches the user's active medical tasks (appointments, tests). Handles loading and error states via `AsyncValue`. |
-| **`queueProvider`** | Monitors the real-time queue status for the user's current department. |
-| **`prescriptionProvider`** | Manages the loaded prescription data for completed visits. |
+| **`medicalTasksProvider`** | Fetches and caches the user's active medical tasks via `AsyncValue`. |
+| **`medicalHistoryProvider`** | Backs the "Lịch sử hôm nay" history section. |
+| **`medicalRepositoryProvider`** | Exposes the repository (check-in/out, cancel, result status, sync) used by `TaskDetailPage` and the Sync HIS action. |
 
 ## Widget Types & Patterns
 
-The module is broken down into distinct tab-like views, each supported by highly reusable list items.
+`TaskListPage` is the Medical bottom-nav branch root. Rather than a tab shell, it
+is a single scroll view: a 2-per-row **utility action grid**, the live task list,
+and a collapsible "Lịch sử hôm nay" history section. Queue, prescription, and the
+per-task actions are reached as **pushed routes** off `/medical`, each with its
+own back button.
 
 ```text
-📦 MedicalShell (TabBarView)
-├── 📑 TaskListPage
-│   └── 📜 ListView.builder
-│       └── 🌟 FadeSlideTransition
-│           └── 📇 TaskCard (Check-in flow)
-├── 📑 QueuePage
-│   └── 📜 ListView.builder
-│       └── 🎫 QueueItem (Live Status)
-└── 📑 PrescriptionPage
-    └── 📜 ListView
-        └── 💊 MedicationCard
+📦 TaskListPage  (branch root, /medical)
+├── 🧭 AppBar (🔄 Sync HIS → medicalRepository.syncNow())
+├── 🟦 Utility action grid (_ActionCard, 2-per-row)
+│   ├── "Hàng đợi"        → push('/medical/queue')
+│   ├── "Đơn thuốc"       → push('/medical/prescription')
+│   ├── "Trạm xe lăn"     → push('/asset/stations')
+│   ├── "Tìm xe lăn gần đây" → push('/asset/search')
+│   ├── "Hỗ trợ nhân viên"   → push('/staff')
+│   ├── "Báo cáo vật cản"    → push('/flow/report-obstacle')
+│   └── "Thông tin & FAQ"    → push('/info')
+├── 📜 Task list — TaskCard (tap → push('/medical/task', extra: task))
+└── 🔽 ExpansionTile "Lịch sử hôm nay" → history TaskCards
+
+📄 Pushed routes
+├── /medical/task        → TaskDetailPage  (check-in/out, result, cancel)
+├── /medical/queue       → QueuePage       (PoiPickerField → live status)
+└── /medical/prescription → PrescriptionPage
 ```
 
-:::tip[Optimistic UI Updates]
-For actions like "Check-in", the module often relies on local state mutation to provide instant feedback before the API confirms the action, ensuring the app feels incredibly fast.
+:::note[Task actions moved to a detail page]
+The per-task **check-in / check-out / result / cancel** actions used to live
+inline on the list card. They now live on a dedicated `TaskDetailPage`
+(`/medical/task`, the task passed via `state.extra`); the list `TaskCard` is
+purely informational and taps through to detail. Each action runs, invalidates
+`medicalTasksProvider` + `medicalHistoryProvider`, then pops back so the refreshed
+list is visible. Action buttons are gated by status (`cancelled`/`completed`
+tasks only expose "Kết quả").
+:::
+
+:::tip[Location picker over code entry]
+`QueuePage` (and the wheelchair/staff flows) use the shared `PoiPickerField` /
+`showPoiPicker` from the Map module, so users **select a location** from the
+active map's POIs instead of typing a raw code.
 :::
 
 ## State Taxonomy
@@ -53,37 +75,41 @@ import MedicalFlowDiagram from '@site/static/img/diagrams/medical-flow.svg';
   <MedicalFlowDiagram width="100%" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} />
 </div>
 
-The most critical flow in this module is checking into an appointment, prioritizing **Optimistic UI Updates** to make the app feel incredibly fast.
+The most critical flow is checking into a task. It now runs from `TaskDetailPage`
+via a shared `_runAction` helper: call the repository, **invalidate** the task +
+history providers, then pop back so the refreshed list is visible. This favors a
+correct re-fetch over an optimistic local mutation.
 
 ### 1. 💻 Trigger (UI Layer)
-The user taps the "Check-in" button on a `TaskCard`.
+The user opens a task (`TaskCard` → `push('/medical/task', extra: task)`) and taps "Check-in" on `TaskDetailPage`.
 ```dart
-// Inside TaskCard widget
-onTap: () => ref.read(taskProvider.notifier).checkIn(task.id)
+FilledButton.icon(
+  onPressed: () => _runAction(
+    context, ref,
+    () => ref.read(medicalRepositoryProvider)
+        .checkinRoom(treatmentId: task.treatmentId),
+    'Check-in thành công',
+  ),
+  ...
+)
 ```
 
-### 2. ⚙️ Orchestration (Provider Layer)
-The provider receives the intent, updates its internal state to `loading`, and delegates the network call.
+### 2. 🌐 Execution (Repository Layer)
+`_runAction` awaits the repository call, which hits the backend check-in endpoint.
 ```dart
-// Inside TaskNotifier
-state = const AsyncLoading();
-await _repository.checkIn(taskId);
+await action(); // medicalRepository.checkinRoom(treatmentId: ...)
 ```
 
-### 3. 🌐 Execution (Repository Layer)
-The repository formats the request and uses Dio to hit the backend endpoint.
+### 3. 🔄 Invalidate + pop (UI Layer)
+On success it invalidates the cached providers so the list re-fetches the source
+of truth, shows a confirmation snackbar, and pops back to the task list.
 ```dart
-// Inside MedicalRepository
-await dioClient.post('/medical/checkin', data: {'id': taskId});
+ref
+  ..invalidate(medicalTasksProvider)
+  ..invalidate(medicalHistoryProvider);
+_showSnackBar(context, successMessage);
+if (context.canPop()) context.pop();
 ```
 
-### 4. 🔄 Reactivity & Optimism (UI Layer)
-Upon a successful 200 OK response, the provider mutates the local state array directly to reflect the "Checked In" status, avoiding an expensive full-list re-fetch.
-```dart
-// Inside TaskNotifier (Optimistic mutation)
-final updatedTasks = state.value!.map((t) => 
-  t.id == taskId ? t.copyWith(status: 'CHECKED_IN') : t
-).toList();
-
-state = AsyncData(updatedTasks);
-```
+### 4. ⚠️ Failure
+Any thrown error is caught and surfaced as an error snackbar; the page stays open so the user can retry.

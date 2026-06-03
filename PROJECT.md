@@ -1,14 +1,24 @@
 # Hospital App Project Checklist
 
-Last checked: 2026-06-02 (branch `api-backed-features-missing`)
+Last checked: 2026-06-03 (branch `main`, HEAD `a8a67e7`)
 
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
 
-## Current State (2026-06-02)
+## Current State (2026-06-03)
 
 Overall user-facing progress is higher than the old 68% snapshot, but has not
 been recalculated in [`doc/overview_process.md`](doc/overview_process.md).
+
+**Latest pass (#51 — patient-facing optimization):** Home quick-access expanded
+to a **6-shortcut grid** (queue, find wheelchair, staff support, prescription,
+obstacle report, SOS); swipe-to-switch-tab in `MainShell` with Profile moved to
+the last nav slot and "Y tế" relabeled "Utilities"; a shared `PoiPickerField` /
+`showPoiPicker` lets queue/wheelchair/staff flows pick a location instead of
+typing a code; per-task check-in/out/result/cancel extracted into a dedicated
+`TaskDetailPage`; and a map declutter (left FAB rail cut to 3 — QR/recenter/More
+— with legend, route history, and flow analytics folded into a More sheet, and
+offline-cache clearing moved to Settings).
 
 **Current branch:** notifications with pagination/load-more, unread bell,
 notification settings, device-token registration, and **optional** Firebase push
@@ -26,9 +36,9 @@ guidance, voice guidance, and Medical QR check-in/out remain backlog.
 
 - [x] Flutter feature-first structure is in place: `auth`, `map`, `medical`, `profile`, `home`, `main`.
 - [x] Riverpod is used for auth, map, medical, and profile state.
-- [x] GoRouter app shell uses a 4-tab bottom navigation (Home, Medical, Map, Profile). Notification, Info, FAQ, About, and Contact are top-level pushed routes with back buttons (no longer bottom-nav tabs).
+- [x] GoRouter app shell uses a **5-tab** bottom navigation (Home, Utilities, Map, Chat, Profile) with swipe-to-switch between tabs. Notification, Info, FAQ, About, Contact, SOS, Feedback, and individual chat rooms are top-level pushed routes with back buttons (no longer bottom-nav tabs).
 - [x] API client/endpoints exist for auth, map, route, medical, and profile.
-- [x] Home page aggregates real task count, live notifications, weather, and SOS/map/info shortcuts; demo placeholder cards and the FAB counter were removed. Active route status and asset summaries are still not aggregated.
+- [x] Home page aggregates real task count, live notifications, weather, and a 6-shortcut quick-access grid (queue, find wheelchair, staff, prescription, obstacle report, SOS) plus the map preview; demo placeholder cards and the FAB counter were removed. Active route status and asset summaries are still not aggregated.
 - [x] Notification endpoints/repositories/pages are wired into the app shell, with pagination/load-more, mark-read, delete, settings, and an unread badge.
 - [x] Firebase Cloud Messaging push is implemented client-side but **optional** (off by default; gated behind the `ENABLE_FIREBASE` dart-define). API keys are sourced from dart-defines, not committed. See `FIREBASE.md`.
 - [x] SOS endpoints/repositories/pages are wired, with a `/sos` route and Home shortcut.
@@ -75,7 +85,7 @@ Scope: mobile dashboard, patient summary cards, quick actions, and public/patien
 - [x] Home includes pull-to-refresh, manual refresh, a Settings gear, a notification bell with unread badge, logout, and animated summary cards.
 - [x] Removed the local appointment counter, the static "doctors available" demo card, and the FAB appointment counter.
 - [x] Home shows live notifications: an unread bell in the app bar (badge from `unreadCountProvider`) and a summary card, both wired to `notification/get_list` and opening `/notification` via push.
-- [x] Home quick actions de-duplicated (Map/Medical/Profile removed since they are tabs); Home exposes Info and SOS shortcuts. Asset/chat/staff entry points exist elsewhere but are not summarized on Home.
+- [x] Home quick actions expanded into a **6-shortcut grid** — queue, find wheelchair, staff support, prescription, obstacle report (warning color), and SOS (emergency color) — bringing the top patient flows one tap from launch. Nav-duplicating Map/Medical/Profile actions remain removed.
 - [x] Home shows live weather from `util/weather`; pharmacy/canteen/parking are map POI metadata, not standalone Home utility cards.
 - [ ] Home does not show active route status even though Swagger exposes `route/get_active` and route lifecycle APIs.
 - [ ] Home does not surface device/asset state summaries even though wheelchair/device flows are wired elsewhere.
@@ -98,7 +108,8 @@ Done (major capabilities)
 - [x] Offline: `map/sync_full` + granular meta/nodes/edges/obstacles cache (Hive), offline route cache, in-memory edge cache + isolate parse.
 - [x] Flow analytics: density heatmap, bottlenecks, alerts, client-derived corridor congestion, hourly forecast chart.
 - [x] Obstacle reporting (`flow/report_obstacle` + `flow/get_obstacles`) with offline queue; obstacle-aware routing.
-- [x] Route history modal (re-navigate + clear via `route/clear_history`) and offline clear-cache modal.
+- [x] Route history modal (re-navigate + clear via `route/clear_history`); offline clear-cache moved to Settings.
+- [x] Declutter pass: left FAB rail cut to 3 (QR, recenter, More); legend, route history, and flow analytics fold into a More sheet; search collapses to an icon by default; POI panel gains a "Yêu cầu hỗ trợ" action that opens request-staff pre-filled with the POI; shared `PoiPickerField` used across queue/wheelchair/staff.
 - [x] Tests under `test/features/map/` (91 passing); `flutter analyze` clean.
 
 Backlog (remaining)
@@ -128,6 +139,8 @@ Scope: tasks, queue, prescription, appointment display.
 - [x] Medical providers exist for tasks, history, queue, room open, result status, and prescription.
 - [x] Medical repository supports tasks, history, queue, check-in, check-out, result status, prescription, sync, room open, and cancel task.
 - [x] Medical widgets exist for task cards, queue items, and prescription tiles.
+- [x] Per-task check-in / check-out / result / cancel extracted into a dedicated `TaskDetailPage` (`/medical/task`, task via `state.extra`); `TaskListPage` shows a 2-per-row utility action grid and taps `TaskCard` through to detail. Each action invalidates `medicalTasksProvider`/`medicalHistoryProvider` then pops.
+- [x] Queue page uses the shared `PoiPickerField` / `showPoiPicker` so users pick a location from the active map's POIs instead of typing a code.
 - [x] Medical branch is routed in the bottom navigation shell.
 - [ ] Appointment display is only represented on Home as a placeholder counter/card; no dedicated appointment data flow is visible.
 - [ ] QR scanning UI is not implemented; check-in/check-out APIs exist, but the client still needs camera scan flow and treatment/room validation.
@@ -227,6 +240,7 @@ Scope: user settings page covering account, appearance, notifications, and app i
 - [x] "Change password" → `/change-password`; "Logout" → confirm dialog → `logout()`.
 - [x] Device push token (`user/set_devtoken`) registered via the optional Firebase service.
 - [x] "Help & Support" → `/help`; "About app" → `showAboutDialog`; "Version" shows `1.0.0`.
+- [x] Offline map-cache clearing lives here (moved from the Map screen, where a destructive action did not belong).
 - [ ] Voice-guidance + travel-mode toggles dropped — backend `get/set_settings` does not expose those columns yet.
 - [ ] "Version" still static `1.0.0` (not from `sys/check_version`).
 

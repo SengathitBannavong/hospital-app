@@ -131,8 +131,8 @@ The map feature (`lib/features/map/`) renders a hospital floor grid with POIs, w
 - **Utils**: `presentation/utils/search_utils.dart` — accent-insensitive `normalizeForSearch` with top-level `RegExp` instances (parsed once).
 - **Tokens**: `presentation/theme/map_tokens.dart` — `MapMotion` durations/curves, `MapSurface` colors, `MapPoiPalette` (muted, semantically grouped POI palette + labels).
 - **Painter**: `widgets/map_grid_painter.dart` — pooled `Paint` objects, viewport culling, animated `routeProgress` (0–1) for route draw-on.
-- **Page**: `pages/map_page.dart` — full-screen grid with collapsible overlays, floor selector, analytics panel, status cluster, route pill, legend/recenter controls, and route planning sheets. POI taps, route planning, route history, obstacle reporting, and the legend all open as modal bottom sheets, leaving the map unobstructed.
-- **Widgets**: `map_top_bar`, `map_search_results_panel` (skeleton + suggestion chips), `map_poi_metadata_panel`, `map_route_panel`, `map_route_status`, `map_legend_sheet`, `map_navigation_sheet`, and `map_page/*` focused widgets.
+- **Page**: `pages/map_page.dart` — full-screen grid with collapsible overlays, floor selector, analytics panel, status cluster, route pill, and route planning sheets. The left FAB rail is **three buttons** (QR, recenter, More); legend, route history, and flow analytics fold into a **More** sheet. Search collapses to an icon by default. POI taps, route planning, route history, obstacle reporting, and the legend all open as modal bottom sheets, leaving the map unobstructed.
+- **Widgets**: `map_top_bar`, `map_search_results_panel` (skeleton + suggestion chips), `map_poi_metadata_panel`, `map_route_panel`, `map_route_status`, `map_legend_sheet`, `map_navigation_sheet`, `poi_picker` (reusable `PoiPickerField` / `showPoiPicker`, shared by queue/wheelchair/staff flows), and `map_page/*` focused widgets.
 
 ### Performance notes
 - `MapPage.build` scopes provider reads with `.select()` to avoid full-tree rebuilds.

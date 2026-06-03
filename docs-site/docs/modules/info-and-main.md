@@ -42,25 +42,38 @@ for repository details.
 The **Main Module** acts as the structural shell of the application post-authentication. It does not manage domain-specific features, but rather orchestrates how the user traverses them.
 
 ### State Management
-State management is entirely delegated to `go_router`. The shell itself does not hold Riverpod state, but it reacts to route transitions to highlight the correct active tab.
+Navigation structure is delegated to `go_router`'s `StatefulNavigationShell`, but
+the shell is a `ConsumerWidget` so it can watch two chat providers
+(`chatUnreadTotalProvider`, `chatHasActivityProvider`) to drive the unread badge
+on the Chat tab. It otherwise holds no domain state and reacts to route
+transitions to highlight the active tab.
 
 ### Widget Types & Patterns
 
 The Main Shell utilizes `go_router`'s specialized navigation branch wrapper to maintain state across tabs.
 
 ```text
-📦 MainShell (ScaffoldWithBottomNavBar)
-├── 📄 StatefulNavigationShell (go_router) — 4 branches
-│   ├── 📑 Branch (Home)
-│   ├── 📑 Branch (Medical)
-│   ├── 📑 Branch (Map)
-│   └── 📑 Branch (Profile)
+📦 MainShell (Scaffold)
+├── 👆 GestureDetector (swipe left/right to switch tabs)
+│   └── 📄 StatefulNavigationShell (go_router) — 5 branches
+│       ├── 📑 Branch (Home)
+│       ├── 📑 Branch (Medical → TaskListPage)
+│       ├── 📑 Branch (Map)
+│       ├── 📑 Branch (Chat)
+│       └── 📑 Branch (Profile)
 └── 🧭 NavigationBar
     ├── 🏠 Trang chủ
-    ├── 🏥 Y tế
+    ├── 🏥 Utilities
     ├── 🗺️ Bản đồ
+    ├── 💬 Chat (unread badge)
     └── 👤 Hồ sơ
 ```
+
+:::note[Swipe to switch tabs]
+A `GestureDetector` wraps the shell body: a horizontal drag with velocity ≥ 200
+moves to the next/previous branch (`goToIndex`), so users can swipe between the
+five tabs in addition to tapping the nav bar.
+:::
 
 :::note[Top-level pushed routes]
 Notification, Info, FAQ, About, Contact, SOS, and Feedback are **not**
