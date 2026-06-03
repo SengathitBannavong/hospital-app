@@ -1,6 +1,6 @@
-# Contribution Assignment — `main` (45 commits)
+# Contribution Assignment — `main` (47 commits)
 
-_Updated 2026-06-03. HEAD `a8a67e7`. Ordered oldest → newest. "#" = PR number
+_Updated 2026-06-03. HEAD `30988f5`. Ordered oldest → newest. "#" = PR number
 (or short hash for direct commits). Co-contributors are from `Co-Authored-By`._
 
 | # | Date (UTC+?) | Module | What it does (summary) | Main contributor | Co-contributor |
@@ -49,12 +49,14 @@ _Updated 2026-06-03. HEAD `a8a67e7`. Ordered oldest → newest. "#" = PR number
 | #49 | 2026-06-02 | Util / Info | Implement FAQ and hospital utility screens | Kimheng99 | — |
 | #50 | 2026-06-03 | Profile | Fix date-of-birth validation on the profile form | Vongphet Pasithphone | — |
 | #51 | 2026-06-03 | Home / Medical / Map / Nav | Optimize patient-facing pages: 6-shortcut Home grid, swipe-to-switch nav + "Utilities" relabel, shared POI picker, dedicated `TaskDetailPage`, map declutter | Bannavong | — |
+| `01d23fe` | 2026-06-03 | Docs | Update overall documentation files | Bannavong | — |
+| `30988f5` | 2026-06-03 | Auth / Notification / Profile / Settings / Docs | Backend logout (`POST auth/logout` deactivates device FCM token; forced/post-delete logouts skip it); lazy `FirebaseMessaging` so disabled builds are crash-free (Firebase genuinely optional); 60s notification polling fallback (no backend push yet); move delete-account to **Settings → Tài khoản** + red profile logout; reconcile `overview_process.md` | Bannavong | — |
 
 ## Contributor summary
 
 | Person | Lead commits | Also co-contributed |
 |---|---|---|
-| **Bannavong** (bannavong.sa239717) | 30 — core, theme, CI, map, route, flow, medical, docs, responsive UI, auth/profile fixes, patient-facing optimization (#51) | #17, #25, #29, #31, #30, #37 |
+| **Bannavong** (bannavong.sa239717) | 32 — core, theme, CI, map, route, flow, medical, docs, responsive UI, auth/profile fixes, patient-facing optimization (#51), backend-logout/FCM lifecycle + notification polling + optional Firebase (`30988f5`) | #17, #25, #29, #31, #30, #37 |
 | **Vongphet Pasithphone** (pasithphone.v220116) | 6 — auth (#7, #22), async/UI (#17), reset-password (#25), notification tests (#48), dob validation fix (#50) | #29 |
 | **Kimheng99** (nutkimheng000) | 3 — notification UI (#18), notifications/info/nav (#29), FAQ/utility screens (#49) | — |
 | **Soumek Xaynguyen** (aka quangngv / quanghot31lao) | 3 — profile page (#8), unified Settings page (#31), chat (#45) | — |
