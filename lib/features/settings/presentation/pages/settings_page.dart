@@ -6,6 +6,7 @@ import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../map/presentation/providers/map_provider.dart';
 import '../../../notification/data/models/notification_settings_model.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 
@@ -158,6 +159,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
         const SizedBox(height: AppSpacing.xl),
 
+        const _SectionHeader(title: 'Dữ liệu ngoại tuyến'),
+        Card(
+          child: ListTile(
+            leading: Icon(
+              Icons.cleaning_services_rounded,
+              color: cs.primary,
+            ),
+            title: const Text('Xóa bộ nhớ đệm bản đồ'),
+            subtitle: const Text(
+              'Gỡ dữ liệu bản đồ và lộ trình đã tải về thiết bị',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => _confirmClearMapCache(context),
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.xl),
+
         const _SectionHeader(title: 'Thông tin ứng dụng'),
         Card(
           child: Column(
@@ -225,6 +244,46 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmClearMapCache(BuildContext context) async {
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Xóa bộ nhớ đệm bản đồ'),
+        content: const Text(
+          'Thao tác này gỡ dữ liệu bản đồ và lộ trình đã tải về thiết bị. '
+          'Ứng dụng sẽ tải lại khi cần.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => dialogContext.pop(false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => dialogContext.pop(true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || shouldClear != true) {
+      return;
+    }
+
+    await ref.read(mapCacheProvider).clearAll();
+    if (!mounted) {
+      return;
+    }
+    ref
+      ..invalidate(mapMetaProvider)
+      ..invalidate(mapNodesProvider)
+      ..invalidate(mapEdgesProvider)
+      ..invalidate(flowSnapshotProvider)
+      ..invalidate(mapObstaclesProvider)
+      ..invalidate(mapLastSyncedAtProvider)
+      ..invalidate(routeResultProvider);
+    AppToast.showSuccess('Đã xóa bộ nhớ đệm bản đồ');
   }
 
   void _showAboutDialog(BuildContext context) {
