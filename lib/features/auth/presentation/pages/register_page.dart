@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
+import 'package:hospital_app/core/utils/dob_utils.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/auth_text_field.dart';
@@ -39,15 +40,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   }
 
   Future<void> _selectDateOfBirth() async {
-    final now = DateTime.now();
     final firstDate = DateTime(1950);
-    final initialDate = DateTime(now.year - 18, now.month, now.day);
+    final lastDate = lastAllowedDob();
+    final initialDate = lastDate;
 
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: firstDate,
-      lastDate: initialDate,
+      lastDate: lastDate,
     );
 
     if (picked != null) {
@@ -66,6 +67,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
     if (_selectedDob == null) {
       AppToast.showError('Vui lòng chọn ngày sinh.');
+      return;
+    }
+
+    // Enforce minimum age of 13 (defensive check in case picker was bypassed)
+    if (!isAtLeastAge(_selectedDob!, 13)) {
+      AppToast.showError('Bạn phải ít nhất 13 tuổi để đăng ký.');
       return;
     }
 

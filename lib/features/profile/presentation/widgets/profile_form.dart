@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/hospital_theme.dart';
+import '../../../../core/utils/app_toast.dart';
+import '../../../../core/utils/dob_utils.dart';
 import '../../data/models/profile_update_request.dart';
 import '../../data/models/user_profile.dart';
 
@@ -46,11 +48,28 @@ class _ProfileFormState extends State<ProfileForm> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final parsed = DateTime.tryParse(_dobController.text);
+    final firstDate = DateTime(1950);
+    final lastDate = lastAllowedDob();
+
+    DateTime initialDate;
+    if (parsed != null) {
+      if (parsed.isAfter(lastDate)) {
+        initialDate = lastDate;
+      } else if (parsed.isBefore(firstDate)) {
+        initialDate = firstDate;
+      } else {
+        initialDate = parsed;
+      }
+    } else {
+      initialDate = lastDate;
+    }
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.tryParse(_dobController.text) ?? DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
     if (picked != null) {
       setState(() {
@@ -130,18 +149,34 @@ class _ProfileFormState extends State<ProfileForm> {
                   onPressed: widget.isSubmitting
                       ? null
                       : () async {
-                          if (_formKey.currentState!.validate()) {
-                            await widget.onSave(
-                              ProfileUpdateRequest(
-                                fullName: _fullNameController.text.trim(),
-                                dob: _dobController.text.trim().isEmpty
-                                    ? null
-                                    : _dobController.text.trim(),
-                                gender: _selectedGender,
-                                avatar: widget.initialProfile.avatar,
-                              ),
-                            );
+                          if (!_formKey.currentState!.validate()) return;
+
+                          // If DOB provided, validate minimum age 13
+                          final dobText = _dobController.text.trim();
+                          if (dobText.isNotEmpty) {
+                            final parsedDob = DateTime.tryParse(dobText);
+                            if (parsedDob == null) {
+                              AppToast.showError('Ngày sinh không hợp lệ.');
+                              return;
+                            }
+                            if (!isAtLeastAge(parsedDob, 13)) {
+                              AppToast.showError(
+                                'Bạn phải ít nhất 13 tuổi để đăng ký.',
+                              );
+                              return;
+                            }
                           }
+
+                          await widget.onSave(
+                            ProfileUpdateRequest(
+                              fullName: _fullNameController.text.trim(),
+                              dob: _dobController.text.trim().isEmpty
+                                  ? null
+                                  : _dobController.text.trim(),
+                              gender: _selectedGender,
+                              avatar: widget.initialProfile.avatar,
+                            ),
+                          );
                         },
                   child: widget.isSubmitting
                       ? const SizedBox(
