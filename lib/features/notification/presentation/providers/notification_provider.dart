@@ -1,5 +1,7 @@
 // lib/features/notification/presentation/providers/notification_provider.dart
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/app_notification.dart';
@@ -20,6 +22,9 @@ final notificationProvider =
       final repository = ref.watch(notificationRepositoryProvider);
       final notifier = NotificationNotifier(repository);
       notifier.loadNotifications().catchError((_) {});
+      // The backend has no realtime push/WS yet, so poll the list as a
+      // fallback to surface new notifications without a manual refresh.
+      notifier.startPolling();
       return notifier;
     });
 
@@ -47,6 +52,66 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   NotificationNotifier(this._repository) : super(NotificationState.initial());
 
   final NotificationRepository _repository;
+
+  /// Fallback poll interval. The backend stores notifications but has no
+  /// realtime push/WebSocket yet, so we periodically re-fetch the first page.
+  static const Duration pollInterval = Duration(seconds: 60);
+
+  Timer? _pollTimer;
+  bool _polling = false;
+
+  /// Starts the periodic fallback poll. Idempotent.
+  void startPolling({Duration interval = pollInterval}) {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(interval, (_) => _silentPoll());
+  }
+
+  /// Stops the periodic fallback poll.
+  void stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  /// Silently re-fetches the first page and merges it into the current list:
+  /// fresh server items (new arrivals + updated read state) take precedence,
+  /// while already-loaded older pages are preserved. Never flips loading flags
+  /// (no spinner) and swallows errors so a failed poll is invisible.
+  Future<void> _silentPoll() async {
+    if (_polling ||
+        state.isInitialLoading ||
+        state.isRefreshing ||
+        state.isLoadingMore) {
+      return;
+    }
+    _polling = true;
+    try {
+      final response = await _repository.getNotifications(
+        page: 1,
+        limit: state.limit,
+      );
+
+      final serverIds = response.data.map((item) => item.id).toSet();
+      final olderItems = state.items
+          .where((item) => !serverIds.contains(item.id))
+          .toList(growable: false);
+
+      state = state.copyWith(
+        items: [...response.data, ...olderItems],
+        total: response.total,
+        errorMessage: state.errorMessage,
+      );
+    } catch (_) {
+      // Silent — a failed fallback poll must not disturb the UI.
+    } finally {
+      _polling = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
 
   /// Load first page — called on page open or pull-to-refresh.
   Future<void> loadNotifications({bool refresh = false}) async {
