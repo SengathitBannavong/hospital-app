@@ -29,6 +29,7 @@ import 'package:hospital_app/features/map/presentation/widgets/map_poi_metadata_
 import 'package:hospital_app/features/map/presentation/widgets/map_route_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_search_results_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_top_bar.dart';
+import 'package:hospital_app/features/map/presentation/widgets/expandable_map_action_menu.dart';
 
 part '../widgets/map_page/route_pill.dart';
 part '../widgets/map_page/map_fab.dart';
@@ -854,49 +855,42 @@ class _MapPageState extends ConsumerState<MapPage>
     return Positioned(
       left: AppSpacing.md,
       bottom: mediaBottom + AppSpacing.md,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _MapFab(
+      child: ExpandableMapActionMenu(
+        tooltip: 'Map Actions',
+        actions: [
+          MapActionItem(
             icon: Icons.qr_code_scanner_rounded,
-            tooltip: 'Scan QR code',
+            label: 'Scan QR',
             onPressed: _showQrScanner,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _MapFab(
+          MapActionItem(
             icon: Icons.map_outlined,
-            tooltip: 'Map legend',
+            label: 'Map Legend',
             onPressed: _showLegend,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _MapFab(
+          MapActionItem(
             icon: Icons.history_rounded,
-            tooltip: 'Route history',
+            label: 'Route History',
             onPressed: _showRouteHistory,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _MapFab(
+          MapActionItem(
             icon: _showAnalyticsPanel
                 ? Icons.analytics_rounded
                 : Icons.analytics_outlined,
-            tooltip: 'Flow Analytics Options',
+            label: 'Analytics',
+            onPressed: () => setState(() {
+              _showAnalyticsPanel = !_showAnalyticsPanel;
+            }),
             active: _showAnalyticsPanel,
-            onPressed: () {
-              setState(() {
-                _showAnalyticsPanel = !_showAnalyticsPanel;
-              });
-            },
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _MapFab(
+          MapActionItem(
             icon: Icons.center_focus_strong_rounded,
-            tooltip: 'Recenter',
+            label: 'Recenter',
             onPressed: _recenter,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _MapFab(
+          MapActionItem(
             icon: Icons.cleaning_services_rounded,
-            tooltip: 'Clear cache',
+            label: 'Clear Cache',
             onPressed: _showClearCacheDialog,
           ),
         ],
