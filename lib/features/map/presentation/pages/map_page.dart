@@ -36,6 +36,7 @@ part '../widgets/map_page/map_fab.dart';
 part '../widgets/map_page/floor_selector.dart';
 part '../widgets/map_page/route_history_sheet.dart';
 part '../widgets/map_page/map_status_cluster.dart';
+part '../widgets/map_page/expandable_map_action_menu.dart';
 part '../widgets/map_page/status_pill.dart';
 part '../widgets/map_page/pill_data.dart';
 part '../widgets/map_page/flow_legend.dart';
@@ -857,26 +858,42 @@ class _MapPageState extends ConsumerState<MapPage>
     return Positioned(
       left: AppSpacing.md,
       bottom: mediaBottom + AppSpacing.md,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _MapFab(
+      child: ExpandableMapActionMenu(
+        tooltip: 'Map Actions',
+        actions: [
+          ExpandableMapActionMenuItem(
             icon: Icons.qr_code_scanner_rounded,
-            tooltip: 'Scan QR code',
+            label: 'Scan QR',
             onPressed: _showQrScanner,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _MapFab(
+          ExpandableMapActionMenuItem(
+            icon: Icons.map_outlined,
+            label: 'Map Legend',
+            onPressed: _showLegend,
+          ),
+          ExpandableMapActionMenuItem(
+            icon: Icons.history_rounded,
+            label: 'Route History',
+            onPressed: _showRouteHistory,
+          ),
+          ExpandableMapActionMenuItem(
+            icon: _showAnalyticsPanel
+                ? Icons.analytics_rounded
+                : Icons.analytics_outlined,
+            label: 'Analytics',
+            active: _showAnalyticsPanel,
+            onPressed: () =>
+                setState(() => _showAnalyticsPanel = !_showAnalyticsPanel),
+          ),
+          ExpandableMapActionMenuItem(
             icon: Icons.center_focus_strong_rounded,
-            tooltip: 'Recenter',
+            label: 'Recenter',
             onPressed: _recenter,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _MapFab(
-            icon: Icons.more_horiz_rounded,
-            tooltip: 'More map tools',
-            active: _showAnalyticsPanel,
-            onPressed: _showMoreMenu,
+          ExpandableMapActionMenuItem(
+            icon: Icons.cleaning_services_rounded,
+            label: 'Clear Cache',
+            onPressed: _showClearCacheDialog,
           ),
         ],
       ),
@@ -1266,52 +1283,46 @@ class _MapPageState extends ConsumerState<MapPage>
     );
   }
 
-  Future<void> _showMoreMenu() async {
-    await showModalBottomSheet<void>(
+  Future<void> _showClearCacheDialog() async {
+    final shouldClear = await showDialog<bool>(
       context: context,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.map_outlined),
-                title: const Text('Map legend'),
-                onTap: () {
-                  Navigator.of(sheetContext).maybePop();
-                  _showLegend();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.history_rounded),
-                title: const Text('Route history'),
-                onTap: () {
-                  Navigator.of(sheetContext).maybePop();
-                  _showRouteHistory();
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  _showAnalyticsPanel
-                      ? Icons.analytics_rounded
-                      : Icons.analytics_outlined,
-                ),
-                title: const Text('Flow analytics'),
-                trailing: _showAnalyticsPanel
-                    ? const Icon(Icons.check_rounded)
-                    : null,
-                onTap: () {
-                  Navigator.of(sheetContext).maybePop();
-                  setState(() => _showAnalyticsPanel = !_showAnalyticsPanel);
-                },
-              ),
-            ],
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Clear map cache?'),
+        content: const Text(
+          'This removes cached map, edge, flow, and route data. '
+          'The app will refresh the cache next time it needs it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
           ),
-        );
-      },
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
     );
+
+    if (!mounted || shouldClear != true) {
+      return;
+    }
+
+    await ref.read(mapCacheProvider).clearAll();
+    if (!mounted) {
+      return;
+    }
+
+    ref
+      ..invalidate(mapMetaProvider)
+      ..invalidate(mapNodesProvider)
+      ..invalidate(mapEdgesProvider)
+      ..invalidate(flowSnapshotProvider)
+      ..invalidate(mapObstaclesProvider)
+      ..invalidate(mapLastSyncedAtProvider)
+      ..invalidate(routeResultProvider);
+    ref.read(mapInlineNoticeProvider.notifier).state = 'Map cache cleared';
   }
 
   Future<void> _showRoutePanel() async {
