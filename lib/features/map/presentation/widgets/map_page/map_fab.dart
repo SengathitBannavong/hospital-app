@@ -4,13 +4,11 @@ class _MapFab extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
-  final bool active;
 
   const _MapFab({
     required this.icon,
     required this.tooltip,
     required this.onPressed,
-    this.active = false,
   });
 
   @override
@@ -20,7 +18,7 @@ class _MapFab extends StatelessWidget {
       button: true,
       label: tooltip,
       child: Material(
-        color: active ? scheme.primaryContainer : scheme.surface,
+        color: scheme.surface,
         elevation: 2,
         shadowColor: scheme.shadow,
         shape: const CircleBorder(),
@@ -30,11 +28,7 @@ class _MapFab extends StatelessWidget {
           child: SizedBox(
             width: 48,
             height: 48,
-            child: Icon(
-              icon,
-              size: 22,
-              color: active ? scheme.primary : scheme.onSurface,
-            ),
+            child: Icon(icon, size: 22, color: scheme.onSurface),
           ),
         ),
       ),

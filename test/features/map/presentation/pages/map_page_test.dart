@@ -79,6 +79,7 @@ void main() {
     expect(edgeReads, 0);
 
     await tester.pump(const Duration(milliseconds: 75));
+    await tester.pump();
 
     expect(edgeReads, 1);
   });
@@ -120,6 +121,9 @@ void main() {
     );
 
     await tester.pump();
+    // Open the new expandable map action menu, then tap the history action.
+    await tester.tap(find.byIcon(Icons.menu_rounded));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.history_rounded));
     await tester.pumpAndSettle();
 
@@ -173,6 +177,8 @@ void main() {
     );
 
     await tester.pump();
+    await tester.tap(find.byIcon(Icons.menu_rounded));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.history_rounded));
     await tester.pumpAndSettle();
 
@@ -218,6 +224,8 @@ void main() {
     );
 
     await tester.pump();
+    await tester.tap(find.byIcon(Icons.menu_rounded));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.history_rounded));
     await tester.pumpAndSettle();
 
