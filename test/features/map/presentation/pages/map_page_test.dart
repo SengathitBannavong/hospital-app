@@ -81,7 +81,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 75));
     await tester.pump();
 
-    expect(edgeReads, greaterThan(0));
+    expect(edgeReads, 1);
   });
 
   testWidgets('history FAB opens the route history sheet', (tester) async {

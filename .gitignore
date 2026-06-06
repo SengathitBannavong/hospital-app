@@ -88,3 +88,6 @@ commit
 # Local test output artifact
 test_results.txt
 flutter_run_output.txt
+
+# git internal file, never track
+FETCH_HEAD
