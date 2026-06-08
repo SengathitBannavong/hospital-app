@@ -24,22 +24,7 @@ class MainShell extends ConsumerWidget {
     }
 
     return Scaffold(
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onHorizontalDragEnd: (details) {
-          final velocity = details.primaryVelocity ?? 0;
-          // Ignore small/ambiguous swipes.
-          if (velocity.abs() < 200) return;
-          if (velocity < 0) {
-            // Swiped left -> move to next page.
-            goToIndex(navigationShell.currentIndex + 1);
-          } else {
-            // Swiped right -> move to previous page.
-            goToIndex(navigationShell.currentIndex - 1);
-          }
-        },
-        child: navigationShell,
-      ),
+      body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: goToIndex,
