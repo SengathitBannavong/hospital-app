@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/widgets/edge_swipe_page_view.dart';
 
 import 'package:hospital_app/core/network/session_manager.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
@@ -99,9 +100,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
-      StatefulShellRoute.indexedStack(
+      StatefulShellRoute(
         builder: (context, state, navigationShell) {
           return MainShell(navigationShell: navigationShell);
+        },
+        navigatorContainerBuilder: (context, navigationShell, children) {
+          return EdgeSwipePageView(
+            currentIndex: navigationShell.currentIndex,
+            onPageChanged: (index) {
+              navigationShell.goBranch(
+                index,
+                initialLocation: index == navigationShell.currentIndex,
+              );
+            },
+            children: children,
+          );
         },
         branches: [
           StatefulShellBranch(
