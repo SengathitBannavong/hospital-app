@@ -13,8 +13,6 @@ class ApiEndpoints {
   static const String deleteAccount = 'user/delete_account';
 
   // Medical
-  static const String patients = 'patients';
-  static const String appointments = 'appointments';
   static const String getTasks = 'medical/get_tasks';
   static const String medicalGetQueue = 'medical/get_queue';
   static const String medicalCheckinRoom = 'medical/checkin_room';
@@ -33,17 +31,13 @@ class ApiEndpoints {
   static const String getNodes = 'map/get_nodes';
   static const String getEdges = 'map/get_edges';
   static const String getMeta = 'map/get_meta';
-  static const String getDepts = 'map/get_depts';
   static const String searchLocation = 'map/search_location';
-  static const String getLandmarks = 'map/get_landmarks';
   static const String syncFull = 'map/sync_full';
 
   // Route
   static const String routeGetModes = 'route/get_modes';
   static const String routePreview = 'route/preview';
   static const String routeOrder = 'route/order';
-  static const String routeOrderMulti = 'route/order_multi';
-  static const String routeOrderUnordered = 'route/order_unordered';
   static const String routeGetSteps = 'route/get_steps';
   static const String routeGetNext = 'route/get_next';
   static const String routeRecalculate = 'route/recalculate';
@@ -57,14 +51,12 @@ class ApiEndpoints {
   static const String flowGetBottlenecks = 'flow/get_bottlenecks';
   static const String flowGetForecast = 'flow/get_forecast';
   static const String flowGetAlerts = 'flow/get_alerts';
-  static const String flowEdgeStatus = 'flow/edge_status';
   static const String flowPingLocation = 'flow/ping_location';
   static const String flowReportObstacle = 'flow/report_obstacle';
   static const String flowGetObstacles = 'flow/get_obstacles';
 
   // Voice
   static const String sysGetVoiceKey = 'sys/get_voice_key';
-  static const String sysGetVoiceFiles = 'sys/get_voice_files';
 
   // Notification
   static const String notificationGetList = 'notification/get_list';
@@ -115,5 +107,4 @@ class ApiEndpoints {
 
   // Route extras
   static const String routeRate = 'route/rate';
-  static const String routeShare = 'route/share';
 }

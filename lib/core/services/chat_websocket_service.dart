@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../config/app_config.dart';
 import '../network/token_repository.dart';
@@ -92,7 +93,9 @@ class ChatWebSocketService {
       final decoded = jsonDecode(data as String);
       final payload = _extractPayload(decoded);
       if (payload != null) _messageController.add(payload);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[chat-ws] failed to decode incoming frame: $e');
+    }
   }
 
   Map<String, dynamic>? _extractPayload(Object? decoded) {
