@@ -494,7 +494,9 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState>
       _reconcilePendingEcho(chatMsg);
       _upsertMessage(chatMsg);
       unawaited(_markUnreadIncomingMessagesRead());
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[chat] failed to handle websocket message: $e');
+    }
   }
 
   void _insertPendingMessage({
@@ -594,7 +596,9 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState>
           _senderNames[staff.staffId] = label;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[chat] failed to load sender names: $e');
+    }
   }
 
   ChatMessage _withResolvedSenderName(ChatMessage msg) {

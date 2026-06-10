@@ -4,11 +4,9 @@ import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
 import 'package:hospital_app/core/network/api_response_codes.dart';
 import '../../auth/data/models/auth_api_response.dart';
-import 'models/edge_status.dart';
 import 'models/flow_alert.dart';
 import 'models/flow_cell.dart';
 import 'models/flow_forecast_bucket.dart';
-import 'models/map_department.dart';
 import 'models/map_edges_response.dart';
 import 'models/map_floor.dart';
 import 'models/map_obstacle.dart';
@@ -108,17 +106,6 @@ class MapRepository {
     ))!;
   }
 
-  Future<List<MapDepartment>> getDepartments() async {
-    final departments = await _request<List<MapDepartment>>(
-      method: _MapHttpMethod.get,
-      endpoint: ApiEndpoints.getDepts,
-      fromJson: (json) => (json as List<dynamic>)
-          .map((item) => MapDepartment.fromJson(item as Map<String, dynamic>))
-          .toList(),
-    );
-    return departments ?? [];
-  }
-
   Future<List<MapPoi>> searchLocation({
     required String keyword,
     required int mapId,
@@ -127,18 +114,6 @@ class MapRepository {
       method: _MapHttpMethod.get,
       endpoint: ApiEndpoints.searchLocation,
       queryParameters: {'keyword': keyword, 'map_id': mapId},
-      fromJson: (json) => (json as List<dynamic>)
-          .map((item) => MapPoi.fromJson(item as Map<String, dynamic>))
-          .toList(),
-    );
-    return pois ?? [];
-  }
-
-  Future<List<MapPoi>> getLandmarks({required int mapId}) async {
-    final pois = await _request<List<MapPoi>>(
-      method: _MapHttpMethod.get,
-      endpoint: ApiEndpoints.getLandmarks,
-      queryParameters: {'map_id': mapId},
       fromJson: (json) => (json as List<dynamic>)
           .map((item) => MapPoi.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -201,40 +176,6 @@ class MapRepository {
     );
   }
 
-  Future<dynamic> orderRouteMulti({
-    required int startLocation,
-    required List<int> targetLocations,
-    required String modeId,
-  }) async {
-    return _request<dynamic>(
-      method: _MapHttpMethod.post,
-      endpoint: ApiEndpoints.routeOrderMulti,
-      data: {
-        'start_location': startLocation,
-        'target_locations': targetLocations,
-        'mode_id': modeId,
-      },
-      fromJson: (json) => json,
-    );
-  }
-
-  Future<dynamic> orderRouteUnordered({
-    required int startLocation,
-    required List<int> targetLocations,
-    required String modeId,
-  }) async {
-    return _request<dynamic>(
-      method: _MapHttpMethod.post,
-      endpoint: ApiEndpoints.routeOrderUnordered,
-      data: {
-        'start_location': startLocation,
-        'target_locations': targetLocations,
-        'mode_id': modeId,
-      },
-      fromJson: (json) => json,
-    );
-  }
-
   Future<dynamic> recalculateRoute({
     required String routeId,
     required int currentLocation,
@@ -282,32 +223,6 @@ class MapRepository {
       },
       fromJson: (json) => json,
     );
-  }
-
-  /// Shares a route and returns the backend-issued share URL.
-  ///
-  /// Contract: the response payload exposes the link as `share_url`. There is
-  /// no `url`/`link` fallback — if `share_url` is absent or empty the response
-  /// violates the contract and we throw rather than silently returning null.
-  Future<String> shareRoute({required String routeId}) async {
-    final shareUrl = await _request<String?>(
-      method: _MapHttpMethod.post,
-      endpoint: ApiEndpoints.routeShare,
-      data: {'route_id': routeId},
-      fromJson: (json) {
-        if (json is Map) {
-          final url = json['share_url']?.toString();
-          if (url != null && url.isNotEmpty) {
-            return url;
-          }
-        }
-        return null;
-      },
-    );
-    if (shareUrl == null || shareUrl.isEmpty) {
-      throw Exception('Phản hồi chia sẻ không hợp lệ: thiếu trường share_url.');
-    }
-    return shareUrl;
   }
 
   Future<List<FlowCell>> getFlowDensity({int? gridLocation}) async {
@@ -358,30 +273,12 @@ class MapRepository {
     return alerts ?? const <FlowAlert>[];
   }
 
-  Future<List<EdgeStatus>> getFlowEdgeStatus() async {
-    final statuses = await _request<List<EdgeStatus>>(
-      method: _MapHttpMethod.get,
-      endpoint: ApiEndpoints.flowEdgeStatus,
-      fromJson: _parseEdgeStatuses,
-    );
-    return statuses ?? const <EdgeStatus>[];
-  }
-
   Future<String?> getVoiceKey() async {
     return _request<String?>(
       method: _MapHttpMethod.get,
       endpoint: ApiEndpoints.sysGetVoiceKey,
       fromJson: _parseVoiceKey,
     );
-  }
-
-  Future<Map<String, String>> getVoiceFiles() async {
-    final files = await _request<Map<String, String>>(
-      method: _MapHttpMethod.get,
-      endpoint: ApiEndpoints.sysGetVoiceFiles,
-      fromJson: _parseVoiceFiles,
-    );
-    return files ?? const <String, String>{};
   }
 
   Future<void> pingLocation({
@@ -469,32 +366,6 @@ class MapRepository {
     }
     final density = _readDouble(json['density'] ?? json['count']) ?? 0;
     return FlowCell(location: location, density: density);
-  }
-
-  List<EdgeStatus> _parseEdgeStatuses(dynamic json) {
-    final rows = _extractRows(
-      json,
-      keys: const ['edge_statuses', 'edges', 'statuses', 'data'],
-    );
-    return rows.map(_edgeStatusFromRaw).whereType<EdgeStatus>().toList();
-  }
-
-  EdgeStatus? _edgeStatusFromRaw(Map<String, dynamic> json) {
-    final from = _readInt(
-      json['from_location'] ?? json['from'] ?? json['source_location'],
-    );
-    final to = _readInt(
-      json['to_location'] ?? json['to'] ?? json['target_location'],
-    );
-    if (from == null || to == null) {
-      return null;
-    }
-    return EdgeStatus(
-      fromLocation: from,
-      toLocation: to,
-      congestion: _readDouble(json['congestion'] ?? json['density']) ?? 0,
-      blocked: json['blocked'] == true || json['status'] == 'blocked',
-    );
   }
 
   List<FlowAlert> _parseFlowAlerts(dynamic json) {
@@ -611,31 +482,6 @@ class MapRepository {
       }
     }
     return null;
-  }
-
-  Map<String, String> _parseVoiceFiles(dynamic json) {
-    if (json is Map) {
-      final files = json['files'] ?? json['clip_urls'] ?? json['clips'] ?? json;
-      if (files is Map) {
-        return {
-          for (final entry in files.entries)
-            if (entry.value != null)
-              entry.key.toString(): entry.value.toString(),
-        };
-      }
-    }
-    if (json is List) {
-      final result = <String, String>{};
-      for (final item in json.whereType<Map>()) {
-        final key = item['key'] ?? item['maneuver'] ?? item['id'];
-        final url = item['url'] ?? item['clip_url'] ?? item['file_url'];
-        if (key != null && url != null) {
-          result[key.toString()] = url.toString();
-        }
-      }
-      return result;
-    }
-    return const <String, String>{};
   }
 
   @visibleForTesting

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
@@ -20,6 +21,7 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   String? _syncedTheme;
+  String _appVersion = '';
 
   @override
   void initState() {
@@ -27,6 +29,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(notificationSettingsProvider.notifier).loadSettings();
     });
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _appVersion = info.version);
   }
 
   Future<void> _save(NotificationSettingsModel settings) async {
@@ -211,7 +222,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 leading: Icon(Icons.verified_outlined, color: cs.primary),
                 title: const Text('Phiên bản'),
                 trailing: Text(
-                  '1.0.0',
+                  _appVersion,
                   style: TextStyle(color: cs.onSurfaceVariant),
                 ),
               ),
@@ -347,7 +358,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     showAboutDialog(
       context: context,
       applicationName: 'Hospital App',
-      applicationVersion: '1.0.0',
+      applicationVersion: _appVersion,
       applicationLegalese: '© 2025 Hospital App Team',
       children: const [
         SizedBox(height: 16),

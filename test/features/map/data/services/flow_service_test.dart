@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hospital_app/features/map/data/map_repository.dart';
-import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_alert.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
 import 'package:hospital_app/features/map/data/models/flow_forecast_bucket.dart';
@@ -33,7 +32,6 @@ void main() {
           FlowCell(location: 101, density: 3.0),
           FlowCell(location: 102, density: 0.0),
         ],
-        onGetEdgeStatus: () async => throw StateError('must not call'),
         onGetAlerts: () async => const [],
       );
 
@@ -48,7 +46,6 @@ void main() {
       // Normalized: 0.0 / 12.0 = 0.0
       expect(snapshot.cells[2].density, 0.0);
       expect(snapshot.edgeStatuses, isEmpty);
-      expect(fakeRepo.edgeStatusCalls, 0);
     });
 
     test('FlowService handles zero-density cases gracefully', () async {
@@ -57,7 +54,6 @@ void main() {
           FlowCell(location: 100, density: 0.0),
           FlowCell(location: 101, density: 0.0),
         ],
-        onGetEdgeStatus: () async => const [],
         onGetAlerts: () async => const [],
       );
 
@@ -71,7 +67,6 @@ void main() {
     test('FlowService handles empty heatmap cells gracefully', () async {
       final fakeRepo = FakeFlowMapRepository(
         onGetHeatmap: () async => const [],
-        onGetEdgeStatus: () async => const [],
         onGetAlerts: () async => const [],
       );
 
@@ -143,26 +138,13 @@ void main() {
 
 class FakeFlowMapRepository extends MapRepository {
   final Future<List<FlowCell>> Function()? onGetHeatmap;
-  final Future<List<EdgeStatus>> Function()? onGetEdgeStatus;
   final Future<List<FlowAlert>> Function()? onGetAlerts;
-  int edgeStatusCalls = 0;
 
-  FakeFlowMapRepository({
-    this.onGetHeatmap,
-    this.onGetEdgeStatus,
-    this.onGetAlerts,
-  });
+  FakeFlowMapRepository({this.onGetHeatmap, this.onGetAlerts});
 
   @override
   Future<List<FlowCell>> getFlowHeatmap() async {
     if (onGetHeatmap != null) return onGetHeatmap!();
-    return const [];
-  }
-
-  @override
-  Future<List<EdgeStatus>> getFlowEdgeStatus() async {
-    edgeStatusCalls++;
-    if (onGetEdgeStatus != null) return onGetEdgeStatus!();
     return const [];
   }
 

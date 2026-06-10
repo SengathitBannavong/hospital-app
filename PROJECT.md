@@ -239,10 +239,10 @@ Scope: user settings page covering account, appearance, notifications, and app i
 - [x] `ThemeController.setThemeMode(ThemeMode)` supports direct selection.
 - [x] "Change password" → `/change-password`; "Logout" → confirm dialog → `logout()`.
 - [x] Device push token (`user/set_devtoken`) registered via the optional Firebase service.
-- [x] "Help & Support" → `/help`; "About app" → `showAboutDialog`; "Version" shows `1.0.0`.
+- [x] "Help & Support" → `/help`; "About app" → `showAboutDialog`; "Version" shows the installed package version via `PackageInfo`.
 - [x] Offline map-cache clearing lives here (moved from the Map screen, where a destructive action did not belong).
 - [ ] Voice-guidance + travel-mode toggles dropped — backend `get/set_settings` does not expose those columns yet.
-- [ ] "Version" still static `1.0.0` (not from `sys/check_version`).
+- [x] "Version" reads the installed package version via `PackageInfo.fromPlatform()` (no longer a static `1.0.0`).
 
 ## Chat 10: Chat Module
 
@@ -334,7 +334,10 @@ Generated `VersionCheckResponse` files are committed after the branch rebase
 
 ### Cross-cutting / tech debt
 - [ ] **Restore voice-guidance + travel-mode** settings toggles once BE exposes those columns in `get/set_settings`.
-- [ ] **Real app version** in Settings from `sys/check_version` (currently static `1.0.0`).
+- [x] **Real app version** in Settings — Settings + About now read the installed package version via `PackageInfo.fromPlatform()` (was static `1.0.0`).
+- [x] **Removed dead mock-credentials file** (`mock_auth_credentials.dart`, `password='secret123'` + fake JWT) — 0 references anywhere.
+- [x] **Pruned dead endpoint constants + repository getters** in `api_endpoints.dart` / `map_repository.dart` (superseded by the offline `syncFull` bundle; kept the ones reserved for Phase 1/2 wiring).
+- [x] **Stopped silently swallowing errors** in the 3 empty `catch (_) {}` blocks (chat WebSocket + provider) — now `debugPrint`.
 - [ ] **Tests** for settings, home, medical, SOS, asset, staff, and remaining chat UI flows; expand auth (repo errors, router redirects, widget flows). Notification/chat/map provider coverage already exists.
 - [ ] **Backend `getEdges` perf** (~17s) — biggest map-load slowdown.
 - [ ] Profile update success/error toast feedback.
