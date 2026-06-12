@@ -328,10 +328,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         } else {
           errorMessage = 'Đã xảy ra lỗi, vui lòng thử lại';
         }
-        DeleteAccountService.showError(
-          context,
-          errorMessage,
-        );
+        DeleteAccountService.showError(context, errorMessage);
       }
     }
   }
