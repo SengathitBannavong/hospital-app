@@ -287,7 +287,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       context: context,
       useRootNavigator: true,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 24),
+            Text('Đang xử lý...'),
+          ],
+        ),
+      ),
     );
     loadingDialogOpen = true;
 
@@ -296,20 +304,31 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           .read(authStateProvider.notifier)
           .deleteAccount(password: password);
 
+      if (loadingDialogOpen && rootNavigator.canPop()) {
+        rootNavigator.pop();
+        loadingDialogOpen = false;
+      }
+
       if (mounted) {
         DeleteAccountService.showDeleteAccountSuccess(context);
       }
     } catch (e) {
-      if (mounted) {
-        DeleteAccountService.showError(
-          context,
-          e.toString().replaceFirst('Exception: ', ''),
-        );
-      }
-    } finally {
+      debugPrint('Delete Account Error: $e');
+
       if (loadingDialogOpen && rootNavigator.canPop()) {
         rootNavigator.pop();
         loadingDialogOpen = false;
+      }
+
+      if (mounted) {
+        String errorMessage = e.toString().replaceFirst('Exception: ', '');
+        if (errorMessage.toLowerCase().contains('password') ||
+            errorMessage.toLowerCase().contains('incorrect')) {
+          errorMessage = 'Mật khẩu không chính xác. Vui lòng thử lại.';
+        } else {
+          errorMessage = 'Đã xảy ra lỗi, vui lòng thử lại';
+        }
+        DeleteAccountService.showError(context, errorMessage);
       }
     }
   }

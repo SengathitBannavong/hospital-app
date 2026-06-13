@@ -8,7 +8,7 @@ class DeleteAccountService {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Account'),
+        title: const Text('Xóa tài khoản'),
         content: const Text(
           'Bạn có chắc chắn muốn xóa tài khoản của mình không?\n'
           'Hành động này không thể đảo ngược.\n'
@@ -17,12 +17,12 @@ class DeleteAccountService {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text('Hủy'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text(
-              'Delete',
+              'Xóa',
               style: TextStyle(color: AppColors.emergency),
             ),
           ),
@@ -38,7 +38,7 @@ class DeleteAccountService {
     return showDialog<String?>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xác nhận mật khẩu'),
+        title: const Text('Xác nhận xóa tài khoản'),
         content: TextField(
           controller: passwordController,
           obscureText: true,
@@ -51,11 +51,11 @@ class DeleteAccountService {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy bỏ'),
+            child: const Text('Hủy'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, passwordController.text),
-            child: const Text('Xác nhận'),
+            child: const Text('Xóa'),
           ),
         ],
       ),
@@ -67,7 +67,7 @@ class DeleteAccountService {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Tài khoản đã được xóa'),
+        title: const Text('Tài khoản đã được xóa thành công'),
         content: const Text('Tài khoản của bạn đã được xóa thành công.'),
         actions: [
           ElevatedButton(
