@@ -85,7 +85,7 @@ class _RoutePill extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                     onPressed: onClear,
                     icon: const Icon(Icons.close_rounded),
-                    tooltip: 'Clear route',
+                    tooltip: 'Ẩn',
                   ),
               ],
             ),

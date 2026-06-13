@@ -676,35 +676,14 @@ class _MapPageState extends ConsumerState<MapPage>
                         setState(() => _routePillCollapsed = false),
                   ),
                 )
-              : Row(
+              : KeyedSubtree(
                   key: const ValueKey('route-pill-expanded'),
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _RoutePill(
-                      startName: userPositionPoi?.poiName ?? 'You are here',
-                      dest: dest,
-                      onTap: _showRoutePanel,
-                      onClear: _clearRoute,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Semantics(
-                      button: true,
-                      label: 'Ẩn',
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.close_rounded,
-                          size: 18,
-                          color: context.colorScheme.onSurfaceVariant,
-                        ),
-                        padding: EdgeInsets.zero,
-                        splashRadius: 20,
-                        visualDensity: VisualDensity.compact,
-                        tooltip: 'Ẩn',
-                        onPressed: () =>
-                            setState(() => _routePillCollapsed = true),
-                      ),
-                    ),
-                  ],
+                  child: _RoutePill(
+                    startName: userPositionPoi?.poiName ?? 'You are here',
+                    dest: dest,
+                    onTap: _showRoutePanel,
+                    onClear: () => setState(() => _routePillCollapsed = true),
+                  ),
                 ),
         ),
       ),
