@@ -4,7 +4,7 @@ This overview is from the mobile app user's point of view. It measures what a
 patient/user can actually use in the Flutter app, not raw backend endpoint
 coverage.
 
-_Reflects `main` @ `0952fa4`, 2026-06-03._ Bottom nav is **5 tabs** —
+_Reflects `main` @ `0952fa4`, 2026-06-03; navigation voice guidance added on `feat/voice-map` (2026-06-13, pending merge to main)._ Bottom nav is **5 tabs** —
 Home · Utilities (Medical) · Map · Chat · Profile — with swipe-to-switch between
 tabs. Notification, Info, FAQ, About, Contact, SOS, Settings, Feedback, and
 individual chat rooms are pushed routes.
@@ -31,7 +31,7 @@ missing endpoint count:
 | Prescription | `████████░░` 80% | View prescription data. | Prescription history/details. | None. |
 | Notifications | `█████████▌` 95% | List + **pagination/load-more** + pull-to-refresh, mark read, mark all read, delete, **unread bell badge**, **60s polling fallback** (surfaces new items + read-state without manual refresh, since there is no backend push/WS), unified `/settings` page (`get_settings`/`set_settings`), device token, **optional FCM push** (off by default, now genuinely optional — lazy `FirebaseMessaging` so disabled builds never touch Firebase), provider/page tests. | Backend does not actually send pushes (stores tokens only, "Bucket B") and has no real notification triggers, so the list is seed-only in practice; polling masks the missing push within ~60s. | None (device token now wired). |
 | Indoor Map | `████████░░` 80% | Floor/map loading, grid rendering, POIs, local search, QR position set, offline cache, sync fallback. | Department/landmark browsing as user features; backend search as the normal path. | Optional/unused: `GET /api/map/get_depts`, `GET /api/map/get_landmarks` |
-| Navigation | `███████░░░` 70% | Current position, route preview, route drawing, simulated moving dot, pause/resume/stop, route history, clear history, order-on-arrival log. | Real active-route lifecycle, backend route steps/next-step/pass-node sync, ETA, cancel/share, dynamic modes. **`route/rate` has a complete `RouteRatingPage` + repo call wired but no navigation entry point — an orphan route, not reachable in any user flow.** | Not wired: `route/get_steps`, `route/get_next`, `route/get_active`, `POST route/get_eta`, `route/cancel`. Repo wrapper, no entry point: `route/pass_node`, `route/share`. Page + endpoint built but route unreachable: `route/rate`. |
+| Navigation | `███████▊░░` 78% | Current position, route preview, route drawing, simulated moving dot, pause/resume/stop, ×0.5/×1/×2 speed, route history, clear history, order-on-arrival log, and **offline Vietnamese turn-by-turn voice guidance** (8 bundled clips played from a pre-warmed in-memory pool, sequential/non-overlapping, `flutter_tts` fallback; turn ~6 blocks ahead + "go straight" + single arrival; mute toggle persisted). | Real active-route lifecycle, backend route steps/next-step/pass-node sync, ETA, cancel/share, dynamic modes. **`route/rate` has a complete `RouteRatingPage` + repo call wired but no navigation entry point — an orphan route, not reachable in any user flow.** | Not wired: `route/get_steps`, `route/get_next`, `route/get_active`, `POST route/get_eta`, `route/cancel`. Repo wrapper, no entry point: `route/pass_node`, `route/share`. Page + endpoint built but route unreachable: `route/rate`. |
 | Multi-stop Navigation | `██░░░░░░░░` 20% | Repository wrappers for ordered/unordered multi-stop calls. | No user flow for choosing multiple destinations or optimizing order. | UI for `POST route/order_multi`, `POST route/order_unordered` |
 | Crowd / Flow Overlay | `██████░░░░` 60% | Heatmap, bottlenecks, forecast, alerts, obstacle reporting/display, crowd-aware local routing. | Point density view, edge-status overlay (request mismatch), location ping during nav, priority controls. | `flow/get_density` (param/shape mismatch), `flow/edge_status` (mismatch), `flow/ping_location` (repo wrapper, no entry point), `flow/set_priority`, `flow/expire_priority` |
 | QR Scanner | `████████░░` 80% | Scan a QR and set current map position. | Robust payload formats, friendlier invalid-code handling. | None beyond current map search. |
@@ -43,7 +43,7 @@ missing endpoint count:
 
 ## Summary
 
-Overall user-facing progress is about `82%`.
+Overall user-facing progress is about `83%`.
 
 The strongest completed areas are authentication, medical tasks (now with a
 per-task detail page), prescriptions, **notifications (pagination + settings +
@@ -52,7 +52,8 @@ device-token registration, indoor
 map, QR positioning, the **dynamic Info/Utility hub** (FAQ/About/Contact +
 weather + app-update check + feedback), **SOS quick-send**, asset/wheelchair and
 staff-request flows (now surfaced on the Home grid and via a shared location
-picker), simulated navigation, and the first complete **Chat** surface.
+picker), simulated navigation **with offline turn-by-turn voice guidance**, and
+the first complete **Chat** surface.
 
 The biggest remaining gaps are feedback image attachments, deeper chat room
 creation/management, deeper live navigation sync, and — critically on the

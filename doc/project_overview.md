@@ -140,7 +140,15 @@ The map feature (`lib/features/map/`) renders a hospital floor grid with POIs, w
 - POI tap uses `poiByCellProvider` (O(1) cell index, 3×3 neighborhood search) instead of a linear scan.
 - Vietnamese search normalization is computed once per POI and cached in `normalizedPoiNamesProvider`.
 
+### Voice guidance
+Offline turn-by-turn voice cues during simulated navigation (`presentation/navigation/voice_service.dart`).
+- **Clips**: 8 Vietnamese MP3s bundled as assets (`assets/voice/vi/<key>.mp3`: `turn_left`, `turn_right`, `go_straight`, `arrived`, `elevator_up/down`, `stairs_up/down`). No network — packed into the `.apk`/`.ipa` at build time.
+- **Player**: a pre-warmed `AudioPlayer` pool (one per clip, preloaded into memory) plays a cue with an instant `seek`+`resume`. Playback is sequential and non-overlapping, bounded by each clip's length so a missed completion event can't stall the queue. `flutter_tts` (vi) is the fallback for any key without a bundled clip. Android uses the media stream at full volume; iOS honours the silent switch; web has autoplay-unlock + DDC/empty-src handling.
+- **Decider** (`VoiceCueDecider`): announces an upcoming turn within ~6 grid blocks, otherwise the current segment ("go straight") once it changes; arrival is spoken exactly once. Maneuvers are derived from the backend `voice_text` key so turns aren't lost.
+- **Wiring**: `NavigationController` feeds `StepTracker` state to `VoiceService` each tick; `voiceMutedProvider` (persisted in Hive) gates output and is toggled from the navigation sheet header. Demo speed (`navSpeedProvider`, default ×0.5) keeps the dot slow enough to hear each cue.
+
 ### Tests
 - `test/features/map/presentation/utils/search_utils_test.dart` — normalization correctness.
 - `test/features/map/presentation/providers/map_provider_test.dart` — search results, derived providers, route extraction.
+- `test/features/map/presentation/navigation/voice_service_test.dart` — decider (turn lead / current-segment / arrival suppression / mute), voice-key resolution, and the sequential non-overlapping clip player.
 - Run with `flutter test test/features/map`.
