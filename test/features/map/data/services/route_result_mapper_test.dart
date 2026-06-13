@@ -31,7 +31,7 @@ void main() {
           'grid_row': 0,
           'grid_col': 1,
           'grid_location': 1,
-          'maneuver': 'floor_change',
+          'voice_text': 'turn_left',
           'instruction': 'Take the elevator',
           'distance': 1,
         },
@@ -44,8 +44,59 @@ void main() {
     expect(result.modeId, 'wheelchair');
     expect(result.speedFactor, 4);
     expect(result.steps.map((step) => step.location), [0, 1, 2]);
-    expect(result.steps[1].maneuver, StepManeuver.floorChange);
+    expect(result.steps[1].maneuver, StepManeuver.left);
+    expect(result.steps[1].voiceText, 'turn_left');
     expect(result.steps[1].instruction, 'Take the elevator');
     expect(result.steps[1].distance, 1);
+  });
+
+  test('RouteResultMapper derives maneuvers from voice text', () {
+    const mapper = RouteResultMapper();
+
+    expect(mapper.maneuverFromVoiceText('turn_left'), StepManeuver.left);
+    expect(mapper.maneuverFromVoiceText('turn_right'), StepManeuver.right);
+    expect(mapper.maneuverFromVoiceText('go_straight'), StepManeuver.straight);
+    expect(mapper.maneuverFromVoiceText('arrived'), StepManeuver.arrive);
+    expect(
+      mapper.maneuverFromVoiceText('elevator_up'),
+      StepManeuver.floorChange,
+    );
+    expect(
+      mapper.maneuverFromVoiceText('stairs_down'),
+      StepManeuver.floorChange,
+    );
+  });
+
+  test('RouteResultMapper parses backend paths as route steps', () {
+    const mapper = RouteResultMapper();
+
+    final result = mapper.fromPreviewJson({
+      'distance': 2,
+      'paths': [
+        {
+          'step_order': 2,
+          'grid_location': 11,
+          'voice_text': 'turn_right',
+          'instruction': 'Rẽ phải',
+          'distance': 1,
+        },
+        {
+          'step_order': 1,
+          'grid_location': 10,
+          'voice_text': 'go_straight',
+          'instruction': 'Đi thẳng',
+          'distance': 1,
+        },
+      ],
+    });
+
+    expect(result.path, [10, 11]);
+    expect(result.steps.map((step) => step.location), [10, 11]);
+    expect(result.steps[0].voiceText, 'go_straight');
+    expect(result.steps[0].instruction, 'Đi thẳng');
+    expect(result.steps[0].maneuver, StepManeuver.straight);
+    expect(result.steps[1].voiceText, 'turn_right');
+    expect(result.steps[1].instruction, 'Rẽ phải');
+    expect(result.steps[1].maneuver, StepManeuver.right);
   });
 }

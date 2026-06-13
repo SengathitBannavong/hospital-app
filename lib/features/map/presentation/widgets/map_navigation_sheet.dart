@@ -35,10 +35,16 @@ class MapNavigationSheet extends ConsumerWidget {
     );
     final paused = phase == NavPhase.paused;
     final arrived = phase == NavPhase.arrived;
+    final voiceMuted = ref.watch(voiceMutedProvider);
     final controller = ref.read(navigationControllerProvider);
 
+    // Cap at 280 but shrink to fit narrow screens (leave room for margins) so
+    // the controls never get squeezed enough to wrap.
+    final maxWidth = MediaQuery.of(context).size.width - 32;
+    final panelWidth = maxWidth < 280 ? maxWidth : 280.0;
+
     return SizedBox(
-      width: 280,
+      width: panelWidth,
       child: Material(
         color: context.colorScheme.surface,
         elevation: 8,
@@ -76,6 +82,19 @@ class MapNavigationSheet extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  if (!arrived)
+                    IconButton(
+                      onPressed: () =>
+                          ref.read(voiceMutedProvider.notifier).toggle(),
+                      visualDensity: VisualDensity.compact,
+                      tooltip: voiceMuted ? 'Unmute voice' : 'Mute voice',
+                      icon: Icon(
+                        voiceMuted
+                            ? Icons.volume_off_rounded
+                            : Icons.volume_up_rounded,
+                        size: 20,
+                      ),
+                    ),
                   IconButton(
                     onPressed: onCollapse,
                     visualDensity: VisualDensity.compact,
@@ -113,24 +132,39 @@ class MapNavigationSheet extends ConsumerWidget {
                               ? Icons.play_arrow_rounded
                               : Icons.pause_rounded,
                         ),
-                        label: Text(paused ? 'Resume' : 'Pause'),
+                        label: Text(
+                          paused ? 'Resume' : 'Pause',
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    OutlinedButton.icon(
-                      onPressed: onStop,
-                      icon: const Icon(Icons.stop_rounded),
-                      label: const Text('Stop'),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onStop,
+                        icon: const Icon(Icons.stop_rounded),
+                        label: const Text(
+                          'Stop',
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
                 SegmentedButton<double>(
                   segments: const [
+                    ButtonSegment<double>(value: 0.5, label: Text('×0.5')),
                     ButtonSegment<double>(value: 1, label: Text('×1')),
                     ButtonSegment<double>(value: 2, label: Text('×2')),
                   ],
-                  selected: {speed == 2 ? 2.0 : 1.0},
+                  selected: {
+                    speed <= 0.5 ? 0.5 : (speed >= 2 ? 2.0 : 1.0),
+                  },
                   onSelectionChanged: (selection) {
                     controller.setSpeed(selection.first);
                   },

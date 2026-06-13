@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
+import 'package:hospital_app/features/map/presentation/navigation/position_source.dart';
+import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
+import 'package:hospital_app/features/map/presentation/navigation/voice_service.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 
 class NavDot {
@@ -35,6 +40,8 @@ class NavDot {
 
 class NavigationController {
   final Ref _ref;
+  final VoiceService _voice;
+  final StepTracker _stepTracker;
   late final Ticker _ticker;
   Duration? _lastElapsed;
   List<int> _path = const <int>[];
@@ -43,7 +50,12 @@ class NavigationController {
   String _modeId = 'walking';
   double? _etaSeconds;
 
-  NavigationController(this._ref) {
+  NavigationController(
+    this._ref, {
+    VoiceService? voice,
+    StepTracker? stepTracker,
+  }) : _voice = voice ?? VoiceService(),
+       _stepTracker = stepTracker ?? const StepTracker() {
     _ticker = Ticker(_onTick);
   }
 
@@ -82,6 +94,7 @@ class NavigationController {
     final routeData = _ref.read(routeResultProvider).valueOrNull;
     _etaSeconds = _readEstimatedTime(routeData);
     _lastElapsed = null;
+    unawaited(_voice.reset());
     _setProgress(0);
     _ref.read(navPhaseProvider.notifier).state = NavPhase.navigating;
     _ticker
@@ -94,6 +107,7 @@ class NavigationController {
     if (_ref.read(navPhaseProvider) != NavPhase.navigating) return;
     _ticker.stop();
     _lastElapsed = null;
+    unawaited(_voice.pauseSpeaking());
     _ref.read(navPhaseProvider.notifier).state = NavPhase.paused;
   }
 
@@ -115,6 +129,7 @@ class NavigationController {
     _etaSeconds = null;
     _setProgress(0);
     _ref.read(navPhaseProvider.notifier).state = NavPhase.idle;
+    unawaited(_voice.reset());
   }
 
   void setSpeed(double multiplier) {
@@ -124,6 +139,7 @@ class NavigationController {
 
   void dispose() {
     _ticker.dispose();
+    unawaited(_voice.dispose());
   }
 
   void _onTick(Duration elapsed) {
@@ -142,16 +158,32 @@ class NavigationController {
       _ticker.stop();
       _lastElapsed = null;
       _travelled = _totalLength;
+      // Announce arrival once and let the clip play out. Do NOT reset()/stop()
+      // here — that would cut the clip off the instant it starts. The decider
+      // is reset by the next start().
+      final muted = _ref.read(voiceMutedProvider);
+      unawaited(_voice.speakArrived(muted: muted));
       _ref.read(navPhaseProvider.notifier).state = NavPhase.arrived;
     }
   }
 
   void _setProgress(double progress) {
     _ref.read(navProgressProvider.notifier).state = progress;
-    _ref.read(navCurrentLocationProvider.notifier).state =
-        currentLocationApprox;
+    final currentLocation = currentLocationApprox;
+    _ref.read(navCurrentLocationProvider.notifier).state = currentLocation;
     _ref.read(navMetersRemainingProvider.notifier).state = metersRemaining;
     _ref.read(navSecondsRemainingProvider.notifier).state = secondsRemaining;
+    final routeResult = _ref.read(routeResultProvider).valueOrNull;
+    final state = _stepTracker.track(
+      position: SimulatedPositionSource(
+        currentLocation: currentLocation,
+        progress: progress,
+      ),
+      routeResult: routeResult,
+    );
+    unawaited(
+      _voice.speakFor(state: state, muted: _ref.read(voiceMutedProvider)),
+    );
   }
 
   double get _speedCellsPerSecond {

@@ -1410,6 +1410,7 @@ class _MapPageState extends ConsumerState<MapPage>
     _arrivalOrderCommitted = false;
     _navCollapsed = false;
     _routeAnim.value = 1;
+    unawaited(ref.read(voiceServiceProvider).unlockForStartGesture());
     final started = ref.read(navigationControllerProvider).start();
     if (!started) {
       ref.read(mapInlineNoticeProvider.notifier).state =
