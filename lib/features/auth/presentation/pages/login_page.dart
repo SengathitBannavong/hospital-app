@@ -6,6 +6,7 @@ import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:hospital_app/features/auth/presentation/widgets/auth_link_button_style.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/auth_text_field.dart';
 
 class LoginOtpPage extends ConsumerStatefulWidget {
@@ -187,8 +188,9 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () => context.push('/forgot-password'),
-                              style: TextButton.styleFrom(
-                                visualDensity: VisualDensity.compact,
+                              style: authLinkButtonStyle(
+                                context,
+                                compact: true,
                               ),
                               child: const Text('Quên mật khẩu?'),
                             ),
@@ -251,13 +253,12 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                       ),
                       TextButton(
                         onPressed: () => context.push('/register'),
-                        child: Text(
-                          'Đăng ký ngay',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: isSmallScreen ? 13 : null,
-                          ),
+                        style: authLinkButtonStyle(
+                          context,
+                          fontSize: isSmallScreen ? 13 : null,
+                          fontWeight: FontWeight.bold,
                         ),
+                        child: const Text('Đăng ký ngay'),
                       ),
                     ],
                   ),
