@@ -176,12 +176,10 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
 
       expect(repository.passNodeCalls, isNotEmpty);
-      expect(
-        repository.passNodeCalls.every((c) => c.routeId == 'r-1'),
-        isTrue,
-      );
-      final locations =
-          repository.passNodeCalls.map((c) => c.gridLocation).toList();
+      expect(repository.passNodeCalls.every((c) => c.routeId == 'r-1'), isTrue);
+      final locations = repository.passNodeCalls
+          .map((c) => c.gridLocation)
+          .toList();
       expect(locations.every((l) => l >= 10 && l <= 19), isTrue);
       // The dot moved across cells, so more than one distinct cell is reported.
       expect(locations.toSet().length, greaterThanOrEqualTo(2));
