@@ -17,6 +17,7 @@ class RouteRatingPage extends ConsumerStatefulWidget {
 class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
   int _rating = 0;
   final _commentController = TextEditingController();
+  bool _isAccurate = true;
   bool _isSubmitting = false;
   bool _submitted = false;
 
@@ -42,6 +43,7 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
             comment: _commentController.text.trim().isEmpty
                 ? null
                 : _commentController.text.trim(),
+            isAccurate: _isAccurate,
           );
       if (mounted) {
         setState(() {
@@ -132,6 +134,32 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
                           labelText: 'Nhận xét (tùy chọn)',
                           hintText: 'Chia sẻ cảm nhận về tuyến đường...',
                           border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Tuyến đường có chính xác không?',
+                        style: context.textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment<bool>(value: true, label: Text('Có')),
+                            ButtonSegment<bool>(
+                              value: false,
+                              label: Text('Không'),
+                            ),
+                          ],
+                          selected: {_isAccurate},
+                          onSelectionChanged: _isSubmitting
+                              ? null
+                              : (selection) {
+                                  setState(() {
+                                    _isAccurate = selection.first;
+                                  });
+                                },
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xl),

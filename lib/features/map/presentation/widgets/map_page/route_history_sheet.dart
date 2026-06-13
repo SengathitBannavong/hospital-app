@@ -5,12 +5,14 @@ class _RouteHistorySheet extends StatelessWidget {
 
   final AsyncValue<RouteHistory> history;
   final VoidCallback onRetry;
+  final void Function(RouteHistoryEntry entry) onRate;
   final Future<void> Function() onClearAll;
   final Future<void> Function(RouteHistoryEntry entry) onRenavigate;
 
   const _RouteHistorySheet({
     required this.history,
     required this.onRetry,
+    required this.onRate,
     required this.onClearAll,
     required this.onRenavigate,
   });
@@ -95,7 +97,20 @@ class _RouteHistorySheet extends StatelessWidget {
                             _relativeTime(entry.createdAt),
                           ].join(' · '),
                         ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (entry.routeId != null)
+                              IconButton(
+                                icon: const Icon(Icons.star_rounded),
+                                color: Colors.amber.shade700,
+                                tooltip: 'Đánh giá tuyến',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () => onRate(entry),
+                              ),
+                            const Icon(Icons.chevron_right_rounded),
+                          ],
+                        ),
                         onTap: () => onRenavigate(entry),
                       );
                     },

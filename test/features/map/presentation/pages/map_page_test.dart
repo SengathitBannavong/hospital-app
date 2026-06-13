@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
@@ -185,6 +186,92 @@ void main() {
     final listView = tester.widget<ListView>(find.byType(ListView));
     expect(listView.childrenDelegate.estimatedChildCount, 29);
   });
+
+  testWidgets(
+    'route history rate action appears only with route id and opens rate page',
+    (tester) async {
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(path: '/', builder: (_, _) => const MapPage()),
+          GoRoute(
+            path: '/route/rate/:route_id',
+            builder: (_, state) => Scaffold(
+              body: Text('rating ${state.pathParameters['route_id']}'),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            floorsProvider.overrideWith(
+              (ref) async => const [
+                MapFloor(mapId: 1, mapName: 'Floor 1', rows: 33, cols: 57),
+              ],
+            ),
+            mapMetaProvider.overrideWith(
+              (ref, mapId) async => const MapFloor(
+                mapId: 1,
+                mapName: 'Floor 1',
+                rows: 33,
+                cols: 57,
+              ),
+            ),
+            mapNodesProvider.overrideWith(
+              (ref, mapId) async => const <MapPoi>[],
+            ),
+            mapEdgesProvider.overrideWith(
+              (ref, mapId) async => const <MapEdge>[],
+            ),
+            mapConnectivityProvider.overrideWith((ref) async* {
+              yield false;
+            }),
+            mapLastSyncedAtProvider.overrideWith((ref, mapId) async => null),
+            routeHistoryProvider.overrideWith(
+              (ref) async => const RouteHistory(
+                routes: [
+                  RouteHistoryEntry(
+                    id: 'history-1',
+                    routeId: 'server-route-1',
+                    destinationName: 'Radiology',
+                    destLocation: 12,
+                  ),
+                  RouteHistoryEntry(
+                    id: 'history-2',
+                    destinationName: 'Pharmacy',
+                    destLocation: 14,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          child: MaterialApp.router(
+            theme: ThemeData(useMaterial3: false),
+            routerConfig: router,
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.menu_rounded));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.history_rounded));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Radiology'), findsOneWidget);
+      expect(find.text('Pharmacy'), findsOneWidget);
+      expect(find.byTooltip('Đánh giá tuyến'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Đánh giá tuyến'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('rating server-route-1'), findsOneWidget);
+      expect(find.text('Route history'), findsNothing);
+    },
+  );
 
   testWidgets('route history clear all calls repository and closes sheet', (
     tester,
