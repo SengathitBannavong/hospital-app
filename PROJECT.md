@@ -1,6 +1,6 @@
 # Hospital App Project Checklist
 
-Last checked: 2026-06-13 (branch `main`, HEAD `3921912`)
+Last checked: 2026-06-13 (branch `main`, HEAD `9459725`)
 
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
@@ -103,7 +103,7 @@ Done (major capabilities)
 - [x] Grid map: rendering, POI search + metadata sheet, legend, zoom/pan, recenter; first-paint-fast deferred walkable layer.
 - [x] Multi-floor: floor switcher; meta/nodes/edges/search/POI follow the active floor; route + search reset on floor change.
 - [x] Positioning: "you are here" (entrance default), long-press pin, QR scan (`poi_code`), "I'm here" on landmark POIs.
-- [x] Navigation (simulated): animated dot, mode-based speed, traveled/remaining split, camera follow, live distance/ETA, pause/resume/stop, ×0.5/×1/×2, arrival; `route/order` logged on arrival.
+- [x] Navigation (simulated): animated dot, mode-based speed, traveled/remaining split, camera follow, live distance/ETA, pause/resume/stop, ×0.5/×1/×2, arrival. (`route/order` now fires at navigation start — see the route-lifecycle bullet below.)
 - [x] Voice guidance: offline Vietnamese turn-by-turn cues — 8 bundled MP3 clips played from a pre-warmed in-memory `AudioPlayer` pool (instant, sequential, non-overlapping), `flutter_tts` fallback; turn announced ~6 blocks ahead + "go straight" + single arrival; maneuver derived from `voice_text`; mute toggle persisted in Hive; Android media-stream/iOS silent-switch/web autoplay handled. Cues no longer fire when selecting/changing a destination and stop immediately on route cancel (the queue is dropped, not just the active clip).
 - [x] Routing: typed RouteResult, `route/preview`, client-side A*/Dijkstra engine as crowd-aware authority.
 - [x] Backend route lifecycle (telemetry + rating, client engine stays the authority): `route/order` fired async at navigation start mints a live `route_id` (no latency, no-ops offline); `route/cancel` on abandonment (arrival never cancels a completed route); `route/pass_node` reports the current cell every 2s while navigating (deduped, online-only, gated by `kReportPassNode`, reads `navCurrentLocationProvider` so real positioning swaps in with no change here); `route/rate` reachable from the route-history sheet (★ per entry + `is_accurate`).
@@ -129,8 +129,8 @@ Verify-only (not code, backend confirmation): non-walking `speed_factor` and met
 ### Map — out of scope (optional)
 
 - `route/order_multi`, `route/order_unordered` — multi-stop routing.
-- `route/share`, `route/rate` — route sharing / rating.
-- `route/get_active`, `route/cancel` — server-side route lifecycle (local Stop covers the demo).
+- `route/share` — route sharing.
+- `route/get_active` — server-side active-route fetch (not needed: the `route_id` now comes from `order`).
 
 ## Chat 4: Medical Module
 
@@ -321,7 +321,7 @@ Generated `VersionCheckResponse` files are committed after the branch rebase
 ### P1 — High-value patient features
 | # | Item | Area | Effort | Notes / acceptance |
 |---|------|------|--------|--------------------|
-| 7 | **Active route guidance** | FE+BE | L | `route/get_steps`, `get_next`, `get_eta`, `pass_node`, `cancel` — turn the simulated dot into backend-synced live guidance. |
+| 7 | **Active route guidance** | FE+BE | L | `order`/`cancel`/`pass_node`/`rate` are wired (telemetry + rating); remaining: `route/get_steps`, `get_next`, `get_eta` + real positioning to turn the simulated dot into backend-synced live guidance. |
 | 8 | **Home dashboard enrichment** | FE | M | Add useful live summaries for active route, assets/wheelchairs, chat/support, and SOS status. Task, notification, weather, map, and SOS entry points already exist. |
 | 9 | **Chat product gaps** | FE+BE | M | Add create-room UI, scroll-to-top pagination trigger, bottom-nav unread badge via `getUnreadCount`, connection status UI, and optional leave/delete room. Attachments/typing indicators remain later scope. |
 | 10 | **Medical QR check-in/out** | FE | M | Camera scan + treatment/room validation on top of the existing check-in/out APIs. |

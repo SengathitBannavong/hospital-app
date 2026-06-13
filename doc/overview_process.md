@@ -4,7 +4,7 @@ This overview is from the mobile app user's point of view. It measures what a
 patient/user can actually use in the Flutter app, not raw backend endpoint
 coverage.
 
-_Reflects `main` @ `3921912`, 2026-06-13; navigation voice guidance is merged to main (with cues fixed to not fire on destination change and to stop on cancel), and avatar clear/remove shipped on Profile._ Bottom nav is **5 tabs** —
+_Reflects `main` @ `9459725`, 2026-06-13; backend route lifecycle wired (`route/order` at start mints a `route_id`; `cancel` on abandon; `pass_node` every 2s; `rate` from history), navigation voice guidance merged, and avatar clear/remove shipped on Profile._ Bottom nav is **5 tabs** —
 Home · Utilities (Medical) · Map · Chat · Profile — with swipe-to-switch between
 tabs. Notification, Info, FAQ, About, Contact, SOS, Settings, Feedback, and
 individual chat rooms are pushed routes.
