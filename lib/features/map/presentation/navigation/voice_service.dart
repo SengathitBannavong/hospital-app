@@ -276,6 +276,9 @@ class CuePlayer {
   final TtsSpeaker _tts;
   final LocalClipPlayer _clipPlayer;
   Future<void> _tail = Future<void>.value();
+  // Bumped on every stop() so cues already queued before the stop are dropped
+  // instead of playing afterwards (e.g. when navigation is cancelled).
+  int _generation = 0;
 
   CuePlayer({TtsSpeaker? tts, LocalClipPlayer? clipPlayer})
     : _tts = tts ?? FlutterTtsSpeaker(),
@@ -285,7 +288,12 @@ class CuePlayer {
   // link is bounded by the clip length (see playAsset), so the chain can't
   // stall. Cues are deduped per turn upstream, so the queue stays short.
   Future<void> play(VoiceCue cue) {
-    final next = _tail.then((_) => _playNow(cue));
+    final generation = _generation;
+    final next = _tail.then((_) {
+      // A stop() between queueing and playing invalidates this cue.
+      if (generation != _generation) return Future<void>.value();
+      return _playNow(cue);
+    });
     _tail = next.catchError((_) {});
     return next;
   }
@@ -327,6 +335,8 @@ class CuePlayer {
   }
 
   Future<void> stop() async {
+    // Drop any cue still waiting in the queue, then halt what's playing now.
+    _generation++;
     await Future.wait([_clipPlayer.stop(), _tts.stop()]);
   }
 

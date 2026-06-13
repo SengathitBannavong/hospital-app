@@ -95,8 +95,10 @@ class NavigationController {
     _etaSeconds = _readEstimatedTime(routeData);
     _lastElapsed = null;
     unawaited(_voice.reset());
-    _setProgress(0);
+    // Enter the navigating phase before the first _setProgress so its cue is
+    // allowed through the guard in _setProgress.
     _ref.read(navPhaseProvider.notifier).state = NavPhase.navigating;
+    _setProgress(0);
     _ticker
       ..stop()
       ..start();
@@ -127,8 +129,11 @@ class NavigationController {
     _travelled = 0;
     _totalLength = 0;
     _etaSeconds = null;
-    _setProgress(0);
+    // Leave the navigating phase before resetting progress so _setProgress
+    // stays silent — otherwise it would speak a cue off the now-stale route
+    // (e.g. when the destination is changed or the route is cancelled).
     _ref.read(navPhaseProvider.notifier).state = NavPhase.idle;
+    _setProgress(0);
     unawaited(_voice.reset());
   }
 
@@ -181,9 +186,14 @@ class NavigationController {
       ),
       routeResult: routeResult,
     );
-    unawaited(
-      _voice.speakFor(state: state, muted: _ref.read(voiceMutedProvider)),
-    );
+    // Only speak while actively navigating. start()/stop() also call
+    // _setProgress to reset the progress providers, and those must not emit
+    // cues — otherwise selecting/changing a destination would trigger voice.
+    if (_ref.read(navPhaseProvider) == NavPhase.navigating) {
+      unawaited(
+        _voice.speakFor(state: state, muted: _ref.read(voiceMutedProvider)),
+      );
+    }
   }
 
   double get _speedCellsPerSecond {
