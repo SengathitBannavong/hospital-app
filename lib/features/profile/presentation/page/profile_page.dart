@@ -54,6 +54,59 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     context.go('/login');
   }
 
+  Future<void> _handleRemoveAvatar() async {
+    final currentProfile = ref.read(profileProvider).profile;
+    if (currentProfile == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xóa ảnh đại diện'),
+        content: const Text('Bạn có chắc chắn muốn xóa ảnh đại diện không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy bỏ'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isUploadingAvatar = true);
+
+    // Send avatar: '' so the backend clears avatar_url (and deletes the old
+    // upload). Other fields are re-sent unchanged; set_profile is partial.
+    final success = await ref
+        .read(profileProvider.notifier)
+        .updateProfile(
+          ProfileUpdateRequest(
+            fullName: currentProfile.fullName,
+            dob: currentProfile.dob,
+            gender: currentProfile.gender,
+            avatar: '',
+          ),
+        );
+
+    if (mounted) {
+      setState(() => _isUploadingAvatar = false);
+    }
+
+    if (success && mounted) {
+      AppToast.showSuccess('Đã xóa ảnh đại diện.');
+    } else if (!success && mounted) {
+      AppToast.showError(
+        ref.read(profileProvider).errorMessage ??
+            'Không thể xóa ảnh đại diện.',
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
@@ -108,6 +161,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               !_isEditing ||
                               profileState.isSaving ||
                               _isUploadingAvatar,
+                          onRemove: _handleRemoveAvatar,
                           onImagePicked: (XFile picked) async {
                             final currentProfile = ref
                                 .read(profileProvider)

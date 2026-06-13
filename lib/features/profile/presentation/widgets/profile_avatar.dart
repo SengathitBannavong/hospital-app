@@ -6,12 +6,14 @@ import '../../../../core/theme/hospital_theme.dart';
 class ProfileAvatar extends StatefulWidget {
   final String? imageUrl;
   final Function(XFile file) onImagePicked;
+  final VoidCallback? onRemove;
   final bool isReadOnly;
 
   const ProfileAvatar({
     super.key,
     this.imageUrl,
     required this.onImagePicked,
+    this.onRemove,
     this.isReadOnly = false,
   });
 
@@ -36,6 +38,8 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
   void _showPicker(BuildContext context) {
     if (widget.isReadOnly) return;
 
+    final hasImage = resolveMediaUrl(widget.imageUrl) != null;
+
     showModalBottomSheet(
       context: context,
       builder: (BuildContext bc) {
@@ -58,6 +62,21 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
                   Navigator.of(context).pop();
                 },
               ),
+              if (hasImage && widget.onRemove != null)
+                ListTile(
+                  leading: Icon(
+                    Icons.delete_outline,
+                    color: context.colorScheme.error,
+                  ),
+                  title: Text(
+                    'Xóa ảnh đại diện',
+                    style: TextStyle(color: context.colorScheme.error),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.onRemove!();
+                  },
+                ),
             ],
           ),
         );

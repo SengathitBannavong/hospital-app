@@ -16,7 +16,11 @@ class ProfileUpdateRequest {
       'full_name': fullName,
       if (dob != null && dob!.isNotEmpty) 'dob': dob,
       if (gender != null) 'gender': gender,
-      if (avatar != null && avatar!.isNotEmpty) 'avatar': avatar,
+      // avatar semantics (set_profile is a partial update):
+      //   null  -> omit the field, leaving the stored avatar unchanged
+      //   ""    -> send empty string; the backend treats it as "remove avatar"
+      //   value -> set/replace the avatar
+      if (avatar != null) 'avatar': avatar,
     };
   }
 }
