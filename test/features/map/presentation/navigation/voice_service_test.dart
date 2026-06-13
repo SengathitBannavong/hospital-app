@@ -24,35 +24,41 @@ void main() {
         distance: kCueThresholdCells - 0.01,
       );
 
-      expect(decider.decide(state: approaching, muted: false)?.voiceKey,
-          'turn_left');
+      expect(
+        decider.decide(state: approaching, muted: false)?.voiceKey,
+        'turn_left',
+      );
       // Still approaching the same turn → silent (no repeat, no "go straight").
       expect(decider.decide(state: approaching, muted: false), isNull);
     });
 
-    test('announces go straight for the current segment when no turn is near',
-        () {
-      final decider = VoiceCueDecider();
-      final cruising = _state(
-        currentStep: const RouteStep(
-          location: 1,
-          maneuver: StepManeuver.straight,
-          distance: 0,
-        ),
-        nextStep: const RouteStep(
-          location: 9,
-          maneuver: StepManeuver.left,
-          distance: 1,
-        ),
-        nextStepIndex: 5,
-        distance: kCueThresholdCells + 2,
-      );
+    test(
+      'announces go straight for the current segment when no turn is near',
+      () {
+        final decider = VoiceCueDecider();
+        final cruising = _state(
+          currentStep: const RouteStep(
+            location: 1,
+            maneuver: StepManeuver.straight,
+            distance: 0,
+          ),
+          nextStep: const RouteStep(
+            location: 9,
+            maneuver: StepManeuver.left,
+            distance: 1,
+          ),
+          nextStepIndex: 5,
+          distance: kCueThresholdCells + 2,
+        );
 
-      expect(decider.decide(state: cruising, muted: false)?.voiceKey,
-          'go_straight');
-      // Same segment → not repeated.
-      expect(decider.decide(state: cruising, muted: false), isNull);
-    });
+        expect(
+          decider.decide(state: cruising, muted: false)?.voiceKey,
+          'go_straight',
+        );
+        // Same segment → not repeated.
+        expect(decider.decide(state: cruising, muted: false), isNull);
+      },
+    );
 
     test('mute suppresses without marking the step spoken', () {
       final decider = VoiceCueDecider();

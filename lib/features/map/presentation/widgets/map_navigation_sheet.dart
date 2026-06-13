@@ -162,9 +162,7 @@ class MapNavigationSheet extends ConsumerWidget {
                     ButtonSegment<double>(value: 1, label: Text('×1')),
                     ButtonSegment<double>(value: 2, label: Text('×2')),
                   ],
-                  selected: {
-                    speed <= 0.5 ? 0.5 : (speed >= 2 ? 2.0 : 1.0),
-                  },
+                  selected: {speed <= 0.5 ? 0.5 : (speed >= 2 ? 2.0 : 1.0)},
                   onSelectionChanged: (selection) {
                     controller.setSpeed(selection.first);
                   },
