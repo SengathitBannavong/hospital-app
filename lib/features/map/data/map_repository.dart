@@ -212,6 +212,7 @@ class MapRepository {
     required String routeId,
     required int rating,
     String? comment,
+    bool? isAccurate,
   }) async {
     await _request<dynamic>(
       method: _MapHttpMethod.post,
@@ -220,7 +221,29 @@ class MapRepository {
         'route_id': routeId,
         'rating': rating,
         if (comment != null && comment.isNotEmpty) 'comment': comment,
+        'is_accurate': ?isAccurate,
       },
+      fromJson: (json) => json,
+    );
+  }
+
+  Future<void> cancelRoute({required String routeId}) async {
+    await _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routeCancel,
+      data: {'route_id': routeId},
+      fromJson: (json) => json,
+    );
+  }
+
+  Future<void> passNode({
+    required String routeId,
+    required int gridLocation,
+  }) async {
+    await _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.routePassNode,
+      data: {'route_id': routeId, 'grid_location': gridLocation},
       fromJson: (json) => json,
     );
   }

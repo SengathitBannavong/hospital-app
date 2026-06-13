@@ -1,6 +1,6 @@
 # Hospital App Project Checklist
 
-Last checked: 2026-06-03 (branch `main`, HEAD `a8a67e7`)
+Last checked: 2026-06-13 (branch `main`, HEAD `9459725`)
 
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
@@ -29,8 +29,8 @@ and REST force-logout on token rejection.
 **Known limitations:** the backend stores device tokens but does **not** send
 pushes yet and has no real notification triggers, so notifications are seed-only
 in practice; `auth/logout` is local-only; `auth/resend_otp` has no backend route;
-chat WebSocket `401`/`3009` still needs force-logout wiring; active route
-guidance, voice guidance, and Medical QR check-in/out remain backlog.
+chat WebSocket `401`/`3009` still needs force-logout wiring; backend-synced
+active route guidance and Medical QR check-in/out remain backlog.
 
 ## Overall Status
 
@@ -103,16 +103,16 @@ Done (major capabilities)
 - [x] Grid map: rendering, POI search + metadata sheet, legend, zoom/pan, recenter; first-paint-fast deferred walkable layer.
 - [x] Multi-floor: floor switcher; meta/nodes/edges/search/POI follow the active floor; route + search reset on floor change.
 - [x] Positioning: "you are here" (entrance default), long-press pin, QR scan (`poi_code`), "I'm here" on landmark POIs.
-- [x] Navigation (simulated): animated dot, mode-based speed, traveled/remaining split, camera follow, live distance/ETA, pause/resume/stop, ×0.5/×1/×2, arrival; `route/order` logged on arrival.
-- [x] Voice guidance: offline Vietnamese turn-by-turn cues — 8 bundled MP3 clips played from a pre-warmed in-memory `AudioPlayer` pool (instant, sequential, non-overlapping), `flutter_tts` fallback; turn announced ~6 blocks ahead + "go straight" + single arrival; maneuver derived from `voice_text`; mute toggle persisted in Hive; Android media-stream/iOS silent-switch/web autoplay handled.
+- [x] Navigation (simulated): animated dot, mode-based speed, traveled/remaining split, camera follow, live distance/ETA, pause/resume/stop, ×0.5/×1/×2, arrival. (`route/order` now fires at navigation start — see the route-lifecycle bullet below.)
+- [x] Voice guidance: offline Vietnamese turn-by-turn cues — 8 bundled MP3 clips played from a pre-warmed in-memory `AudioPlayer` pool (instant, sequential, non-overlapping), `flutter_tts` fallback; turn announced ~6 blocks ahead + "go straight" + single arrival; maneuver derived from `voice_text`; mute toggle persisted in Hive; Android media-stream/iOS silent-switch/web autoplay handled. Cues no longer fire when selecting/changing a destination and stop immediately on route cancel (the queue is dropped, not just the active clip).
 - [x] Routing: typed RouteResult, `route/preview`, client-side A*/Dijkstra engine as crowd-aware authority.
-- [x] Dynamic rerouting around blocked/congested edges (`route/recalculate` online, cached-graph reroute offline).
+- [x] Backend route lifecycle (telemetry + rating, client engine stays the authority): `route/order` fired async at navigation start mints a live `route_id` (no latency, no-ops offline); `route/cancel` on abandonment (arrival never cancels a completed route); `route/pass_node` reports the current cell every 2s while navigating (deduped, online-only, gated by `kReportPassNode`, reads `navCurrentLocationProvider` so real positioning swaps in with no change here); `route/rate` reachable from the route-history sheet (★ per entry + `is_accurate`).
 - [x] Offline: `map/sync_full` + granular meta/nodes/edges/obstacles cache (Hive), offline route cache, in-memory edge cache + isolate parse.
 - [x] Flow analytics: density heatmap, bottlenecks, alerts, client-derived corridor congestion, hourly forecast chart.
 - [x] Obstacle reporting (`flow/report_obstacle` + `flow/get_obstacles`) with offline queue; obstacle-aware routing.
 - [x] Route history modal (re-navigate + clear via `route/clear_history`); offline clear-cache moved to Settings.
-- [x] Declutter pass: left FAB rail cut to 3 (QR, recenter, More); legend, route history, and flow analytics fold into a More sheet; search collapses to an icon by default; POI panel gains a "Yêu cầu hỗ trợ" action that opens request-staff pre-filled with the POI; shared `PoiPickerField` used across queue/wheelchair/staff.
-- [x] Tests under `test/features/map/` (106 passing, incl. voice decider/key-resolution/player); `flutter analyze` clean; full suite 173 green.
+- [x] Declutter pass: left FAB rail cut to 3 (QR, recenter, More); legend, route history, and flow analytics fold into a More sheet; search collapses to an icon by default; POI panel gains a "Yêu cầu hỗ trợ" action that opens request-staff pre-filled with the POI; shared `PoiPickerField` used across queue/wheelchair/staff; the route pill's two close buttons were merged into a single one (hide/collapse into the route FAB).
+- [x] Tests under `test/features/map/` (124 passing, incl. voice decider/key-resolution/player and the route-lifecycle order/cancel/arrival/pass_node coverage); `flutter analyze` clean.
 
 Backlog (remaining)
 
@@ -120,16 +120,17 @@ Genuinely still missing (code):
 
 | Gap | Evidence |
 |-----|----------|
-| Voice guidance unwired | `voice_service.dart` exists but zero call sites in navigation |
-| `pass_node` / `ping_location` | `PassNodeReporter` + `pingLocation()` exist but are a queued stub (TODO: pending backend) |
+| Dynamic reroute loop **unwired** | `RerouteWatcher` + `RoutingService.reroute()` have unit tests but **zero call sites**; `route/recalculate` has no loop to live in. (Previously mislabelled as done.) |
+| `flow/ping_location` deferred | `pingLocation()` exists but has no entry point; route position reporting now goes via `route/pass_node`, so the flow-side ping stays unwired pending a use case. |
+| `get_steps` / `get_next` / `get_active` deferred | Client A* engine is the crowd-aware authority; fetching server steps to draw a route is crowd-blind and breaks offline-first. (`route_id` comes from `order`, so `get_active` isn't needed for the id.) |
 
 Verify-only (not code, backend confirmation): non-walking `speed_factor` and meters-per-cell label truthfulness.
 
 ### Map — out of scope (optional)
 
 - `route/order_multi`, `route/order_unordered` — multi-stop routing.
-- `route/share`, `route/rate` — route sharing / rating.
-- `route/get_active`, `route/cancel` — server-side route lifecycle (local Stop covers the demo).
+- `route/share` — route sharing.
+- `route/get_active` — server-side active-route fetch (not needed: the `route_id` now comes from `order`).
 
 ## Chat 4: Medical Module
 
@@ -157,6 +158,7 @@ Scope: notification list, mark read, delete, profile edit.
 - [x] Profile page exists: `lib/features/profile/presentation/page/profile_page.dart`.
 - [x] Profile edit form exists.
 - [x] Profile avatar, profile form, and profile info widgets exist.
+- [x] Avatar can be **cleared/removed** as well as uploaded: the picker sheet shows a "Xóa ảnh đại diện" action (only when an avatar exists) → confirm dialog → `set_profile` with `avatar: ""`, which the backend reads as "remove" (clears `avatar_url`, deletes the old upload, returns `avatar: null`). `ProfileUpdateRequest.toJson` sends an explicit empty string while `null` still omits the field (partial update).
 - [x] Profile provider supports fetch and update.
 - [x] Profile repository is wired to get/set profile endpoints.
 - [x] Profile data layer refactored into `profile_state.dart` / `profile_update_request.dart` with a remote data source.
@@ -319,7 +321,7 @@ Generated `VersionCheckResponse` files are committed after the branch rebase
 ### P1 — High-value patient features
 | # | Item | Area | Effort | Notes / acceptance |
 |---|------|------|--------|--------------------|
-| 7 | **Active route guidance** | FE+BE | L | `route/get_steps`, `get_next`, `get_eta`, `pass_node`, `cancel` — turn the simulated dot into backend-synced live guidance. |
+| 7 | **Active route guidance** | FE+BE | L | `order`/`cancel`/`pass_node`/`rate` are wired (telemetry + rating); remaining: `route/get_steps`, `get_next`, `get_eta` + real positioning to turn the simulated dot into backend-synced live guidance. |
 | 8 | **Home dashboard enrichment** | FE | M | Add useful live summaries for active route, assets/wheelchairs, chat/support, and SOS status. Task, notification, weather, map, and SOS entry points already exist. |
 | 9 | **Chat product gaps** | FE+BE | M | Add create-room UI, scroll-to-top pagination trigger, bottom-nav unread badge via `getUnreadCount`, connection status UI, and optional leave/delete room. Attachments/typing indicators remain later scope. |
 | 10 | **Medical QR check-in/out** | FE | M | Camera scan + treatment/room validation on top of the existing check-in/out APIs. |
@@ -330,9 +332,8 @@ Generated `VersionCheckResponse` files are committed after the branch rebase
 |---|------|------|--------|-------|
 | 12 | **Multi-stop navigation UI** | FE | M | repo wrappers exist for `order_multi`/`order_unordered`; needs a destination-picker flow. |
 | 13 | **Route sharing/rating UI polish** | FE | S | Repository/router hooks exist; confirm discoverability and result-state handling in the Map flow. |
-| 14 | **Voice guidance wiring** | FE | S | `voice_service.dart` exists with no navigation call sites — wire spoken prompts into simulated/live guidance. |
-| 15 | **Chat attachments + typing indicators** | FE+BE | M | Image/file send exists in tests/repo paths only where supported; add UI and backend/WebSocket typing contract if needed. |
-| 16 | **Utility POI metadata completeness** | FE+BE | S | Pharmacy/canteen/parking are map POIs now. Confirm backend `map/get_nodes` includes `open_hours`, `details`, `capacity`, `is_accessible`, and `wheelchair_accessible` for all relevant POIs. WiFi is intentionally not a navigable POI unless backend adds it to nodes. |
+| 14 | **Chat attachments + typing indicators** | FE+BE | M | Image/file send exists in tests/repo paths only where supported; add UI and backend/WebSocket typing contract if needed. |
+| 15 | **Utility POI metadata completeness** | FE+BE | S | Pharmacy/canteen/parking are map POIs now. Confirm backend `map/get_nodes` includes `open_hours`, `details`, `capacity`, `is_accessible`, and `wheelchair_accessible` for all relevant POIs. WiFi is intentionally not a navigable POI unless backend adds it to nodes. |
 
 ### Cross-cutting / tech debt
 - [ ] **Restore voice-guidance + travel-mode** settings toggles once BE exposes those columns in `get/set_settings`.
@@ -342,7 +343,7 @@ Generated `VersionCheckResponse` files are committed after the branch rebase
 - [x] **Stopped silently swallowing errors** in the 3 empty `catch (_) {}` blocks (chat WebSocket + provider) — now `debugPrint`.
 - [ ] **Tests** for settings, home, medical, SOS, asset, staff, and remaining chat UI flows; expand auth (repo errors, router redirects, widget flows). Notification/chat/map provider coverage already exists.
 - [ ] **Backend `getEdges` perf** (~17s) — biggest map-load slowdown.
-- [ ] Profile update success/error toast feedback.
+- [x] Profile update success/error toast feedback (profile save, avatar upload, and avatar clear all toast).
 - [ ] Map verify-only: non-walking `speed_factor`, meters-per-cell label truthfulness.
 
 > The full FE↔BE API contract map (responses, requests, and backend mismatches)

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
@@ -38,6 +39,16 @@ class NavDot {
   int get hashCode => Object.hash(fromLocation, toLocation, t);
 }
 
+/// Master switch for pass_node position reporting. While positions are
+/// simulated this uploads the simulated trail; flip to `false` to silence it
+/// (e.g. for production analytics) until real positioning lands. The pipeline
+/// reads from [navCurrentLocationProvider], so swapping simulated -> real needs
+/// no change here.
+const bool kReportPassNode = true;
+
+/// How often pass_node samples the current position while navigating.
+const Duration kPassNodeInterval = Duration(seconds: 2);
+
 class NavigationController {
   final Ref _ref;
   final VoiceService _voice;
@@ -49,6 +60,10 @@ class NavigationController {
   double _totalLength = 0;
   String _modeId = 'walking';
   double? _etaSeconds;
+  String? _serverRouteId;
+  int _routeOrderGeneration = 0;
+  Timer? _passNodeTimer;
+  int? _lastSentLocation;
 
   NavigationController(
     this._ref, {
@@ -102,6 +117,10 @@ class NavigationController {
     _ticker
       ..stop()
       ..start();
+    _serverRouteId = null;
+    final generation = ++_routeOrderGeneration;
+    unawaited(_orderActiveRoute(generation));
+    _startPassNodeReporting();
     return true;
   }
 
@@ -109,6 +128,7 @@ class NavigationController {
     if (_ref.read(navPhaseProvider) != NavPhase.navigating) return;
     _ticker.stop();
     _lastElapsed = null;
+    _stopPassNodeReporting();
     unawaited(_voice.pauseSpeaking());
     _ref.read(navPhaseProvider.notifier).state = NavPhase.paused;
   }
@@ -120,9 +140,22 @@ class NavigationController {
     _lastElapsed = null;
     _ref.read(navPhaseProvider.notifier).state = NavPhase.navigating;
     _ticker.start();
+    _startPassNodeReporting();
   }
 
   void stop() {
+    _stopPassNodeReporting();
+    final activeId = _serverRouteId;
+    _serverRouteId = null;
+    _routeOrderGeneration++;
+    if (activeId != null) {
+      unawaited(
+        _ref
+            .read(mapRepositoryProvider)
+            .cancelRoute(routeId: activeId)
+            .catchError((_) {}),
+      );
+    }
     _ticker.stop();
     _lastElapsed = null;
     _path = const <int>[];
@@ -143,8 +176,48 @@ class NavigationController {
   }
 
   void dispose() {
+    _stopPassNodeReporting();
     _ticker.dispose();
     unawaited(_voice.dispose());
+  }
+
+  // ── pass_node position reporting ──
+  // Samples the current grid location every [kPassNodeInterval] while
+  // navigating and reports it to the backend, deduped so an unchanged cell is
+  // not resent. Best-effort: skipped when reporting is disabled, no active
+  // server route_id exists yet, or the position has not changed. Failures
+  // (including offline) are dropped — stale positions are never queued.
+  void _startPassNodeReporting() {
+    _stopPassNodeReporting();
+    if (!kReportPassNode) return;
+    _lastSentLocation = null;
+    _passNodeTimer = Timer.periodic(
+      kPassNodeInterval,
+      (_) => _reportPassNode(),
+    );
+  }
+
+  void _stopPassNodeReporting() {
+    _passNodeTimer?.cancel();
+    _passNodeTimer = null;
+    _lastSentLocation = null;
+  }
+
+  void _reportPassNode() {
+    final routeId = _serverRouteId;
+    if (routeId == null) return; // order not resolved yet / offline at start
+    final location = _ref.read(navCurrentLocationProvider);
+    if (location == null || location == _lastSentLocation) return;
+    _lastSentLocation = location;
+    unawaited(
+      _ref
+          .read(mapRepositoryProvider)
+          .passNode(routeId: routeId, gridLocation: location)
+          .then((_) => debugPrint('[pass_node] ok ($routeId @ $location)'))
+          .catchError(
+            (Object e) => debugPrint('[pass_node] FAILED ($location): $e'),
+          ),
+    );
   }
 
   void _onTick(Duration elapsed) {
@@ -163,6 +236,13 @@ class NavigationController {
       _ticker.stop();
       _lastElapsed = null;
       _travelled = _totalLength;
+      _stopPassNodeReporting();
+      // Route completed — forget the server route_id WITHOUT cancelling, and
+      // invalidate any still-in-flight order. The completion stop() (via
+      // _completeRoute) must NOT cancel a finished route; only an abandonment
+      // (manual stop / clear / destination change) should cancel.
+      _serverRouteId = null;
+      _routeOrderGeneration++;
       // Announce arrival once and let the clip play out. Do NOT reset()/stop()
       // here — that would cut the clip off the instant it starts. The decider
       // is reset by the next start().
@@ -212,6 +292,47 @@ class NavigationController {
     if (data == null) return null;
     final value = data.estimatedTime;
     return value > 0 ? value : null;
+  }
+
+  Future<void> _orderActiveRoute(int generation) async {
+    final path = _path;
+    if (path.length < 2) return;
+    try {
+      final response = await _ref
+          .read(mapRepositoryProvider)
+          .orderRoute(
+            startLocation: path.first,
+            destLocation: path.last,
+            modeId: _modeId,
+          );
+      // A stop()/restart between firing and resolving supersedes this order.
+      if (generation != _routeOrderGeneration) return;
+      _serverRouteId = _extractRouteId(response);
+    } catch (_) {
+      // Offline / failed order -> no active route_id; cancel/etc. no-op.
+    }
+  }
+
+  /// Pulls the route_id out of an order/get_active payload.
+  ///
+  /// Real backend shape (already unwrapped from the {code,message,data}
+  /// envelope by MapRepository): `data.route.route_id`, i.e. here
+  /// `body['route']['route_id']`. The other lookups are defensive fallbacks for
+  /// flatter/double-wrapped shapes so a contract tweak doesn't silently break.
+  String? _extractRouteId(dynamic body) {
+    if (body is! Map) return null;
+    final id =
+        _routeIdFrom(body['route']) ?? // data.route.route_id (real shape)
+        body['route_id'] ??
+        body['id'] ??
+        _routeIdFrom(body['data']) ?? // double-wrapped: data.route_id/id
+        _routeIdFrom((body['data'] is Map) ? body['data']['route'] : null);
+    return id?.toString();
+  }
+
+  Object? _routeIdFrom(dynamic node) {
+    if (node is Map) return node['route_id'] ?? node['id'];
+    return null;
   }
 }
 

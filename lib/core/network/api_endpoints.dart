@@ -44,6 +44,7 @@ class ApiEndpoints {
   static const String routePassNode = 'route/pass_node';
   static const String routeHistory = 'route/get_history';
   static const String routeClearHistory = 'route/clear_history';
+  static const String routeCancel = 'route/cancel';
 
   // Flow
   static const String flowGetDensity = 'flow/get_density';

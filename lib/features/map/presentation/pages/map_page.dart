@@ -1228,6 +1228,12 @@ class _MapPageState extends ConsumerState<MapPage>
               child: _RouteHistorySheet(
                 history: ref.watch(routeHistoryProvider),
                 onRetry: () => ref.invalidate(routeHistoryProvider),
+                onRate: (entry) {
+                  final id = entry.routeId;
+                  if (id == null) return;
+                  Navigator.of(context).maybePop();
+                  context.push('/route/rate/$id');
+                },
                 onClearAll: () async {
                   final result = await ref
                       .read(mapRepositoryProvider)
@@ -1416,24 +1422,8 @@ class _MapPageState extends ConsumerState<MapPage>
   Future<void> _handleNavigationArrived() async {
     if (_arrivalOrderCommitted) return;
     _arrivalOrderCommitted = true;
-    final start = ref.read(userPositionProvider);
     final dest = ref.read(routeDestProvider);
-    final mode = ref.read(routeModeProvider);
-    if (start == null || dest == null) return;
-
-    try {
-      await ref
-          .read(mapRepositoryProvider)
-          .orderRoute(
-            startLocation: start,
-            destLocation: dest.gridLocation,
-            modeId: mode,
-          );
-    } catch (_) {
-      if (!mounted) return;
-      ref.read(mapInlineNoticeProvider.notifier).state =
-          'Arrival log not synced';
-    }
+    if (dest == null) return;
 
     // Commit position to destination on arrival.
     ref.read(userPositionProvider.notifier).state = dest.gridLocation;

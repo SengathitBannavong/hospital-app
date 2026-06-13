@@ -101,8 +101,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       AppToast.showSuccess('Đã xóa ảnh đại diện.');
     } else if (!success && mounted) {
       AppToast.showError(
-        ref.read(profileProvider).errorMessage ??
-            'Không thể xóa ảnh đại diện.',
+        ref.read(profileProvider).errorMessage ?? 'Không thể xóa ảnh đại diện.',
       );
     }
   }

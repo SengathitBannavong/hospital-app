@@ -8,6 +8,7 @@ import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/utils/dob_utils.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:hospital_app/features/auth/presentation/widgets/auth_link_button_style.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/auth_text_field.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -494,13 +495,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         ),
                         TextButton(
                           onPressed: () => context.pop(),
-                          child: Text(
-                            'Đăng nhập ngay',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: isSmallScreen ? 13 : null,
-                            ),
+                          style: authLinkButtonStyle(
+                            context,
+                            fontSize: isSmallScreen ? 13 : null,
+                            fontWeight: FontWeight.bold,
                           ),
+                          child: const Text('Đăng nhập ngay'),
                         ),
                       ],
                     ),
