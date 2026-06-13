@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/data/models/route_step.dart';
 import 'package:hospital_app/features/map/data/services/route_modes.dart';
@@ -15,6 +16,7 @@ class RouteResultMapper {
     final speedFactor =
         _readDouble(json['speed_factor']) ?? baseSpeedFor(modeId);
     final path = _readPath(json);
+    final stepRecords = json['steps'] ?? json['paths'];
     final distance = _readDouble(json['distance']) ?? _pathDistance(path);
     final estimatedTime =
         _readDouble(json['estimated_time']) ??
@@ -22,7 +24,7 @@ class RouteResultMapper {
 
     return RouteResult(
       path: path,
-      steps: _readSteps(data['steps'], path),
+      steps: _readSteps(stepRecords, path),
       distance: distance,
       estimatedTime: estimatedTime,
       modeId: modeId,
@@ -44,7 +46,7 @@ class RouteResultMapper {
   }
 
   List<int> _readPath(Map<Object?, Object?> data) {
-    final steps = data['steps'];
+    final steps = data['steps'] ?? data['paths'];
     if (steps is List) {
       final stepPath = _locationsFromSteps(steps);
       if (stepPath.isNotEmpty) {
@@ -52,7 +54,7 @@ class RouteResultMapper {
       }
     }
 
-    const keys = ['path', 'path_locations', 'locations', 'nodes'];
+    const keys = ['paths', 'path', 'path_locations', 'locations', 'nodes'];
     for (final key in keys) {
       final value = data[key];
       if (value is List) {
@@ -88,12 +90,15 @@ class RouteResultMapper {
       if (location == null) {
         continue;
       }
+      final voiceText = _readString(record['voice_text']);
       steps.add(
         RouteStep(
           location: location,
           maneuver:
               _readManeuver(record['maneuver']) ??
+              maneuverFromVoiceText(voiceText) ??
               _defaultManeuver(i, records.length),
+          voiceText: voiceText,
           instruction: _readString(record['instruction']),
           distance: _readDouble(record['distance']) ?? 0,
         ),
@@ -174,6 +179,24 @@ class RouteResultMapper {
       'u_turn' || 'uTurn' => StepManeuver.uTurn,
       'floor_change' || 'floorChange' => StepManeuver.floorChange,
       'arrive' => StepManeuver.arrive,
+      _ => null,
+    };
+  }
+
+  @visibleForTesting
+  StepManeuver? maneuverFromVoiceText(String? value) =>
+      _maneuverFromVoiceText(value);
+
+  StepManeuver? _maneuverFromVoiceText(String? value) {
+    return switch (value) {
+      'turn_left' => StepManeuver.left,
+      'turn_right' => StepManeuver.right,
+      'go_straight' => StepManeuver.straight,
+      'arrived' => StepManeuver.arrive,
+      'elevator_up' ||
+      'elevator_down' ||
+      'stairs_up' ||
+      'stairs_down' => StepManeuver.floorChange,
       _ => null,
     };
   }

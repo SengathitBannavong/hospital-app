@@ -44,7 +44,8 @@ guidance, voice guidance, and Medical QR check-in/out remain backlog.
 - [x] SOS endpoints/repositories/pages are wired, with a `/sos` route and Home shortcut.
 - [x] Static info pages are visible in the current route tree (`/info`).
 - [x] Single Settings page at `/settings`, reached via the gear icon in the Home, Profile, and Notification app bars: theme (persisted to backend), notification + language preferences (via `user/get_settings` / `user/set_settings`), change password, logout, and app info.
-- [ ] Remaining patient/public gaps: voice guidance, backend-synced active route guidance, Medical QR check-in/out, and chat product polish.
+- [x] Voice guidance: offline Vietnamese turn-by-turn spoken cues during navigation (bundled clips + TTS fallback), mutable + persisted. See Map Module below.
+- [ ] Remaining patient/public gaps: backend-synced active route guidance, Medical QR check-in/out, and chat product polish.
 - [ ] Demo flow and final QA checklist still need execution.
 
 ## Chat 1: Auth Module
@@ -102,7 +103,8 @@ Done (major capabilities)
 - [x] Grid map: rendering, POI search + metadata sheet, legend, zoom/pan, recenter; first-paint-fast deferred walkable layer.
 - [x] Multi-floor: floor switcher; meta/nodes/edges/search/POI follow the active floor; route + search reset on floor change.
 - [x] Positioning: "you are here" (entrance default), long-press pin, QR scan (`poi_code`), "I'm here" on landmark POIs.
-- [x] Navigation (simulated): animated dot, mode-based speed, traveled/remaining split, camera follow, live distance/ETA, pause/resume/stop, ×1/×2, arrival; `route/order` logged on arrival.
+- [x] Navigation (simulated): animated dot, mode-based speed, traveled/remaining split, camera follow, live distance/ETA, pause/resume/stop, ×0.5/×1/×2, arrival; `route/order` logged on arrival.
+- [x] Voice guidance: offline Vietnamese turn-by-turn cues — 8 bundled MP3 clips played from a pre-warmed in-memory `AudioPlayer` pool (instant, sequential, non-overlapping), `flutter_tts` fallback; turn announced ~6 blocks ahead + "go straight" + single arrival; maneuver derived from `voice_text`; mute toggle persisted in Hive; Android media-stream/iOS silent-switch/web autoplay handled.
 - [x] Routing: typed RouteResult, `route/preview`, client-side A*/Dijkstra engine as crowd-aware authority.
 - [x] Dynamic rerouting around blocked/congested edges (`route/recalculate` online, cached-graph reroute offline).
 - [x] Offline: `map/sync_full` + granular meta/nodes/edges/obstacles cache (Hive), offline route cache, in-memory edge cache + isolate parse.
@@ -110,7 +112,7 @@ Done (major capabilities)
 - [x] Obstacle reporting (`flow/report_obstacle` + `flow/get_obstacles`) with offline queue; obstacle-aware routing.
 - [x] Route history modal (re-navigate + clear via `route/clear_history`); offline clear-cache moved to Settings.
 - [x] Declutter pass: left FAB rail cut to 3 (QR, recenter, More); legend, route history, and flow analytics fold into a More sheet; search collapses to an icon by default; POI panel gains a "Yêu cầu hỗ trợ" action that opens request-staff pre-filled with the POI; shared `PoiPickerField` used across queue/wheelchair/staff.
-- [x] Tests under `test/features/map/` (91 passing); `flutter analyze` clean.
+- [x] Tests under `test/features/map/` (106 passing, incl. voice decider/key-resolution/player); `flutter analyze` clean; full suite 173 green.
 
 Backlog (remaining)
 

@@ -2,7 +2,7 @@
 
 Target branch: `feat/map`
 
-Last checked: 2026-05-14
+Last checked: 2026-06-13
 
 ## Current Evidence
 
@@ -56,7 +56,23 @@ Last checked: 2026-05-14
 - [ ] Empty floor list state should be handled.
 - [ ] Route preview error state should be visible to the user.
 - [ ] Route order/history APIs are not exposed in UI.
-- [ ] Active navigation/turn-by-turn mode is not implemented; current behavior is route preview plus animated path.
+- [x] Active navigation/turn-by-turn with spoken voice guidance is implemented (route preview + animated dot + voice cues). See "Active Navigation & Voice Guidance" below.
+
+## Active Navigation & Voice Guidance
+
+Branch: `feat/voice-map`. Offline, Vietnamese. Last checked: 2026-06-13.
+
+- [x] Simulated navigation dot (`NavigationController`) with start/pause/resume/stop and ETA-matched speed.
+- [x] Navigation sheet with live distance/ETA, Pause/Resume + Stop, and ×0.5/×1/×2 speed (×0.5 default).
+- [x] 8 Vietnamese voice clips bundled as assets (`assets/voice/vi/`), packed into `.apk`/`.ipa` — no backend call.
+- [x] Pre-warmed `AudioPlayer` pool: clips preloaded into memory → instant playback (no first-play lag).
+- [x] Sequential, non-overlapping cue playback, bounded by clip length (cannot hang).
+- [x] `flutter_tts` (vi) fallback for any key without a bundled clip.
+- [x] Turn-by-turn decider: turn announced ~6 blocks ahead, "go straight" on the current segment, arrival once.
+- [x] Maneuver derived from backend `voice_text` so left/right turns aren't lost.
+- [x] Mute toggle in the sheet header; preference persists in Hive.
+- [x] Android media-stream + full volume; iOS respects the silent switch; web autoplay-unlock + DDC/empty-src fixes.
+- [x] Voice unit tests in `test/features/map/presentation/navigation/voice_service_test.dart`; full suite green (173).
 
 ## Recommended `feat/map` Scope
 

@@ -11,6 +11,7 @@ class RouteStep with _$RouteStep {
   const factory RouteStep({
     required int location,
     required StepManeuver maneuver,
+    @JsonKey(name: 'voice_text') String? voiceText,
     String? instruction,
     required double distance,
   }) = _RouteStep;

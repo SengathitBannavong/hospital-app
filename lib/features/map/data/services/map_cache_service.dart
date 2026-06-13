@@ -124,30 +124,14 @@ class MapCacheService {
     return null;
   }
 
-  Future<void> saveVoiceFiles(Map<String, String> files) async {
+  Future<bool> getVoiceMuted() async {
     final box = await _openBox();
-    await box.put(_voiceFilesKey, jsonEncode(files));
+    return box.get(_voiceMutedKey) == true;
   }
 
-  Future<Map<String, String>> loadVoiceFiles() async {
+  Future<void> setVoiceMuted({required bool muted}) async {
     final box = await _openBox();
-    final raw = box.get(_voiceFilesKey);
-    if (raw is String) {
-      final json = jsonDecode(raw);
-      if (json is Map) {
-        return {
-          for (final entry in json.entries)
-            entry.key.toString(): entry.value.toString(),
-        };
-      }
-    }
-    if (raw is Map) {
-      return {
-        for (final entry in raw.entries)
-          entry.key.toString(): entry.value.toString(),
-      };
-    }
-    return const <String, String>{};
+    await box.put(_voiceMutedKey, muted);
   }
 
   Future<void> saveObstacles({
@@ -384,7 +368,7 @@ class MapCacheService {
 
   String _flowDataKey(int mapId) => 'map:$mapId:flow_snapshot';
 
-  String get _voiceFilesKey => 'voice:files';
+  String get _voiceMutedKey => 'voice:muted';
 
   String _obstaclesKey(int mapId) => 'map:$mapId:obstacles';
 

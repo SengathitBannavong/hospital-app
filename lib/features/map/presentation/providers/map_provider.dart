@@ -23,6 +23,8 @@ import 'package:hospital_app/features/map/data/services/report_queue.dart';
 import 'package:hospital_app/features/map/data/services/routing_engine.dart';
 import 'package:hospital_app/features/map/data/services/routing_service.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
+import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
+import 'package:hospital_app/features/map/presentation/navigation/voice_service.dart';
 import 'package:hospital_app/features/map/presentation/utils/search_utils.dart';
 
 final mapRepositoryProvider = Provider<MapRepository>((ref) {
@@ -32,6 +34,37 @@ final mapRepositoryProvider = Provider<MapRepository>((ref) {
 final mapCacheProvider = Provider<MapCacheService>((ref) {
   return MapCacheService();
 });
+
+final voiceServiceProvider = Provider.autoDispose<VoiceService>((ref) {
+  return VoiceService();
+});
+
+final voiceMutedProvider = StateNotifierProvider<VoiceMutedNotifier, bool>((
+  ref,
+) {
+  return VoiceMutedNotifier(ref.watch(mapCacheProvider));
+});
+
+class VoiceMutedNotifier extends StateNotifier<bool> {
+  final MapCacheService _cache;
+
+  VoiceMutedNotifier(this._cache) : super(false) {
+    unawaited(_load().catchError((_) {}));
+  }
+
+  Future<void> _load() async {
+    state = await _cache.getVoiceMuted();
+  }
+
+  Future<void> setMuted({required bool muted}) async {
+    state = muted;
+    await _cache.setVoiceMuted(muted: muted);
+  }
+
+  Future<void> toggle() {
+    return setMuted(muted: !state);
+  }
+}
 
 final mapLastSyncedAtProvider = FutureProvider.family<DateTime?, int>((
   ref,
@@ -284,13 +317,19 @@ final locationSourceProvider = StateProvider<LocationSource>(
 );
 final navPhaseProvider = StateProvider<NavPhase>((ref) => NavPhase.idle);
 final navProgressProvider = StateProvider<double>((ref) => 0.0);
-final navSpeedProvider = StateProvider<double>((ref) => 1.0);
+// Default to half speed so the simulated dot moves slowly enough for each
+// voice cue to play out before the next turn.
+final navSpeedProvider = StateProvider<double>((ref) => 0.5);
 final navCurrentLocationProvider = StateProvider<int?>((ref) => null);
 final navMetersRemainingProvider = StateProvider<double>((ref) => 0.0);
 final navSecondsRemainingProvider = StateProvider<double>((ref) => 0.0);
 final navigationControllerProvider = Provider.autoDispose<NavigationController>(
   (ref) {
-    final controller = NavigationController(ref);
+    final controller = NavigationController(
+      ref,
+      voice: ref.watch(voiceServiceProvider),
+      stepTracker: const StepTracker(),
+    );
     ref.onDispose(controller.dispose);
     return controller;
   },
