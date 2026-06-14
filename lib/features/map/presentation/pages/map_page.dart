@@ -1127,6 +1127,14 @@ class _MapPageState extends ConsumerState<MapPage>
               Navigator.of(sheetContext).maybePop();
               context.push('/staff', extra: poi);
             },
+            // Wheelchair-accessible POIs get a shortcut into the wheelchair
+            // search prefilled with this POI as the search origin.
+            onFindWheelchair: (poi.wheelchairAccessible || poi.isAccessible)
+                ? () {
+                    Navigator.of(sheetContext).maybePop();
+                    context.push('/asset/search', extra: poi);
+                  }
+                : null,
           ),
         );
       },

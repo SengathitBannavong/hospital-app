@@ -270,7 +270,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/asset/search',
-        builder: (context, state) => const WheelchairSearchPage(),
+        builder: (context, state) =>
+            WheelchairSearchPage(initialPoi: state.extra as MapPoi?),
       ),
       GoRoute(
         path: '/asset/book/:asset_id',

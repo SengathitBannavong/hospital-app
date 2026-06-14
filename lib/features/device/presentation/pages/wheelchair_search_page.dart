@@ -8,7 +8,11 @@ import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/presentation/widgets/poi_picker.dart';
 
 class WheelchairSearchPage extends ConsumerStatefulWidget {
-  const WheelchairSearchPage({super.key});
+  const WheelchairSearchPage({super.key, this.initialPoi});
+
+  /// When opened from a map POI, the search starts pre-filled with that POI so
+  /// it immediately lists wheelchairs near it.
+  final MapPoi? initialPoi;
 
   @override
   ConsumerState<WheelchairSearchPage> createState() =>
@@ -17,6 +21,12 @@ class WheelchairSearchPage extends ConsumerStatefulWidget {
 
 class _WheelchairSearchPageState extends ConsumerState<WheelchairSearchPage> {
   MapPoi? _selectedPoi;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPoi = widget.initialPoi;
+  }
 
   Future<void> _pickPoi() async {
     final poi = await showPoiPicker(context, title: 'Chọn vị trí của bạn');
