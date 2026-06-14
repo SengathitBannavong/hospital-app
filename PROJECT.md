@@ -1,6 +1,6 @@
 # Hospital App Project Checklist
 
-Last checked: 2026-06-13 (branch `main`, HEAD `9459725`)
+Last checked: 2026-06-14 (branch `fix/asset-wheelchair`, HEAD `0e0046d`; base `main` `9459725`)
 
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
@@ -30,7 +30,12 @@ and REST force-logout on token rejection.
 pushes yet and has no real notification triggers, so notifications are seed-only
 in practice; `auth/logout` is local-only; `auth/resend_otp` has no backend route;
 chat WebSocket `401`/`3009` still needs force-logout wiring; backend-synced
-active route guidance and Medical QR check-in/out remain backlog.
+active route guidance and Medical QR check-in/out remain backlog. **Asset /
+Wheelchair** is functional but leans on BE workarounds: `release_asset` keys off
+`station_name` not the PK (FE sends the name), every device error returns
+`message:"OK"` (FE maps by code), there is no `my_booking` endpoint (FE recovers
+the active booking heuristically), and `asset_stations` has no location (so
+release-by-position is impossible). See `context/asset_wheelchair_backend_gap.md`.
 
 ## Overall Status
 
@@ -89,7 +94,7 @@ Scope: mobile dashboard, patient summary cards, quick actions, and public/patien
 - [x] Home quick actions expanded into a **6-shortcut grid** — queue, find wheelchair, staff support, prescription, obstacle report (warning color), and SOS (emergency color) — bringing the top patient flows one tap from launch. Nav-duplicating Map/Medical/Profile actions remain removed.
 - [x] Home shows live weather from `util/weather`; pharmacy/canteen/parking are map POI metadata, not standalone Home utility cards.
 - [ ] Home does not show active route status even though Swagger exposes `route/get_active` and route lifecycle APIs.
-- [ ] Home does not surface device/asset state summaries even though wheelchair/device flows are wired elsewhere.
+- [x] Home surfaces the active wheelchair booking (active/idle card → track/release or "tìm xe lăn"). Other device/asset summaries (e.g. SOS status) still not aggregated.
 - [x] Removed the FAB appointment counter; remaining placeholder content cleaned for demo.
 - [ ] Add tests for Home task-count loading, error state, refresh behavior, and navigation shortcuts.
 
@@ -204,6 +209,12 @@ Scope: static info pages and SOS feature.
 Scope: features available in `swagger.yaml` for patient/public/mobile use, excluding admin-only web, flow-control, and engine-management screens.
 
 - [x] Device/asset feature is wired: `asset/asset_stations`, `asset/find_wheelchairs`, `asset/book_asset`, `asset/release_asset`, `asset/asset_health`, `asset/track_asset`, and `asset/report_broken_asset`.
+  - [x] Errors map by **code** to Vietnamese (`core/network/api_error_messages.dart`); the backend's `message:"OK"` (returned even on errors) is never shown. `ErrorInterceptor` dev placeholders replaced too.
+  - [x] **Release works** via a station picker (fullness shown, full disabled). The backend's `release_asset` resolves the station by **`station_name`** (not the PK), so the FE sends the name as `station_id` — verified end-to-end (`book→release→book` all `1000`).
+  - [x] **Active booking persisted locally** (Hive `active_asset`); Home shows an active/idle wheelchair card; the booking screen gates release on the local "mine" flag (backend has no `booked_by`) and shows an "in use by other" state.
+  - [x] **"Xe lăn của tôi"** page (`/asset/my`) with **auto-recovery on entry**: rediscovers a lost booking (reinstall / another phone) by diffing `find_wheelchairs` against the inferred `WL-###` catalog and confirming `in_use` via `asset_health`; single match auto-adopted, else the user picks. `book` returning `1010` also triggers recovery.
+  - [x] **Book from map**: wheelchair-accessible POIs show "Tìm xe lăn gần đây" → opens the search prefilled with that POI.
+  - [ ] **BE blockers (relay to backend):** `release_asset` should accept the numeric `station_id` PK (keep `station_name` fallback); stop using `SuccessWithCode` for errors so `message` is descriptive (affects `book`'s `1010` too); add `GET asset/my_booking` (so the FE can drop the recovery heuristic — `device_bookings`/`FindActiveBookingByUser` already exist); add `poi_id`/coords to `asset_stations` so release-by-nearest-station/position is possible. Full writeup: `context/asset_wheelchair_backend_gap.md`.
 - [x] Staff assistance request is wired: `staff/request_staff`.
 - [x] Chat/support UI is wired for rooms, messages, send, unread aggregation, mark-read, and `ws/chat`; create-room UI and some polish remain backlog.
 - [x] FAQ/help center uses `util/faq`, `util/about`, and `util/contact`.
@@ -305,6 +316,13 @@ route history/rating/share contract fixes · Info cleanup with
 pharmacy/canteen/parking as map POI metadata · REST force-logout for token
 rejection including `3009 accountLoggedInElsewhere`.
 
+Branch `fix/asset-wheelchair` (2026-06-14): code-based VN asset error mapping
+(no more `message:"OK"` leak) · working release via station picker (sends
+`station_name`) · local active-booking + "Xe lăn của tôi" page with
+auto-recovery · Home active-booking card + "Trạm thiết bị" shortcut ·
+"Tìm xe lăn gần đây" on accessible map POIs. BE asset defects filed in
+`context/asset_wheelchair_backend_gap.md`.
+
 Generated `VersionCheckResponse` files are committed after the branch rebase
 (`53cc0f4`), and `flutter analyze` was clean after conflict resolution.
 
@@ -315,6 +333,7 @@ Generated `VersionCheckResponse` files are committed after the branch rebase
 | 2 | **Chat WebSocket force-logout path** | FE | S | REST token rejection is handled globally, but WS validation can still return HTTP 401 / code `3009` outside Dio. Wire it to `SessionManager` and redirect to `/login`. |
 | 3 | **Fix Flow API contract mismatches** | FE+BE | S | `flow/edge_status` (app sends no required param + expects a list, backend wants a param + returns one) and `flow/get_density` (missing param, single vs list). Detail in `doc/overview_system.md`. |
 | 4 | **auth/logout (server) + auth/resend_otp route** | BE | S | logout is local-only; `resend_otp` service exists but has no route. Single-active-JWT REST rejection is already handled. |
+| 4b | **Asset BE fixes** | BE | S | (a) `release_asset` accept the numeric `station_id` PK (keep `station_name` fallback) so the FE can stop sending the renameable name; (b) stop `SuccessWithCode` on errors — return a descriptive `message` instead of `"OK"` (affects `book`'s `1010`, `release`'s `4004`); (c) add `GET asset/my_booking` so the FE drops the in-use recovery heuristic; (d) add `poi_id`/coords to `asset_stations` for release-by-nearest-station. Detail in `context/asset_wheelchair_backend_gap.md`. |
 | 5 | **Pre-demo QA pass** | FE | S | `dart format`, `flutter analyze`, `flutter test`; manually walk auth / map / medical / notification / settings / chat / SOS / asset / staff flows. |
 | 6 | **Demo prep** | — | S | seeded test account, backend URL/config, short demo script with an offline fallback. |
 
