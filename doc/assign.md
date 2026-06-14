@@ -1,6 +1,6 @@
-# Contribution Assignment — `main` (47 commits)
+# Contribution Assignment — `main` (57 commits)
 
-_Updated 2026-06-03. HEAD `30988f5`. Ordered oldest → newest. "#" = PR number
+_Updated 2026-06-14. HEAD `c154da0`. Ordered oldest → newest. "#" = PR number
 (or short hash for direct commits). Co-contributors are from `Co-Authored-By`._
 
 | # | Date (UTC+?) | Module | What it does (summary) | Main contributor | Co-contributor |
@@ -51,13 +51,24 @@ _Updated 2026-06-03. HEAD `30988f5`. Ordered oldest → newest. "#" = PR number
 | #51 | 2026-06-03 | Home / Medical / Map / Nav | Optimize patient-facing pages: 6-shortcut Home grid, swipe-to-switch nav + "Utilities" relabel, shared POI picker, dedicated `TaskDetailPage`, map declutter | Bannavong | — |
 | `01d23fe` | 2026-06-03 | Docs | Update overall documentation files | Bannavong | — |
 | `30988f5` | 2026-06-03 | Auth / Notification / Profile / Settings / Docs | Backend logout (`POST auth/logout` deactivates device FCM token; forced/post-delete logouts skip it); lazy `FirebaseMessaging` so disabled builds are crash-free (Firebase genuinely optional); 60s notification polling fallback (no backend push yet); move delete-account to **Settings → Tài khoản** + red profile logout; reconcile `overview_process.md` | Bannavong | — |
+| `369d1f5` | 2026-06-03 | Docs | Log `01d23fe` + `30988f5` (logout/FCM, notification polling) in the assignment doc | Bannavong | — |
+| #54 | 2026-06-06 | Map / UI | Anchor expandable action menu to FAB left edge (real on-screen rect); tap-outside scrim, height-bounded list, drop phantom semantics when collapsed; replace deprecated `SizeTransition.axisAlignment`; page-slide fixes | Vongphet Pasithphone | — |
+| #55 | 2026-06-08 | Map / Navigation | Edge-swipe page navigation; untrack generated `*.g.dart`/`*.freezed.dart` files | Vongphet Pasithphone | Bannavong |
+| #56 | 2026-06-10 | Chore / Core | Phase 0 hygiene (FIX-01..04): read app version from `PackageInfo.fromPlatform()`, delete dead mock auth credentials, prune dead `ApiEndpoints`/`MapRepository` symbols, `debugPrint` in empty catch blocks | Bannavong | — |
+| #57 | 2026-06-13 | Profile / Auth | Fix delete-account error handling + Vietnamese localization | Vongphet Pasithphone | — |
+| #58 | 2026-06-13 | Map / Voice | Offline turn-by-turn Vietnamese voice guidance: bundle 8 nav voice clips as assets, pre-warmed AudioPlayer pool + sequential queue, `flutter_tts` fallback, turn-by-turn decider, mute toggle + ×0.5/×1/×2 speed | Bannavong | — |
+| `cc269ab` | 2026-06-13 | Map | Merge the route pill's two close buttons into one (inner × now hides/collapses) | Bannavong | — |
+| `a221331` | 2026-06-13 | Map / Voice | Stop voice from firing on destination change and cancel (guard `_setProgress` to navigating phase; drop cues queued before `stop()` via a generation counter) | Bannavong | — |
+| `3921912` | 2026-06-13 | Profile | Add clear-avatar action (send `avatar: ""` so a clear reaches the backend; "Xóa ảnh đại diện" picker entry + confirm dialog) | Bannavong | — |
+| #59 | 2026-06-13 | Map / Route / Auth | Wire backend route lifecycle (`route/order`→`route_id`, `cancel`, `pass_node` every 2s, `rate` with `is_accurate`) as telemetry+rating while the client A* engine stays routing authority; reachable rating page; shared `authLinkButtonStyle` helper (`inherit: false`, survives route transitions) | Bannavong | — |
+| #60 | 2026-06-14 | Asset / Core | Make Asset/Wheelchair flow usable end-to-end: shared code→Vietnamese error map (backend returns `message:"OK"` on errors), station-picker release sending `station_name`, local active-booking tracking + "Xe lăn của tôi" heuristic recovery, Home active-booking card + "Trạm thiết bị" shortcut, "Tìm xe lăn gần đây" on accessible map POIs; gap/`my_booking` docs into tracked `doc/` | Bannavong | — |
 
 ## Contributor summary
 
 | Person | Lead commits | Also co-contributed |
 |---|---|---|
-| **Bannavong** (bannavong.sa239717) | 32 — core, theme, CI, map, route, flow, medical, docs, responsive UI, auth/profile fixes, patient-facing optimization (#51), backend-logout/FCM lifecycle + notification polling + optional Firebase (`30988f5`) | #17, #25, #29, #31, #30, #37 |
-| **Vongphet Pasithphone** (pasithphone.v220116) | 6 — auth (#7, #22), async/UI (#17), reset-password (#25), notification tests (#48), dob validation fix (#50) | #29 |
+| **Bannavong** (bannavong.sa239717) | 40 — core, theme, CI, map, route, flow, medical, docs, responsive UI, auth/profile fixes, patient-facing optimization (#51), backend-logout/FCM lifecycle (`30988f5`), Phase 0 hygiene (#56), offline voice guidance (#58) + voice/route-pill fixes, clear-avatar (`3921912`), backend route lifecycle (#59), Asset/Wheelchair end-to-end (#60) | #17, #25, #29, #31, #30, #37, #55 |
+| **Vongphet Pasithphone** (pasithphone.v220116) | 9 — auth (#7, #22), async/UI (#17), reset-password (#25), notification tests (#48), dob validation fix (#50), map action-menu/page-slide (#54), edge-swipe nav (#55), delete-account fix (#57) | #29 |
 | **Kimheng99** (nutkimheng000) | 3 — notification UI (#18), notifications/info/nav (#29), FAQ/utility screens (#49) | — |
 | **Soumek Xaynguyen** (aka quangngv / quanghot31lao) | 3 — profile page (#8), unified Settings page (#31), chat (#45) | — |
 | **Samkol Meng Leang** (CodeLeang) | 2 — auth/core/home pages (#5), SOS + home utility shortcuts (#30) | — |
