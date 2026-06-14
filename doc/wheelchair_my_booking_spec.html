@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spec: GET /api/asset/my_booking — Wheelchair active-booking endpoint</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 15px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+         max-width: 880px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.6rem; } h2 { margin-top: 2rem; border-bottom: 2px solid #8884;
+       padding-bottom: .3rem; } h3 { margin-top: 1.4rem; }
+  code { background: #8882; padding: .1em .35em; border-radius: 4px; }
+  pre { background: #8881; border: 1px solid #8884; border-radius: 8px;
+        padding: 1rem; overflow:auto; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: .6rem 0; }
+  th, td { border: 1px solid #8884; padding: .45rem .6rem; text-align: left;
+           vertical-align: top; }
+  .ok { color: #1a7f37; } .bad { color: #b3261e; } .muted { color: #8889; }
+  .pill { display:inline-block; background:#1a7f3722; color:#1a7f37;
+          border-radius:999px; padding:.1em .7em; font-weight:600; font-size:.85em; }
+  blockquote { border-left: 4px solid #8884; margin: .8rem 0; padding: .3rem 1rem;
+               color: #8889; }
+</style>
+</head>
+<body>
+
+<h1>📋 Wheelchair booking — <code>GET /api/asset/my_booking</code></h1>
+<p><span class="pill">Area: Backend (Go)</span> &nbsp;<span class="pill">Effort: S (~half day)</span> &nbsp;<span class="pill">Unblocks: cross-device booking + deletes a fragile FE heuristic</span></p>
+<p class="muted">Companion to <code>context/asset_wheelchair_backend_gap.md</code>. Two parts below:
+<strong>Part 1</strong> is for humans; <strong>Part 2</strong> is a machine-readable spec for an AI coding agent.</p>
+
+<!-- ============================================================ -->
+<!-- PART 1 — HUMAN READABLE                                       -->
+<!-- ============================================================ -->
+<h2>Part 1 — Human-readable spec</h2>
+
+<h3>Why this endpoint</h3>
+<p>
+The mobile app needs to answer one question: <em>"which wheelchair does the
+current user currently hold?"</em> Today there is <strong>no endpoint for it</strong>, and assets carry
+<strong>no owner field</strong>, and <code>track_asset</code>/<code>asset_health</code> are <strong>not ownership-gated</strong>
+(they return <code>1000</code> for any asset). So the app cannot tell the user's in-use chair
+from another user's.
+</p>
+<p>
+As a workaround the app currently <strong>guesses</strong>: it diffs <code>find_wheelchairs</code> (which lists
+only <em>available</em> assets) against an inferred <code>WL-###</code> catalog and confirms <code>in_use</code> via
+<code>asset_health</code>. This is fragile (assumes contiguous, zero-padded ids) and <strong>ambiguous
+with multiple concurrent users</strong> (it has to ask the user "which one is yours?"). The
+backend already knows the answer — it just doesn't expose it.
+</p>
+<blockquote>
+The release handler <em>already</em> calls <code>FindActiveBookingByUser(userID)</code> and enforces
+ownership (<code>ErrDeviceOwnership</code> when the asset doesn't match). This endpoint exposes that
+same lookup as a read. It is the single highest-leverage fix for the asset module.
+</blockquote>
+
+<h3>Contract</h3>
+<table>
+  <tr><th>Method</th><td><code>GET</code></td></tr>
+  <tr><th>Path</th><td><code>/api/asset/my_booking</code></td></tr>
+  <tr><th>Auth</th><td><code>Authorization: Bearer &lt;token&gt;</code> (patient). User id comes from the token — <strong>no</strong> request params.</td></tr>
+  <tr><th>Request body / query</th><td>none</td></tr>
+</table>
+
+<h4 class="ok">Success — user HAS an active booking</h4>
+<pre><code>{
+  "code": 1000,
+  "message": "OK",
+  "data": {
+    "booking_id": 2,
+    "asset_id": "WL-001",
+    "device_id": 1,
+    "status": "in_use",
+    "borrowed_at": "2026-06-14T08:30:00Z",
+    "station_id": null,
+    "station_name": null
+  }
+}</code></pre>
+
+<h4 class="ok">Success — user has NO active booking</h4>
+<p>Return <code>data: null</code> with <code>code 1000</code> (an empty booking is <strong>not</strong> an error):</p>
+<pre><code>{ "code": 1000, "message": "OK", "data": null }</code></pre>
+
+<h4 class="bad">Errors</h4>
+<ul>
+  <li>Auth failures go through the normal middleware (401 / token codes).</li>
+  <li><strong>Do not use <code>SuccessWithCode</code> for any genuine error</strong> — it hardcodes
+      <code>message:"OK"</code>, which is exactly the bug the app has to work around elsewhere
+      (book's <code>1010</code>, release's <code>4004</code>). Return a descriptive message.</li>
+</ul>
+
+<h3>Field notes</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+  <tr><td><code>booking_id</code></td><td>int</td><td><code>DeviceBooking.BookingID</code></td></tr>
+  <tr><td><code>asset_id</code></td><td>string</td><td>The device code (e.g. <code>WL-001</code>) — <code>booking.Device.DeviceCode</code>. This is what every other asset endpoint keys on.</td></tr>
+  <tr><td><code>device_id</code></td><td>int</td><td><code>DeviceBooking.DeviceID</code> (optional but handy).</td></tr>
+  <tr><td><code>status</code></td><td>string</td><td><code>in_use</code> for an active booking.</td></tr>
+  <tr><td><code>borrowed_at</code></td><td>RFC3339</td><td><code>DeviceBooking.BorrowedAt</code>.</td></tr>
+  <tr><td><code>station_id</code> / <code>station_name</code></td><td>int? / string?</td><td>Null while in use (only set on return). Include for symmetry.</td></tr>
+</table>
+
+<h3>Implementation sketch (Go)</h3>
+<ol>
+  <li>Reuse <code>repo.FindActiveBookingByUser(userID)</code> (<code>repository/device_repo.go:170</code>) — it already <code>Preload("Device")</code> and filters <code>status = in_use</code>.</li>
+  <li>If it returns <code>nil</code> (no record), respond <code>response.Success(c, nil)</code>.</li>
+  <li>Else map <code>DeviceBooking</code> → the DTO above and <code>response.Success(c, dto)</code>.</li>
+  <li>Add a handler method in <code>handler/device_handler.go</code> and register <code>GET /api/asset/my_booking</code> in the router (same Bearer-auth group as the other asset routes).</li>
+</ol>
+
+<h3>Acceptance criteria</h3>
+<ul>
+  <li>Returns exactly the authenticated user's active (in_use) booking.</li>
+  <li>Returns <code>code 1000, data:null</code> when the user holds nothing.</li>
+  <li><strong>User isolation:</strong> never returns another user's booking.</li>
+  <li>No params required; identity strictly from the token.</li>
+  <li>Does not emit <code>message:"OK"</code> on any real error path.</li>
+</ul>
+
+<h3>What the frontend will do once this ships</h3>
+<ul>
+  <li>Replace <code>AssetRepository.discoverInUseAssets()</code> (the <code>WL-###</code> heuristic) with a single <code>GET my_booking</code> call.</li>
+  <li><code>ActiveBookingNotifier.recover()</code> / page-entry simply adopts <code>data.asset_id</code>, or clears when <code>null</code> — <strong>delete the "pick which is yours" dialog</strong>.</li>
+  <li>Ownership becomes <strong>certain</strong> and correct across phones/reinstalls.</li>
+</ul>
+
+<h3>Related backend fixes (same module, file together)</h3>
+<ol>
+  <li><code>release_asset</code>: accept the numeric <code>station_id</code> PK (keep <code>station_name</code> as fallback). FE currently sends the renameable <code>station_name</code> as a workaround.</li>
+  <li>Stop using <code>SuccessWithCode</code> for errors across device handlers — return descriptive messages (fixes book <code>1010</code> / release <code>4004</code> showing <code>"OK"</code>).</li>
+  <li>Add <code>poi_id</code> / coordinates to <code>asset_stations</code> rows → enables release-at-nearest-station / by user position.</li>
+  <li>(Optional) Make <code>track_asset</code> ownership-gated (return <code>1009</code> for assets the caller doesn't hold), so the FE's existing <code>1009</code> track handling becomes meaningful.</li>
+</ol>
+
+<!-- ============================================================ -->
+<!-- PART 2 — AI-AGENT READABLE                                    -->
+<!-- ============================================================ -->
+<h2>Part 2 — Machine-readable spec (for an AI coding agent)</h2>
+<p class="muted">Self-contained JSON. An agent working in the Go backend repo can implement directly from this.
+File anchors are from the BE source as inspected on 2026-06-14.</p>
+
+<script type="application/json" id="spec-my-booking">
+{
+  "spec_version": "1.0",
+  "generated": "2026-06-14",
+  "title": "GET /api/asset/my_booking",
+  "goal": "Expose the authenticated user's current active wheelchair booking so the mobile client can stop guessing ownership.",
+  "problem_context": {
+    "no_endpoint": "There is no endpoint returning the caller's current booking.",
+    "no_owner_field": "Assets carry no booked_by/owner field.",
+    "track_not_ownership_gated": "track_asset and asset_health return code 1000 for ANY asset_id (verified live), so they cannot prove ownership.",
+    "client_workaround_to_remove": "AssetRepository.discoverInUseAssets() infers a WL-### catalog by diffing find_wheelchairs (available-only) and confirming in_use via asset_health; fragile and ambiguous with multiple users.",
+    "backend_already_knows": "device_bookings links user_id->device_id with status; FindActiveBookingByUser(userID) already exists and is used by ReleaseAsset for ownership enforcement."
+  },
+  "endpoint": {
+    "method": "GET",
+    "path": "/api/asset/my_booking",
+    "auth": "BearerAuth (patient); user id from token claims; NO request params",
+    "request": { "query": {}, "body": null }
+  },
+  "responses": {
+    "has_booking": {
+      "http_status": 200,
+      "body": {
+        "code": 1000,
+        "message": "OK",
+        "data": {
+          "booking_id": 2,
+          "asset_id": "WL-001",
+          "device_id": 1,
+          "status": "in_use",
+          "borrowed_at": "2026-06-14T08:30:00Z",
+          "station_id": null,
+          "station_name": null
+        }
+      }
+    },
+    "no_booking": {
+      "http_status": 200,
+      "body": { "code": 1000, "message": "OK", "data": null },
+      "note": "Empty booking is success with data:null, NOT an error."
+    },
+    "error_policy": "Do NOT use SuccessWithCode for real errors (it hardcodes message:'OK'). Auth handled by existing middleware."
+  },
+  "data_model": {
+    "source_struct": "schema.DeviceBooking (schema/device.go:89)",
+    "field_map": {
+      "booking_id": "DeviceBooking.BookingID",
+      "asset_id": "DeviceBooking.Device.DeviceCode",
+      "device_id": "DeviceBooking.DeviceID",
+      "status": "DeviceBooking.Status (in_use)",
+      "borrowed_at": "DeviceBooking.BorrowedAt (RFC3339)",
+      "station_id": "null while in_use",
+      "station_name": "null while in_use"
+    }
+  },
+  "implementation": {
+    "reuse": "repository/device_repo.go:170 FindActiveBookingByUser(userID) — already Preload('Device') and filters status=in_use; returns nil when none.",
+    "steps": [
+      "Add DeviceService.GetMyBooking(userID) -> (*DeviceBooking, error) wrapping FindActiveBookingByUser; treat gorm.ErrRecordNotFound / nil as 'no booking' (not an error).",
+      "Add handler DeviceHandler.MyBooking(c) in handler/device_handler.go: userID := middleware.GetUserID(c); booking := svc.GetMyBooking(userID); if nil -> response.Success(c, nil); else map to DTO and response.Success(c, dto).",
+      "Register route GET /api/asset/my_booking in the same Bearer-auth asset group as asset_stations/book_asset/etc.",
+      "Define a response DTO (myBookingResponse) with the fields in data_model.field_map."
+    ],
+    "files_to_touch": [
+      "handler/device_handler.go (new handler + route registration or router file)",
+      "service/device_service.go (new GetMyBooking)",
+      "repository/device_repo.go (reuse FindActiveBookingByUser; no change expected)"
+    ]
+  },
+  "acceptance_criteria": [
+    "Returns exactly the authenticated user's active (in_use) booking.",
+    "Returns code 1000 with data:null when the user holds nothing.",
+    "Never returns another user's booking (strict user isolation via token).",
+    "Requires no request params.",
+    "Does not emit message:'OK' on any real error path."
+  ],
+  "frontend_followup": {
+    "delete": "AssetRepository.discoverInUseAssets() heuristic + the multi-candidate 'pick which is yours' dialog in my_wheelchair_page.dart.",
+    "replace_with": "Single GET /api/asset/my_booking call in ActiveBookingNotifier (load/recover): adopt data.asset_id or clear when data is null.",
+    "result": "Ownership becomes certain and correct across phones/reinstalls."
+  },
+  "related_backend_fixes": [
+    { "id": "release-pk", "desc": "release_asset: accept numeric station_id PK (keep station_name fallback). Currently matches station_name only (FindStationByCode WHERE station_name=?), forcing the FE to send the name." },
+    { "id": "no-ok-on-error", "desc": "Stop SuccessWithCode for errors across device handlers; return descriptive message instead of 'OK' (affects book 1010, release 4004)." },
+    { "id": "station-location", "desc": "Add poi_id/coords to asset_stations rows to enable release-at-nearest-station / by user position." },
+    { "id": "track-ownership", "desc": "Optional: make track_asset ownership-gated (1009 when not the caller's), so the FE's 1009 handling becomes meaningful." }
+  ],
+  "references": {
+    "fe_writeup": "context/asset_wheelchair_backend_gap.md",
+    "verified_against": "https://group3.it4788.sukkaito.id.vn/api/ on 2026-06-14 (user_id 22)"
+  }
+}
+</script>
+
+<pre><code>&lt;!-- The same spec is embedded above in &lt;script id="spec-my-booking"&gt; for programmatic reading. --&gt;</code></pre>
+
+</body>
+</html>

@@ -35,7 +35,7 @@ Wheelchair** is functional but leans on BE workarounds: `release_asset` keys off
 `station_name` not the PK (FE sends the name), every device error returns
 `message:"OK"` (FE maps by code), there is no `my_booking` endpoint (FE recovers
 the active booking heuristically), and `asset_stations` has no location (so
-release-by-position is impossible). See `context/asset_wheelchair_backend_gap.md`.
+release-by-position is impossible). See `doc/asset_wheelchair_backend_gap.md`.
 
 ## Overall Status
 
@@ -214,7 +214,7 @@ Scope: features available in `swagger.yaml` for patient/public/mobile use, exclu
   - [x] **Active booking persisted locally** (Hive `active_asset`); Home shows an active/idle wheelchair card; the booking screen gates release on the local "mine" flag (backend has no `booked_by`) and shows an "in use by other" state.
   - [x] **"Xe lăn của tôi"** page (`/asset/my`) with **auto-recovery on entry**: rediscovers a lost booking (reinstall / another phone) by diffing `find_wheelchairs` against the inferred `WL-###` catalog and confirming `in_use` via `asset_health`; single match auto-adopted, else the user picks. `book` returning `1010` also triggers recovery.
   - [x] **Book from map**: wheelchair-accessible POIs show "Tìm xe lăn gần đây" → opens the search prefilled with that POI.
-  - [ ] **BE blockers (relay to backend):** `release_asset` should accept the numeric `station_id` PK (keep `station_name` fallback); stop using `SuccessWithCode` for errors so `message` is descriptive (affects `book`'s `1010` too); add `GET asset/my_booking` (so the FE can drop the recovery heuristic — `device_bookings`/`FindActiveBookingByUser` already exist); add `poi_id`/coords to `asset_stations` so release-by-nearest-station/position is possible. Full writeup: `context/asset_wheelchair_backend_gap.md`.
+  - [ ] **BE blockers (relay to backend):** `release_asset` should accept the numeric `station_id` PK (keep `station_name` fallback); stop using `SuccessWithCode` for errors so `message` is descriptive (affects `book`'s `1010` too); add `GET asset/my_booking` (so the FE can drop the recovery heuristic — `device_bookings`/`FindActiveBookingByUser` already exist); add `poi_id`/coords to `asset_stations` so release-by-nearest-station/position is possible. Full writeup: `doc/asset_wheelchair_backend_gap.md`.
 - [x] Staff assistance request is wired: `staff/request_staff`.
 - [x] Chat/support UI is wired for rooms, messages, send, unread aggregation, mark-read, and `ws/chat`; create-room UI and some polish remain backlog.
 - [x] FAQ/help center uses `util/faq`, `util/about`, and `util/contact`.
@@ -321,7 +321,7 @@ Branch `fix/asset-wheelchair` (2026-06-14): code-based VN asset error mapping
 `station_name`) · local active-booking + "Xe lăn của tôi" page with
 auto-recovery · Home active-booking card + "Trạm thiết bị" shortcut ·
 "Tìm xe lăn gần đây" on accessible map POIs. BE asset defects filed in
-`context/asset_wheelchair_backend_gap.md`.
+`doc/asset_wheelchair_backend_gap.md`.
 
 Generated `VersionCheckResponse` files are committed after the branch rebase
 (`53cc0f4`), and `flutter analyze` was clean after conflict resolution.
@@ -333,7 +333,7 @@ Generated `VersionCheckResponse` files are committed after the branch rebase
 | 2 | **Chat WebSocket force-logout path** | FE | S | REST token rejection is handled globally, but WS validation can still return HTTP 401 / code `3009` outside Dio. Wire it to `SessionManager` and redirect to `/login`. |
 | 3 | **Fix Flow API contract mismatches** | FE+BE | S | `flow/edge_status` (app sends no required param + expects a list, backend wants a param + returns one) and `flow/get_density` (missing param, single vs list). Detail in `doc/overview_system.md`. |
 | 4 | **auth/logout (server) + auth/resend_otp route** | BE | S | logout is local-only; `resend_otp` service exists but has no route. Single-active-JWT REST rejection is already handled. |
-| 4b | **Asset BE fixes** | BE | S | (a) `release_asset` accept the numeric `station_id` PK (keep `station_name` fallback) so the FE can stop sending the renameable name; (b) stop `SuccessWithCode` on errors — return a descriptive `message` instead of `"OK"` (affects `book`'s `1010`, `release`'s `4004`); (c) add `GET asset/my_booking` so the FE drops the in-use recovery heuristic; (d) add `poi_id`/coords to `asset_stations` for release-by-nearest-station. Detail in `context/asset_wheelchair_backend_gap.md`. |
+| 4b | **Asset BE fixes** | BE | S | (a) `release_asset` accept the numeric `station_id` PK (keep `station_name` fallback) so the FE can stop sending the renameable name; (b) stop `SuccessWithCode` on errors — return a descriptive `message` instead of `"OK"` (affects `book`'s `1010`, `release`'s `4004`); (c) add `GET asset/my_booking` so the FE drops the in-use recovery heuristic; (d) add `poi_id`/coords to `asset_stations` for release-by-nearest-station. Detail in `doc/asset_wheelchair_backend_gap.md`. |
 | 5 | **Pre-demo QA pass** | FE | S | `dart format`, `flutter analyze`, `flutter test`; manually walk auth / map / medical / notification / settings / chat / SOS / asset / staff flows. |
 | 6 | **Demo prep** | — | S | seeded test account, backend URL/config, short demo script with an offline fallback. |
 

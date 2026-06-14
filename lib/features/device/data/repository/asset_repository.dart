@@ -150,9 +150,7 @@ class AssetRepository {
         // Backend says the user already holds a booking. If our local store
         // doesn't know about it (fresh install / another phone), the caller can
         // offer recovery — so signal this case distinctly.
-        throw AlreadyBookingException(
-          friendlyMessage(api.code, api.message),
-        );
+        throw AlreadyBookingException(friendlyMessage(api.code, api.message));
       }
       if (api.code != ApiResponseCodes.success) {
         throw Exception(friendlyMessage(api.code, api.message));

@@ -105,9 +105,7 @@ class _MyWheelchairPageState extends ConsumerState<MyWheelchairPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Có nhiều xe lăn đang được mượn. Chọn đúng xe của bạn:',
-            ),
+            const Text('Có nhiều xe lăn đang được mượn. Chọn đúng xe của bạn:'),
             const SizedBox(height: AppSpacing.md),
             ...candidates.map(
               (id) => ListTile(
