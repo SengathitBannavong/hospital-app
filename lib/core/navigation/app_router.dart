@@ -36,6 +36,7 @@ import 'package:hospital_app/features/sos/presentation/pages/sos_page.dart';
 import 'package:hospital_app/features/device/presentation/pages/asset_booking_page.dart';
 import 'package:hospital_app/features/device/presentation/pages/asset_stations_page.dart';
 import 'package:hospital_app/features/device/presentation/pages/asset_tracking_page.dart';
+import 'package:hospital_app/features/device/presentation/pages/my_wheelchair_page.dart';
 import 'package:hospital_app/features/device/presentation/pages/broken_asset_report_page.dart';
 import 'package:hospital_app/features/device/presentation/pages/wheelchair_search_page.dart';
 import 'package:hospital_app/features/map/presentation/pages/obstacle_report_page.dart';
@@ -260,12 +261,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       // ── Asset / Device ──────────────────────────────────────
       GoRoute(
+        path: '/asset/my',
+        builder: (context, state) => const MyWheelchairPage(),
+      ),
+      GoRoute(
         path: '/asset/stations',
         builder: (context, state) => const AssetStationsPage(),
       ),
       GoRoute(
         path: '/asset/search',
-        builder: (context, state) => const WheelchairSearchPage(),
+        builder: (context, state) =>
+            WheelchairSearchPage(initialPoi: state.extra as MapPoi?),
       ),
       GoRoute(
         path: '/asset/book/:asset_id',

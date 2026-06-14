@@ -9,6 +9,7 @@ class MapPoiMetadataPanel extends StatelessWidget {
   final VoidCallback onSetDestination;
   final VoidCallback? onSetCurrentLocation;
   final VoidCallback? onRequestAssistance;
+  final VoidCallback? onFindWheelchair;
 
   const MapPoiMetadataPanel({
     super.key,
@@ -17,6 +18,7 @@ class MapPoiMetadataPanel extends StatelessWidget {
     required this.onSetDestination,
     this.onSetCurrentLocation,
     this.onRequestAssistance,
+    this.onFindWheelchair,
   });
 
   @override
@@ -157,6 +159,17 @@ class MapPoiMetadataPanel extends StatelessWidget {
               label: const Text('Set destination'),
             ),
           ),
+          if (onFindWheelchair != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onFindWheelchair,
+                icon: const Icon(Icons.accessible_rounded),
+                label: const Text('Tìm xe lăn gần đây'),
+              ),
+            ),
+          ],
           if (onRequestAssistance != null) ...[
             const SizedBox(height: AppSpacing.sm),
             SizedBox(

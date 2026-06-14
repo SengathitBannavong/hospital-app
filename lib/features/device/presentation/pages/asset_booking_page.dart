@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
+import 'package:hospital_app/features/device/data/repository/asset_repository.dart';
 import 'package:hospital_app/features/device/presentation/providers/asset_providers.dart';
+import 'package:hospital_app/features/device/presentation/widgets/release_station_picker.dart';
 
 class AssetBookingPage extends ConsumerStatefulWidget {
   const AssetBookingPage({super.key, required this.assetId});
@@ -17,14 +19,9 @@ class AssetBookingPage extends ConsumerStatefulWidget {
 class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
   bool _isLoading = false;
 
-  // Null until the user books/releases in this session. While null, the booked
-  // state is derived from the asset's server health status so re-opening the
-  // page for an already-booked asset doesn't invite a double book.
-  bool? _bookedOverride;
-
   // Official backend asset statuses: available | in_use | maintenance.
   //   available   -> bookable
-  //   in_use      -> currently booked / in use
+  //   in_use      -> in use (by this user or someone else)
   //   maintenance -> unavailable (not bookable, not booked)
   static const _statusInUse = 'in_use';
   static const _statusMaintenance = 'maintenance';
@@ -38,15 +35,25 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
   Future<void> _book() async {
     setState(() => _isLoading = true);
     try {
-      await ref.read(assetRepositoryProvider).bookAsset(widget.assetId);
+      await ref.read(activeBookingProvider.notifier).book(widget.assetId);
       if (mounted) {
-        setState(() {
-          _bookedOverride = true;
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         AppToast.showSuccess('Đã mượn thiết bị ${widget.assetId} thành công!');
-        ref.invalidate(assetStationsProvider);
+        ref
+          ..invalidate(assetStationsProvider)
+          ..invalidate(assetHealthProvider(widget.assetId));
       }
+    } on AlreadyBookingException catch (e) {
+      // The server says we already hold a wheelchair, but locally we don't know
+      // which (e.g. booked on another phone). Recover it, then send the user to
+      // the "my wheelchair" screen to track/release it.
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      AppToast.showWarning(e.message);
+      final candidates = await ref
+          .read(activeBookingProvider.notifier)
+          .recover();
+      if (mounted && candidates.isNotEmpty) context.push('/asset/my');
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -56,59 +63,26 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
   }
 
   Future<void> _release() async {
-    final stationIdController = TextEditingController();
+    final stationId = await showReleaseStationPicker(context, ref);
+    if (stationId == null || !mounted) return;
+
+    setState(() => _isLoading = true);
     try {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Trả thiết bị'),
-          content: TextField(
-            controller: stationIdController,
-            decoration: const InputDecoration(
-              labelText: 'Mã trạm trả (station_id)',
-              hintText: 'vd: 1',
-              border: OutlineInputBorder(),
-            ),
-            keyboardType: TextInputType.number,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hủy'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Xác nhận'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmed != true) return;
-      final stationId = stationIdController.text.trim();
-      if (stationId.isEmpty) return;
-
-      setState(() => _isLoading = true);
-      try {
-        await ref
-            .read(assetRepositoryProvider)
-            .releaseAsset(assetId: widget.assetId, stationId: stationId);
-        if (mounted) {
-          setState(() {
-            _bookedOverride = false;
-            _isLoading = false;
-          });
-          AppToast.showSuccess('Đã trả thiết bị thành công!');
-          ref.invalidate(assetStationsProvider);
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          AppToast.showError(e.toString().replaceFirst('Exception: ', ''));
-        }
+      await ref
+          .read(activeBookingProvider.notifier)
+          .release(assetId: widget.assetId, stationId: stationId);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        AppToast.showSuccess('Đã trả thiết bị thành công!');
+        ref
+          ..invalidate(assetStationsProvider)
+          ..invalidate(assetHealthProvider(widget.assetId));
       }
-    } finally {
-      stationIdController.dispose();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        AppToast.showError(e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 
@@ -116,13 +90,16 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
   Widget build(BuildContext context) {
     final health = ref.watch(assetHealthProvider(widget.assetId));
     final status = health.valueOrNull?.status;
+    final isMine = ref.watch(
+      activeBookingProvider.select((b) => b?.assetId == widget.assetId),
+    );
 
-    // A local book/release action wins; otherwise fall back to the server's
-    // status so an already-booked asset shows the release flow on re-open.
-    // Maintenance is a server-only state — a local action can't reach it.
-    final isMaintenance =
-        _bookedOverride == null && _isMaintenanceStatus(status);
-    final isBooked = _bookedOverride ?? _isInUseStatus(status);
+    // The local active-booking flag is the source of truth for "this is mine"
+    // (the backend exposes no booked_by). Server status only drives display:
+    // maintenance, or in-use by *someone else* (which must not offer release).
+    final isMaintenance = _isMaintenanceStatus(status);
+    final isBooked = isMine;
+    final isUsedByOther = !isMine && !isMaintenance && _isInUseStatus(status);
 
     return Scaffold(
       appBar: AppBar(
@@ -170,6 +147,15 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
             const SizedBox(height: AppSpacing.xl),
             if (isMaintenance) ...[
               const _MaintenanceNotice(),
+              const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                onPressed: () =>
+                    context.push('/asset/report/${widget.assetId}'),
+                icon: const Icon(Icons.report_problem_outlined),
+                label: const Text('Báo hỏng'),
+              ),
+            ] else if (isUsedByOther) ...[
+              const _InUseByOtherNotice(),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(
                 onPressed: () =>
@@ -262,6 +248,49 @@ class _MaintenanceNotice extends StatelessWidget {
                     'Vui lòng chọn thiết bị khác.',
                     style: context.textTheme.bodySmall?.copyWith(
                       color: context.colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InUseByOtherNotice extends StatelessWidget {
+  const _InUseByOtherNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: context.colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: AppSpacing.cardPaddingLarge,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.lock_clock_outlined,
+              color: context.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Thiết bị đang được sử dụng',
+                    style: context.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Thiết bị này đang được người dùng khác mượn. '
+                    'Vui lòng chọn thiết bị khác.',
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: context.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],

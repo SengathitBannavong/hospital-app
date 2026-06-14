@@ -44,11 +44,9 @@ class ErrorInterceptor extends Interceptor {
       // expired. Force a logout so the user is bounced back to login.
       unawaited(_handleSessionRejected(bodyCode, _extractServerMessage(err)));
     } else if (statusCode == ApiResponseCodes.httpForbidden) {
-      AppToast.showWarning("Forbidden - 403: Handle permission issues");
+      AppToast.showWarning('Bạn không có quyền thực hiện thao tác này.');
     } else if (statusCode == ApiResponseCodes.httpInternalServerError) {
-      AppToast.showWarning(
-        "Internal Server Error - 500: Display a general error message",
-      );
+      AppToast.showWarning('Máy chủ đang gặp sự cố, vui lòng thử lại sau.');
     }
 
     // Could wrap the error in a custom Exception class before passing it along
@@ -94,37 +92,35 @@ class ErrorInterceptor extends Interceptor {
   String _mapDioExceptionToMessage(DioException dioException) {
     switch (dioException.type) {
       case DioExceptionType.connectionTimeout:
-        return 'Connection timeout with server';
       case DioExceptionType.sendTimeout:
-        return 'Send timeout in connection with server';
       case DioExceptionType.receiveTimeout:
-        return 'Receive timeout in connection with server';
+        return 'Kết nối tới máy chủ quá hạn, vui lòng thử lại.';
       case DioExceptionType.badResponse:
         return _mapStatusCodeToMessage(dioException.response?.statusCode);
       case DioExceptionType.cancel:
-        return 'Request to server was cancelled';
+        return 'Yêu cầu đã bị hủy.';
       case DioExceptionType.connectionError:
-        return 'No internet connection';
+        return 'Không có kết nối mạng.';
       case DioExceptionType.unknown:
-        return 'Unexpected error occurred';
+        return 'Đã xảy ra lỗi, vui lòng thử lại.';
       default:
-        return 'Something went wrong';
+        return 'Đã xảy ra lỗi, vui lòng thử lại.';
     }
   }
 
   String _mapStatusCodeToMessage(int? statusCode) {
     if (statusCode == ApiResponseCodes.httpBadRequest) {
-      return 'Bad request';
+      return 'Yêu cầu không hợp lệ.';
     } else if (statusCode == ApiResponseCodes.httpUnauthorized) {
-      return 'Unauthorized access';
+      return 'Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.';
     } else if (statusCode == ApiResponseCodes.httpForbidden) {
-      return 'Access forbidden';
+      return 'Bạn không có quyền thực hiện thao tác này.';
     } else if (statusCode == ApiResponseCodes.httpNotFound) {
-      return 'Resource not found';
+      return 'Không tìm thấy dữ liệu.';
     } else if (statusCode == ApiResponseCodes.httpInternalServerError) {
-      return 'Internal server error';
+      return 'Máy chủ đang gặp sự cố, vui lòng thử lại sau.';
     } else {
-      return 'Received invalid status code: $statusCode';
+      return 'Đã xảy ra lỗi, vui lòng thử lại.';
     }
   }
 

@@ -1,11 +1,24 @@
 import 'package:dio/dio.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
+import 'package:hospital_app/core/network/api_error_messages.dart';
 import 'package:hospital_app/core/network/api_response_codes.dart';
 import 'package:hospital_app/features/auth/data/models/auth_api_response.dart';
+import '../models/active_booking.dart';
 import '../models/asset_device.dart';
 import '../models/asset_station.dart';
 import '../models/asset_track.dart';
+
+/// Thrown by [AssetRepository.bookAsset] when the backend rejects the booking
+/// because the user already holds one (code 1010). Distinct so the UI can offer
+/// to recover the existing booking instead of just showing an error.
+class AlreadyBookingException implements Exception {
+  const AlreadyBookingException(this.message);
+  final String message;
+
+  @override
+  String toString() => 'Exception: $message';
+}
 
 class AssetRepository {
   final Dio _dio = ApiClient.instance;
@@ -49,6 +62,41 @@ class AssetRepository {
     }
   }
 
+  /// Best-effort discovery of wheelchairs currently `in_use` — used to recover
+  /// a booking the local store doesn't know about (fresh install, another
+  /// device). The backend exposes no "my bookings" endpoint and no ownership
+  /// field, so this infers the catalog from `find_wheelchairs` (which lists
+  /// only *available* assets): the ids missing from that list, within the
+  /// observed `WL-001..WL-{maxDeviceId}` range, are the in-use ones, confirmed
+  /// via `asset_health`. Callers must still confirm which one is the user's.
+  Future<List<String>> discoverInUseAssets({String nodeId = 'ENT-01'}) async {
+    final available = await findWheelchairs(nodeId: nodeId, radius: 1000000);
+    final availableIds = available.map((d) => d.assetId).toSet();
+    var maxDeviceId = 0;
+    for (final d in available) {
+      final id = d.deviceId ?? 0;
+      if (id > maxDeviceId) maxDeviceId = id;
+    }
+    if (maxDeviceId == 0) return const [];
+
+    final candidates = <String>[];
+    for (var i = 1; i <= maxDeviceId; i++) {
+      final id = 'WL-${i.toString().padLeft(3, '0')}';
+      if (!availableIds.contains(id)) candidates.add(id);
+    }
+
+    final inUse = <String>[];
+    for (final id in candidates) {
+      try {
+        final health = await getAssetHealth(id);
+        if (health.status.toLowerCase() == 'in_use') inUse.add(id);
+      } catch (_) {
+        // Ignore assets that error out (e.g. not found); they aren't ours.
+      }
+    }
+    return inUse;
+  }
+
   Future<AssetTrack> getAssetHealth(String assetId) async {
     try {
       final response = await _dio.get(
@@ -88,7 +136,7 @@ class AssetRepository {
     }
   }
 
-  Future<void> bookAsset(String assetId) async {
+  Future<ActiveBooking> bookAsset(String assetId) async {
     try {
       final response = await _dio.post(
         ApiEndpoints.assetBook,
@@ -98,9 +146,16 @@ class AssetRepository {
         response.data,
         (json) => json,
       );
-      if (api.code != ApiResponseCodes.success) {
-        throw Exception(api.message);
+      if (api.code == ApiResponseCodes.limitExceeded) {
+        // Backend says the user already holds a booking. If our local store
+        // doesn't know about it (fresh install / another phone), the caller can
+        // offer recovery — so signal this case distinctly.
+        throw AlreadyBookingException(friendlyMessage(api.code, api.message));
       }
+      if (api.code != ApiResponseCodes.success) {
+        throw Exception(friendlyMessage(api.code, api.message));
+      }
+      return _parseBooking(api.data, assetId);
     } on DioException catch (e) {
       throw Exception(_error(e));
     }
@@ -120,7 +175,7 @@ class AssetRepository {
         (json) => json,
       );
       if (api.code != ApiResponseCodes.success) {
-        throw Exception(api.message);
+        throw Exception(friendlyMessage(api.code, api.message));
       }
     } on DioException catch (e) {
       throw Exception(_error(e));
@@ -142,7 +197,7 @@ class AssetRepository {
         (json) => json,
       );
       if (api.code != ApiResponseCodes.success) {
-        throw Exception(api.message);
+        throw Exception(friendlyMessage(api.code, api.message));
       }
     } on DioException catch (e) {
       throw Exception(_error(e));
@@ -177,19 +232,46 @@ class AssetRepository {
     throw Exception('Unexpected response format');
   }
 
+  ActiveBooking _parseBooking(dynamic data, String fallbackAssetId) {
+    Map<String, dynamic>? map;
+    if (data is List && data.isNotEmpty && data.first is Map) {
+      map = Map<String, dynamic>.from(data.first as Map);
+    } else if (data is Map) {
+      map = Map<String, dynamic>.from(data);
+    }
+    if (map != null) {
+      final booking = ActiveBooking.fromJson(map);
+      if (booking.assetId.isNotEmpty) return booking;
+      return ActiveBooking(
+        assetId: fallbackAssetId,
+        bookingId: booking.bookingId,
+      );
+    }
+    return ActiveBooking(assetId: fallbackAssetId);
+  }
+
   T _requireSuccess<T>(AuthApiResponse<T> api) {
     if (api.code == ApiResponseCodes.success && api.data != null) {
       return api.data as T;
     }
-    throw Exception(api.message);
+    throw Exception(friendlyMessage(api.code, api.message));
   }
 
   String _error(DioException e) {
     final data = e.response?.data;
-    if (data is Map<String, dynamic>) {
-      return data['message']?.toString() ?? e.message ?? 'Đã xảy ra lỗi';
+    if (data is Map) {
+      return friendlyMessage(_bodyCode(data), data['message']?.toString());
     }
-    return e.message ?? 'Đã xảy ra lỗi';
+    return e.message ?? 'Đã xảy ra lỗi, vui lòng thử lại.';
+  }
+
+  int? _bodyCode(dynamic data) {
+    if (data is Map) {
+      final code = data['code'];
+      if (code is int) return code;
+      return int.tryParse(code?.toString() ?? '');
+    }
+    return null;
   }
 
   // True when the error body carries the custom accessDenied (1009) code,

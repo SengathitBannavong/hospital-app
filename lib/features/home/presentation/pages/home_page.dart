@@ -8,6 +8,7 @@ import '../../../../core/utils/app_toast.dart';
 import '../../../../core/widgets/medical_info_card.dart';
 import '../../../../core/widgets/fade_slide_transition.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../device/presentation/providers/asset_providers.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 import '../../../notification/presentation/widgets/notification_badge.dart';
 import '../../../util/data/models/weather.dart';
@@ -174,6 +175,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             children: [
               const SizedBox(height: AppSpacing.lg),
               const MapPreviewCard(),
+              const _ActiveBookingCard(),
               const SizedBox(height: AppSpacing.xl),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 50),
@@ -246,6 +248,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                             onTap: () => context.push('/sos'),
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _QuickActionCard(
+                            title: 'Trạm thiết bị',
+                            icon: Icons.local_parking_rounded,
+                            onTap: () => context.push('/asset/stations'),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        const Expanded(child: SizedBox()),
                       ],
                     ),
                   ],
@@ -418,6 +434,97 @@ class _WeatherSummaryCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveBookingCard extends ConsumerWidget {
+  const _ActiveBookingCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final booking = ref.watch(activeBookingProvider);
+
+    // No active booking: a muted hint that keeps the wheelchair flow visible
+    // and one tap from search, instead of hiding the surface entirely.
+    if (booking == null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.md),
+        child: Card(
+          child: ListTile(
+            leading: Icon(
+              Icons.accessible_rounded,
+              color: context.colorScheme.onSurfaceVariant,
+            ),
+            title: const Text('Chưa mượn xe lăn nào'),
+            subtitle: const Text('Nhấn để tìm hoặc khôi phục lượt mượn'),
+            trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+            onTap: () => context.push('/asset/my'),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: Card(
+        color: context.colorScheme.primaryContainer,
+        child: Padding(
+          padding: AppSpacing.cardPaddingLarge,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              InkWell(
+                onTap: () => context.push('/asset/my'),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.accessible_rounded,
+                      color: context.colorScheme.onPrimaryContainer,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Xe lăn đang mượn · ${booking.assetId}',
+                        style: context.textTheme.titleSmall?.copyWith(
+                          color: context.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: context.colorScheme.onPrimaryContainer,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          context.push('/asset/track/${booking.assetId}'),
+                      icon: const Icon(Icons.location_on_outlined, size: 18),
+                      label: const Text('Theo dõi'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () =>
+                          context.push('/asset/book/${booking.assetId}'),
+                      icon: const Icon(Icons.logout_rounded, size: 18),
+                      label: const Text('Trả thiết bị'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
