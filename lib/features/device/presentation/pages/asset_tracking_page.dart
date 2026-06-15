@@ -78,10 +78,7 @@ class AssetTrackingPage extends ConsumerWidget {
                     label: context.l10n.trackAssetCode,
                     value: info.assetId,
                   ),
-                  _InfoRow(
-                    label: context.l10n.trackStatus,
-                    value: info.status,
-                  ),
+                  _InfoRow(label: context.l10n.trackStatus, value: info.status),
                   if (info.movingStatus != null)
                     _InfoRow(
                       label: context.l10n.trackMoving,

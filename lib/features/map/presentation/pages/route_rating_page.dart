@@ -220,10 +220,7 @@ class _SuccessState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          FilledButton(
-            onPressed: onBack,
-            child: Text(context.l10n.commonBack),
-          ),
+          FilledButton(onPressed: onBack, child: Text(context.l10n.commonBack)),
         ],
       ),
     );

@@ -123,9 +123,7 @@ class _Results extends ConsumerWidget {
       ),
       data: (devices) {
         if (devices.isEmpty) {
-          return Center(
-            child: Text(context.l10n.wsNoWheelchairs),
-          );
+          return Center(child: Text(context.l10n.wsNoWheelchairs));
         }
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(

@@ -8,10 +8,7 @@ import 'package:hospital_app/features/map/presentation/providers/map_provider.da
 /// Opens a searchable bottom-sheet of all POIs on the active map and returns
 /// the chosen POI (or null if dismissed). Shared by the queue, wheelchair and
 /// staff pages so users pick a location instead of typing a code.
-Future<MapPoi?> showPoiPicker(
-  BuildContext context, {
-  String? title,
-}) {
+Future<MapPoi?> showPoiPicker(BuildContext context, {String? title}) {
   final resolvedTitle = title ?? context.l10n.poiPickerDefaultTitle;
   return showModalBottomSheet<MapPoi>(
     context: context,

@@ -138,10 +138,7 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
                         label: context.l10n.trackAssetCode,
                         value: info.assetId,
                       ),
-                      _Row(
-                        label: context.l10n.trackStatus,
-                        value: info.status,
-                      ),
+                      _Row(label: context.l10n.trackStatus, value: info.status),
                       if (info.condition != null)
                         _Row(
                           label: context.l10n.trackCondition,

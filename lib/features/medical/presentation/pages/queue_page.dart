@@ -21,10 +21,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
   int? get _poiId => _poi?.poiId;
 
   Future<void> _pickPoi() async {
-    final poi = await showPoiPicker(
-      context,
-      title: context.l10n.queuePickRoom,
-    );
+    final poi = await showPoiPicker(context, title: context.l10n.queuePickRoom);
     if (poi != null) setState(() => _poi = poi);
   }
 

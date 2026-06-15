@@ -120,10 +120,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         branches: [
           StatefulShellBranch(
             routes: [
-              GoRoute(
-                path: '/',
-                builder: (context, state) => const HomePage(),
-              ),
+              GoRoute(path: '/', builder: (context, state) => const HomePage()),
             ],
           ),
           StatefulShellBranch(

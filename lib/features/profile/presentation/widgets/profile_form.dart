@@ -130,18 +130,12 @@ class _ProfileFormState extends State<ProfileForm> {
               prefixIcon: const Icon(Icons.wc_outlined),
             ),
             items: [
-              DropdownMenuItem(
-                value: 0,
-                child: Text(context.l10n.genderMale),
-              ),
+              DropdownMenuItem(value: 0, child: Text(context.l10n.genderMale)),
               DropdownMenuItem(
                 value: 1,
                 child: Text(context.l10n.genderFemale),
               ),
-              DropdownMenuItem(
-                value: 2,
-                child: Text(context.l10n.genderOther),
-              ),
+              DropdownMenuItem(value: 2, child: Text(context.l10n.genderOther)),
             ],
           ),
           const SizedBox(height: AppSpacing.xl),
