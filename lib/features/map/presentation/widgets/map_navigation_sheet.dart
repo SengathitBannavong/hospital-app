@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
@@ -74,7 +75,7 @@ class MapNavigationSheet extends ConsumerWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      arrived ? 'Arrived' : destinationName,
+                      arrived ? context.l10n.navArrived : destinationName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: context.textTheme.titleMedium?.copyWith(
@@ -87,7 +88,9 @@ class MapNavigationSheet extends ConsumerWidget {
                       onPressed: () =>
                           ref.read(voiceMutedProvider.notifier).toggle(),
                       visualDensity: VisualDensity.compact,
-                      tooltip: voiceMuted ? 'Unmute voice' : 'Mute voice',
+                      tooltip: voiceMuted
+                          ? context.l10n.navUnmuteVoice
+                          : context.l10n.navMuteVoice,
                       icon: Icon(
                         voiceMuted
                             ? Icons.volume_off_rounded
@@ -99,7 +102,7 @@ class MapNavigationSheet extends ConsumerWidget {
                     onPressed: onCollapse,
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.close_fullscreen_rounded, size: 18),
-                    tooltip: 'Hide',
+                    tooltip: context.l10n.commonHide,
                   ),
                 ],
               ),
@@ -133,7 +136,9 @@ class MapNavigationSheet extends ConsumerWidget {
                               : Icons.pause_rounded,
                         ),
                         label: Text(
-                          paused ? 'Resume' : 'Pause',
+                          paused
+                              ? context.l10n.navResume
+                              : context.l10n.navPause,
                           maxLines: 1,
                           softWrap: false,
                           overflow: TextOverflow.ellipsis,
@@ -145,8 +150,8 @@ class MapNavigationSheet extends ConsumerWidget {
                       child: OutlinedButton.icon(
                         onPressed: onStop,
                         icon: const Icon(Icons.stop_rounded),
-                        label: const Text(
-                          'Stop',
+                        label: Text(
+                          context.l10n.navStop,
                           maxLines: 1,
                           softWrap: false,
                           overflow: TextOverflow.ellipsis,
@@ -221,10 +226,11 @@ _RemainingMetrics _remainingMetrics({
 String _formatDistance(num cells) => formatDistanceFromCells(cells);
 
 String _formatSeconds(num seconds) {
+  final l10n = appL10n;
   if (seconds < 60) {
-    return '${seconds.toStringAsFixed(0)} sec';
+    return l10n.navDurationSeconds(seconds.toStringAsFixed(0));
   }
-  return '${(seconds / 60).toStringAsFixed(0)} min';
+  return l10n.navDurationMinutes((seconds / 60).toStringAsFixed(0));
 }
 
 class _MetricChip extends StatelessWidget {

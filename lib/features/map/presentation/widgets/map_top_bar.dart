@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 
@@ -19,7 +20,7 @@ class MapTopBar extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       container: true,
-      label: 'Map search',
+      label: context.l10n.mapSearchSemantic,
       child: Material(
         color: scheme.surface,
         elevation: 1,
@@ -39,7 +40,7 @@ class MapTopBar extends StatelessWidget {
                   if (onCollapse != null)
                     _TopBarIconButton(
                       icon: Icons.keyboard_arrow_up_rounded,
-                      tooltip: 'Hide search',
+                      tooltip: context.l10n.mapHideSearch,
                       onPressed: onCollapse!,
                     ),
                   Expanded(
@@ -47,15 +48,17 @@ class MapTopBar extends StatelessWidget {
                       controller: controller,
                       textInputAction: TextInputAction.search,
                       onSubmitted: (_) => FocusScope.of(context).unfocus(),
-                      decoration: const InputDecoration(
-                        hintText: 'Search rooms, services, places',
-                        prefixIcon: Icon(Icons.search_rounded),
+                      decoration: InputDecoration(
+                        hintText: context.l10n.mapSearchHint,
+                        prefixIcon: const Icon(Icons.search_rounded),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
                         filled: false,
                         isCollapsed: false,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -65,7 +68,7 @@ class MapTopBar extends StatelessWidget {
                       if (value.text.isEmpty) return const SizedBox.shrink();
                       return _TopBarIconButton(
                         icon: Icons.close_rounded,
-                        tooltip: 'Clear search',
+                        tooltip: context.l10n.mapClearSearch,
                         onPressed: controller.clear,
                       );
                     },

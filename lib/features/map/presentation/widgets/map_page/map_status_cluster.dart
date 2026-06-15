@@ -85,7 +85,7 @@ class _MapStatusCluster extends StatelessWidget {
     if (online == false || (online == null && isStale)) {
       return _PillData(
         icon: Icons.cloud_off_rounded,
-        label: 'Offline',
+        label: appL10n.statusOffline,
         background: scheme.tertiaryContainer,
         foreground: scheme.onTertiaryContainer,
       );
@@ -93,14 +93,14 @@ class _MapStatusCluster extends StatelessWidget {
     if (online == null) {
       return _PillData(
         icon: Icons.sync_rounded,
-        label: 'Checking',
+        label: appL10n.statusChecking,
         background: scheme.surfaceContainerHigh,
         foreground: scheme.onSurfaceVariant,
       );
     }
     return _PillData(
       icon: Icons.cloud_done_rounded,
-      label: 'Online',
+      label: appL10n.statusOnline,
       background: scheme.surfaceContainerHigh,
       foreground: scheme.onSurfaceVariant,
     );
@@ -119,7 +119,7 @@ class _MapStatusCluster extends StatelessWidget {
     if (isError) {
       return _PillData(
         icon: Icons.error_outline_rounded,
-        label: 'Sync error',
+        label: appL10n.statusSyncError,
         background: scheme.errorContainer,
         foreground: scheme.onErrorContainer,
       );
@@ -127,7 +127,9 @@ class _MapStatusCluster extends StatelessWidget {
     if (online == false || isStale) {
       return _PillData(
         icon: Icons.storage_rounded,
-        label: syncLabel == null ? 'Cache data' : 'Cache $syncLabel',
+        label: syncLabel == null
+            ? appL10n.statusCacheData
+            : appL10n.statusCacheWithLabel(syncLabel),
         background: scheme.tertiaryContainer,
         foreground: scheme.onTertiaryContainer,
       );
@@ -135,7 +137,7 @@ class _MapStatusCluster extends StatelessWidget {
     if (hasAlert) {
       return _PillData(
         icon: Icons.warning_amber_rounded,
-        label: 'Flow alert',
+        label: appL10n.statusFlowAlert,
         background: scheme.errorContainer,
         foreground: scheme.onErrorContainer,
       );
@@ -143,14 +145,16 @@ class _MapStatusCluster extends StatelessWidget {
     if (isLoading) {
       return _PillData(
         icon: Icons.sync_rounded,
-        label: 'Syncing',
+        label: appL10n.statusSyncing,
         background: scheme.surfaceContainerHigh,
         foreground: scheme.onSurfaceVariant,
       );
     }
     return _PillData(
       icon: Icons.check_circle_outline_rounded,
-      label: syncLabel == null ? 'Data live' : 'Live $syncLabel',
+      label: syncLabel == null
+          ? appL10n.statusDataLive
+          : appL10n.statusLiveWithLabel(syncLabel),
       background: scheme.surfaceContainerHigh,
       foreground: scheme.onSurfaceVariant,
     );
@@ -161,10 +165,10 @@ class _MapStatusCluster extends StatelessWidget {
     required LocationSource locationSource,
   }) {
     final label = switch (locationSource) {
-      LocationSource.qr => 'Position QR',
-      LocationSource.manual => 'Position local',
-      LocationSource.simulatedPin => 'Position pin',
-      LocationSource.entranceDefault => 'Position default',
+      LocationSource.qr => appL10n.statusPositionQr,
+      LocationSource.manual => appL10n.statusPositionManual,
+      LocationSource.simulatedPin => appL10n.statusPositionPin,
+      LocationSource.entranceDefault => appL10n.statusPositionDefault,
     };
     return _PillData(
       icon: Icons.my_location_rounded,
@@ -180,7 +184,7 @@ class _MapStatusCluster extends StatelessWidget {
     }
     final delta = DateTime.now().difference(value.toLocal());
     if (delta.inMinutes < 1) {
-      return 'now';
+      return appL10n.statusSyncNow;
     }
     if (delta.inHours < 1) {
       return '${delta.inMinutes}m';

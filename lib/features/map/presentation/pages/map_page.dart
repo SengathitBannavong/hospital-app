@@ -643,7 +643,7 @@ class _MapPageState extends ConsumerState<MapPage>
                 alignment: Alignment.topRight,
                 child: _MapFab(
                   icon: Icons.search_rounded,
-                  tooltip: 'Search',
+                  tooltip: context.l10n.mapTooltipSearch,
                   onPressed: () => setState(() => _searchExpanded = true),
                 ),
               ),
@@ -671,7 +671,7 @@ class _MapPageState extends ConsumerState<MapPage>
                   key: const ValueKey('route-pill-collapsed'),
                   child: _MapFab(
                     icon: Icons.alt_route_rounded,
-                    tooltip: 'Show route pill',
+                    tooltip: context.l10n.mapTooltipShowRoute,
                     onPressed: () =>
                         setState(() => _routePillCollapsed = false),
                   ),
@@ -679,7 +679,8 @@ class _MapPageState extends ConsumerState<MapPage>
               : KeyedSubtree(
                   key: const ValueKey('route-pill-expanded'),
                   child: _RoutePill(
-                    startName: userPositionPoi?.poiName ?? 'You are here',
+                    startName:
+                        userPositionPoi?.poiName ?? context.l10n.mapYouAreHere,
                     dest: dest,
                     onTap: _showRoutePanel,
                     onClear: () => setState(() => _routePillCollapsed = true),
@@ -715,7 +716,7 @@ class _MapPageState extends ConsumerState<MapPage>
                   key: const ValueKey('status-collapsed'),
                   child: _MapFab(
                     icon: Icons.info_outline_rounded,
-                    tooltip: 'Show status',
+                    tooltip: context.l10n.mapTooltipShowStatus,
                     onPressed: () => setState(() => _statusCollapsed = false),
                   ),
                 )
@@ -736,7 +737,7 @@ class _MapPageState extends ConsumerState<MapPage>
                     const SizedBox(width: AppSpacing.xs),
                     Semantics(
                       button: true,
-                      label: 'Ẩn',
+                      label: context.l10n.commonHide,
                       child: IconButton(
                         icon: Icon(
                           Icons.close_rounded,
@@ -746,7 +747,7 @@ class _MapPageState extends ConsumerState<MapPage>
                         padding: EdgeInsets.zero,
                         splashRadius: 20,
                         visualDensity: VisualDensity.compact,
-                        tooltip: 'Ẩn',
+                        tooltip: context.l10n.commonHide,
                         onPressed: () =>
                             setState(() => _statusCollapsed = true),
                       ),
@@ -838,40 +839,40 @@ class _MapPageState extends ConsumerState<MapPage>
       left: AppSpacing.md,
       bottom: mediaBottom + AppSpacing.md,
       child: ExpandableMapActionMenu(
-        tooltip: 'Map Actions',
+        tooltip: context.l10n.mapTooltipMapActions,
         actions: [
           ExpandableMapActionMenuItem(
             icon: Icons.qr_code_scanner_rounded,
-            label: 'Scan QR',
+            label: context.l10n.mapActionScanQr,
             onPressed: _showQrScanner,
           ),
           ExpandableMapActionMenuItem(
             icon: Icons.map_outlined,
-            label: 'Map Legend',
+            label: context.l10n.mapActionLegend,
             onPressed: _showLegend,
           ),
           ExpandableMapActionMenuItem(
             icon: Icons.history_rounded,
-            label: 'Route History',
+            label: context.l10n.mapActionRouteHistory,
             onPressed: _showRouteHistory,
           ),
           ExpandableMapActionMenuItem(
             icon: _showAnalyticsPanel
                 ? Icons.analytics_rounded
                 : Icons.analytics_outlined,
-            label: 'Analytics',
+            label: context.l10n.mapActionAnalytics,
             active: _showAnalyticsPanel,
             onPressed: () =>
                 setState(() => _showAnalyticsPanel = !_showAnalyticsPanel),
           ),
           ExpandableMapActionMenuItem(
             icon: Icons.center_focus_strong_rounded,
-            label: 'Recenter',
+            label: context.l10n.mapActionRecenter,
             onPressed: _recenter,
           ),
           ExpandableMapActionMenuItem(
             icon: Icons.cleaning_services_rounded,
-            label: 'Clear Cache',
+            label: context.l10n.mapActionClearCache,
             onPressed: _showClearCacheDialog,
           ),
         ],
@@ -900,7 +901,7 @@ class _MapPageState extends ConsumerState<MapPage>
         child: _navCollapsed
             ? _MapFab(
                 icon: Icons.navigation_rounded,
-                tooltip: 'Show navigation',
+                tooltip: context.l10n.mapTooltipShowNavigation,
                 onPressed: () => setState(() => _navCollapsed = false),
               )
             : MapNavigationSheet(
@@ -921,7 +922,7 @@ class _MapPageState extends ConsumerState<MapPage>
           children: [
             _MapFab(
               icon: Icons.tune_rounded,
-              tooltip: 'Route options',
+              tooltip: context.l10n.mapTooltipRouteOptions,
               onPressed: _showRoutePanel,
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -929,7 +930,7 @@ class _MapPageState extends ConsumerState<MapPage>
                 ? FloatingActionButton.small(
                     heroTag: 'map-start-fab',
                     onPressed: _startNavigation,
-                    tooltip: 'Start',
+                    tooltip: context.l10n.mapStart,
                     backgroundColor: scheme.primary,
                     foregroundColor: scheme.onPrimary,
                     child: const Icon(Icons.navigation_rounded),
@@ -938,7 +939,7 @@ class _MapPageState extends ConsumerState<MapPage>
                     heroTag: 'map-start-fab',
                     onPressed: _startNavigation,
                     icon: const Icon(Icons.navigation_rounded),
-                    label: const Text('Start'),
+                    label: Text(context.l10n.mapStart),
                   ),
           ],
         ),
@@ -952,7 +953,9 @@ class _MapPageState extends ConsumerState<MapPage>
           ? FloatingActionButton.small(
               heroTag: 'map-route-fab',
               onPressed: _showRoutePanel,
-              tooltip: hasRoute ? 'Route' : 'Plan route',
+              tooltip: hasRoute
+                  ? context.l10n.mapRoute
+                  : context.l10n.mapPlanRoute,
               backgroundColor: scheme.primary,
               foregroundColor: scheme.onPrimary,
               child: Icon(
@@ -969,7 +972,9 @@ class _MapPageState extends ConsumerState<MapPage>
                     ? Icons.edit_location_alt_rounded
                     : Icons.alt_route_rounded,
               ),
-              label: Text(hasRoute ? 'Route' : 'Plan route'),
+              label: Text(
+                hasRoute ? context.l10n.mapRoute : context.l10n.mapPlanRoute,
+              ),
             ),
     );
   }
@@ -1064,7 +1069,8 @@ class _MapPageState extends ConsumerState<MapPage>
     ref.read(userPositionProvider.notifier).state = location;
     ref.read(locationSourceProvider.notifier).state =
         LocationSource.simulatedPin;
-    ref.read(mapInlineNoticeProvider.notifier).state = 'Position set manually';
+    ref.read(mapInlineNoticeProvider.notifier).state =
+        appL10n.mapNoticePositionManual;
   }
 
   int? _nearestWalkableInNeighborhood(
@@ -1197,7 +1203,8 @@ class _MapPageState extends ConsumerState<MapPage>
       ..invalidate(mapObstaclesProvider(id))
       ..invalidate(mapLastSyncedAtProvider(id))
       ..invalidate(routeResultProvider);
-    ref.read(mapInlineNoticeProvider.notifier).state = 'Map synced';
+    ref.read(mapInlineNoticeProvider.notifier).state =
+        appL10n.mapNoticeMapSynced;
   }
 
   void _recenter() {
@@ -1220,7 +1227,8 @@ class _MapPageState extends ConsumerState<MapPage>
       MaterialPageRoute(builder: (_) => MapQrScannerPage(mapId: _defaultMapId)),
     );
     if (!mounted || positioned != true) return;
-    ref.read(mapInlineNoticeProvider.notifier).state = 'Position set by QR';
+    ref.read(mapInlineNoticeProvider.notifier).state =
+        appL10n.mapNoticePositionQr;
   }
 
   Future<void> _showRouteHistory() async {
@@ -1252,8 +1260,8 @@ class _MapPageState extends ConsumerState<MapPage>
                     ..read(
                       mapInlineNoticeProvider.notifier,
                     ).state = result.cleared
-                        ? 'Route history cleared'
-                        : 'No completed routes to clear';
+                        ? appL10n.mapNoticeHistoryCleared
+                        : appL10n.mapNoticeNoHistoryToClear;
                   if (!sheetContext.mounted) return;
                   await Navigator.of(sheetContext).maybePop();
                 },
@@ -1280,19 +1288,16 @@ class _MapPageState extends ConsumerState<MapPage>
     final shouldClear = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Clear map cache?'),
-        content: const Text(
-          'This removes cached map, edge, flow, and route data. '
-          'The app will refresh the cache next time it needs it.',
-        ),
+        title: Text(context.l10n.mapClearCacheTitle),
+        content: Text(context.l10n.mapClearCacheBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Clear'),
+            child: Text(context.l10n.commonClear),
           ),
         ],
       ),
@@ -1315,7 +1320,8 @@ class _MapPageState extends ConsumerState<MapPage>
       ..invalidate(mapObstaclesProvider)
       ..invalidate(mapLastSyncedAtProvider)
       ..invalidate(routeResultProvider);
-    ref.read(mapInlineNoticeProvider.notifier).state = 'Map cache cleared';
+    ref.read(mapInlineNoticeProvider.notifier).state =
+        appL10n.mapNoticeCacheCleared;
   }
 
   Future<void> _showRoutePanel() async {
@@ -1375,7 +1381,7 @@ class _MapPageState extends ConsumerState<MapPage>
       context: context,
       isScrollControlled: true,
       builder: (context) => _RoutePoiPickerSheet(
-        title: 'Pick a destination',
+        title: context.l10n.mapPickDestination,
         pois: pois,
         normalizedNames: normalized,
       ),
@@ -1407,7 +1413,7 @@ class _MapPageState extends ConsumerState<MapPage>
     final started = ref.read(navigationControllerProvider).start();
     if (!started) {
       ref.read(mapInlineNoticeProvider.notifier).state =
-          'Route preview has no path';
+          appL10n.mapNoticeNoPath;
     }
     return started;
   }

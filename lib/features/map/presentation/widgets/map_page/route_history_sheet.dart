@@ -39,7 +39,7 @@ class _RouteHistorySheet extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Route history',
+                    context.l10n.mapActionRouteHistory,
                     style: context.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -48,7 +48,7 @@ class _RouteHistorySheet extends StatelessWidget {
                 IconButton(
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh_rounded),
-                  tooltip: 'Refresh history',
+                  tooltip: context.l10n.rhRefresh,
                 ),
               ],
             ),
@@ -58,15 +58,15 @@ class _RouteHistorySheet extends StatelessWidget {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (_, _) => MapAsyncMessage(
                   icon: Icons.cloud_off_rounded,
-                  title: 'History unavailable',
-                  actionLabel: 'Retry',
+                  title: context.l10n.rhUnavailable,
+                  actionLabel: context.l10n.commonRetry,
                   onAction: onRetry,
                 ),
                 data: (data) {
                   if (data.routes.isEmpty) {
-                    return const MapAsyncMessage(
+                    return MapAsyncMessage(
                       icon: Icons.history_rounded,
-                      title: 'No completed routes yet',
+                      title: context.l10n.rhEmpty,
                     );
                   }
                   final routes = data.routes
@@ -126,7 +126,7 @@ class _RouteHistorySheet extends StatelessWidget {
                     ? null
                     : onClearAll,
                 icon: const Icon(Icons.delete_outline_rounded),
-                label: const Text('Clear all'),
+                label: Text(context.l10n.rhClearAll),
               ),
             ),
           ],
@@ -136,21 +136,22 @@ class _RouteHistorySheet extends StatelessWidget {
   }
 
   static String _relativeTime(DateTime? value) {
+    final l10n = appL10n;
     if (value == null) {
-      return 'Unknown time';
+      return l10n.timeUnknown;
     }
     final delta = DateTime.now().difference(value.toLocal());
     if (delta.inMinutes < 1) {
-      return 'Just now';
+      return l10n.timeJustNow;
     }
     if (delta.inHours < 1) {
-      return '${delta.inMinutes} min ago';
+      return l10n.timeMinutesAgo(delta.inMinutes);
     }
     if (delta.inDays < 1) {
-      return '${delta.inHours} hr ago';
+      return l10n.timeHoursAgo(delta.inHours);
     }
     if (delta.inDays < 30) {
-      return '${delta.inDays} d ago';
+      return l10n.timeDaysAgo(delta.inDays);
     }
     final local = value.toLocal();
     final month = local.month.toString().padLeft(2, '0');

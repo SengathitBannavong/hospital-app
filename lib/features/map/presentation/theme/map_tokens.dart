@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 
 class MapMotion {
   MapMotion._();
@@ -36,19 +37,32 @@ class MapPoiPalette {
 
   static const Color fallback = Color(0xFF6B7280);
 
-  static const Map<String, String> labels = {
-    'entrance': 'Entrance',
-    'corridor': 'Corridor',
-    'room': 'Room',
-    'pharmacy': 'Pharmacy',
-    'wc': 'Restroom',
-    'canteen': 'Canteen',
-    'info': 'Information',
-    'wifi': 'Wi-Fi',
-  };
-
   static Color colorFor(String type) => byType[type] ?? fallback;
-  static String labelFor(String type) => labels[type] ?? type;
+
+  /// Localized display label for a POI type. `wifi` stays as the brand name.
+  static String labelFor(String type) {
+    final l10n = appL10n;
+    switch (type) {
+      case 'entrance':
+        return l10n.poiTypeEntrance;
+      case 'corridor':
+        return l10n.poiTypeCorridor;
+      case 'room':
+        return l10n.poiTypeRoom;
+      case 'pharmacy':
+        return l10n.poiTypePharmacy;
+      case 'wc':
+        return l10n.poiTypeRestroom;
+      case 'canteen':
+        return l10n.poiTypeCanteen;
+      case 'info':
+        return l10n.poiTypeInformation;
+      case 'wifi':
+        return 'Wi-Fi';
+      default:
+        return type;
+    }
+  }
 }
 
 class MapTokens {

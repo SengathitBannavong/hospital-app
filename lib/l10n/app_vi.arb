@@ -637,5 +637,246 @@
   "settingsAbout": "Về ứng dụng",
   "settingsVersion": "Phiên bản",
   "settingsAboutDescription": "Ứng dụng hỗ trợ bệnh nhân tra cứu thông tin, điều hướng nội viện và quản lý lịch khám bệnh.",
-  "settingsDeletePasswordIncorrect": "Mật khẩu không chính xác. Vui lòng thử lại."
+  "settingsDeletePasswordIncorrect": "Mật khẩu không chính xác. Vui lòng thử lại.",
+
+  "commonHide": "Ẩn",
+  "commonOptional": "Tùy chọn",
+  "commonClear": "Xóa",
+
+  "mapScanQrTitle": "Quét mã QR",
+  "mapQrNoLocation": "Không tìm thấy vị trí cho {code}",
+  "@mapQrNoLocation": {
+    "placeholders": {
+      "code": { "type": "Object" }
+    }
+  },
+  "mapQrLookupFailed": "Không thể tra cứu QR",
+  "mapTooltipSearch": "Tìm kiếm",
+  "mapTooltipShowRoute": "Hiện thanh lộ trình",
+  "mapTooltipShowStatus": "Hiện trạng thái",
+  "mapTooltipMapActions": "Tác vụ bản đồ",
+  "mapTooltipShowNavigation": "Hiện chỉ đường",
+  "mapTooltipRouteOptions": "Tùy chọn lộ trình",
+  "mapStart": "Bắt đầu",
+  "mapActionScanQr": "Quét QR",
+  "mapActionLegend": "Chú giải bản đồ",
+  "mapActionRouteHistory": "Lịch sử lộ trình",
+  "mapActionAnalytics": "Phân tích",
+  "mapActionRecenter": "Về giữa",
+  "mapActionClearCache": "Xóa bộ nhớ đệm",
+  "mapClearCacheTitle": "Xóa bộ nhớ đệm bản đồ?",
+  "mapPickDestination": "Chọn điểm đến",
+
+  "mapHideSearch": "Ẩn tìm kiếm",
+  "mapSearchHint": "Tìm phòng, dịch vụ, địa điểm",
+  "mapClearSearch": "Xóa tìm kiếm",
+  "mapSearchSemantic": "Tìm kiếm bản đồ",
+  "mapMarkerSemantic": "Điểm đánh dấu {label}",
+  "@mapMarkerSemantic": {
+    "placeholders": {
+      "label": { "type": "Object" }
+    }
+  },
+
+  "obstacleFieldType": "Loại",
+  "obstacleOptionBlockage": "Tắc nghẽn",
+  "obstacleOptionSpill": "Tràn đổ",
+  "obstacleOptionCrowd": "Đông người",
+  "obstacleOptionMaintenance": "Bảo trì",
+  "obstacleFieldNote": "Ghi chú",
+  "obstacleSubmit": "Gửi báo cáo",
+
+  "rhRefresh": "Làm mới lịch sử",
+  "timeUnknown": "Không rõ thời gian",
+  "timeJustNow": "Vừa xong",
+  "timeMinutesAgo": "{minutes} phút trước",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "timeHoursAgo": "{hours} giờ trước",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "timeDaysAgo": "{days} ngày trước",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "rhClearAll": "Xóa tất cả",
+  "rhUnavailable": "Không có lịch sử",
+  "rhEmpty": "Chưa có lộ trình nào hoàn tất",
+
+  "routeModeWalking": "Đi bộ",
+  "routeModeWheelchair": "Xe lăn",
+  "routeModeStretcher": "Cáng",
+  "routeModeCart": "Xe đẩy bệnh viện",
+  "routeStartNavigation": "Bắt đầu chỉ đường",
+  "routeFrom": "Từ",
+  "routeDestination": "Điểm đến",
+  "routeSelectorSemantic": "{label}: {value}. Chạm để thay đổi.",
+  "@routeSelectorSemantic": {
+    "placeholders": {
+      "label": { "type": "Object" },
+      "value": { "type": "Object" }
+    }
+  },
+
+  "poiImHere": "Tôi ở đây",
+  "poiSetDestination": "Đặt điểm đến",
+  "poiAccessible": "Tiếp cận được",
+  "poiCapacity": "Sức chứa {count}",
+  "@poiCapacity": {
+    "placeholders": {
+      "count": { "type": "Object" }
+    }
+  },
+
+  "statusOffline": "Ngoại tuyến",
+  "statusChecking": "Đang kiểm tra",
+  "statusOnline": "Trực tuyến",
+  "statusSyncError": "Lỗi đồng bộ",
+  "statusFlowAlert": "Cảnh báo lưu lượng",
+  "statusSyncing": "Đang đồng bộ",
+
+  "flowNoLiveData": "Không có dữ liệu lưu lượng trực tiếp",
+  "flowStaleData": "Dữ liệu cũ",
+  "flowAnalyticsTitle": "Phân tích lưu lượng",
+  "flowAnalyticsTitleStale": "Phân tích lưu lượng · cũ",
+  "flowNoBottlenecks": "Không phát hiện điểm tắc nghẽn",
+  "flowRankedHotspots": "Điểm nóng xếp hạng",
+  "flowForecastUnavailable": "Không có dự báo",
+  "flowLookback": "Nhìn lại: {hours, plural, other{{hours} giờ}}",
+  "@flowLookback": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "flowDensityHeatmap": "Bản đồ nhiệt mật độ",
+  "flowCorridorStatus": "Trạng thái hành lang",
+  "flowBottlenecks": "Điểm tắc nghẽn hàng đầu",
+  "flowForecast": "Dự báo lưu lượng",
+  "flowBlocked": "Bị chặn",
+  "flowCongested": "Ùn tắc",
+
+  "routePillSemantic": "Lộ trình từ {start} đến {dest}. Chạm để chỉnh sửa.",
+  "@routePillSemantic": {
+    "placeholders": {
+      "start": { "type": "Object" },
+      "dest": { "type": "Object" }
+    }
+  },
+  "routePreviewHint": "Bản xem trước lộ trình sẵn sàng khi đã chọn cả hai điểm.",
+  "routeCalculating": "Đang tính lộ trình...",
+  "routePreviewFailed": "Không thể xem trước lộ trình",
+  "routePointsCount": "{count} điểm",
+  "@routePointsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "mapYouAreHere": "Bạn đang ở đây",
+  "mapPlanRoute": "Lập lộ trình",
+  "mapRoutePanelTitle": "Lập một lộ trình",
+  "mapRoute": "Lộ trình",
+  "mapPickAPlace": "Chọn địa điểm",
+  "mapLegendTitle": "Chú giải",
+  "mapLegendSubtitle": "Màu sắc dùng cho các điểm trên bản đồ.",
+  "mapSearchPlaceHint": "Tìm địa điểm",
+  "mapPickerStartTyping": "Bắt đầu nhập để tìm địa điểm.",
+  "mapPickerNoMatches": "Không có kết quả cho \"{query}\".",
+  "@mapPickerNoMatches": {
+    "placeholders": {
+      "query": { "type": "Object" }
+    }
+  },
+  "mapSearchTryShorter": "Thử từ ngắn hơn, hoặc chọn một gợi ý.",
+  "mapSearchFailed": "Tìm kiếm thất bại",
+
+  "mapNoticePositionManual": "Đã đặt vị trí thủ công",
+  "mapNoticeMapSynced": "Đã đồng bộ bản đồ",
+  "mapNoticePositionQr": "Đã đặt vị trí bằng QR",
+  "mapNoticeHistoryCleared": "Đã xóa lịch sử lộ trình",
+  "mapNoticeNoHistoryToClear": "Không có lộ trình nào để xóa",
+  "mapNoticeCacheCleared": "Đã xóa bộ nhớ đệm bản đồ",
+  "mapNoticeNoPath": "Bản xem trước lộ trình không có đường đi",
+  "mapClearCacheBody": "Thao tác này xóa dữ liệu bản đồ, cạnh, lưu lượng và lộ trình đã lưu đệm. Ứng dụng sẽ làm mới bộ nhớ đệm khi cần.",
+
+  "statusCacheData": "Dữ liệu đệm",
+  "statusCacheWithLabel": "Đệm {label}",
+  "@statusCacheWithLabel": {
+    "placeholders": {
+      "label": { "type": "Object" }
+    }
+  },
+  "statusSyncNow": "vừa xong",
+  "statusPositionQr": "Vị trí QR",
+  "statusPositionManual": "Vị trí thủ công",
+  "statusPositionPin": "Vị trí ghim",
+  "statusPositionDefault": "Vị trí mặc định",
+  "statusDataLive": "Dữ liệu trực tiếp",
+  "statusLiveWithLabel": "Trực tiếp {label}",
+  "@statusLiveWithLabel": {
+    "placeholders": {
+      "label": { "type": "Object" }
+    }
+  },
+
+  "obstacleReportTitle": "Báo cáo chướng ngại",
+  "obstacleCell": "Ô {location}",
+  "@obstacleCell": {
+    "placeholders": {
+      "location": { "type": "Object" }
+    }
+  },
+
+  "routeModeLabel": "Phương thức",
+  "routeLocatingEntrance": "Đang định vị lối vào...",
+  "routeChooseBoth": "Chọn điểm bắt đầu và điểm đến để xem trước lộ trình.",
+  "routeChooseStart": "Chọn điểm bắt đầu để xem trước lộ trình.",
+  "routeChooseDest": "Chọn điểm đến để xem trước lộ trình.",
+  "routeEtaSeconds": "{seconds} giây",
+  "@routeEtaSeconds": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "routeEtaMinutes": "~{minutes} phút",
+  "@routeEtaMinutes": {
+    "placeholders": {
+      "minutes": { "type": "Object" }
+    }
+  },
+
+  "navArrived": "Đã đến",
+  "navDurationSeconds": "{seconds} giây",
+  "@navDurationSeconds": {
+    "placeholders": {
+      "seconds": { "type": "Object" }
+    }
+  },
+  "navDurationMinutes": "{minutes} phút",
+  "@navDurationMinutes": {
+    "placeholders": {
+      "minutes": { "type": "Object" }
+    }
+  },
+  "navUnmuteVoice": "Bật âm thanh",
+  "navMuteVoice": "Tắt âm thanh",
+  "navResume": "Tiếp tục",
+  "navPause": "Tạm dừng",
+  "navStop": "Dừng",
+
+  "poiTypeEntrance": "Lối vào",
+  "poiTypeCorridor": "Hành lang",
+  "poiTypeRoom": "Phòng",
+  "poiTypePharmacy": "Nhà thuốc",
+  "poiTypeRestroom": "Nhà vệ sinh",
+  "poiTypeCanteen": "Căng tin",
+  "poiTypeInformation": "Thông tin"
 }

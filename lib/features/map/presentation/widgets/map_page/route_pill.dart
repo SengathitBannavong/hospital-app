@@ -17,12 +17,12 @@ class _RoutePill extends StatelessWidget {
   Widget build(BuildContext context) {
     if (dest == null) return const SizedBox.shrink();
     final scheme = context.colorScheme;
-    final destName = dest?.poiName ?? 'Pick destination';
+    final destName = dest?.poiName ?? context.l10n.mapPickDestination;
 
     return Semantics(
       container: true,
       button: onTap != null,
-      label: 'Route from $startName to $destName. Tap to edit.',
+      label: context.l10n.routePillSemantic(startName, destName),
       child: Material(
         color: scheme.surface,
         elevation: 2,
@@ -85,7 +85,7 @@ class _RoutePill extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                     onPressed: onClear,
                     icon: const Icon(Icons.close_rounded),
-                    tooltip: 'Ẩn',
+                    tooltip: context.l10n.commonHide,
                   ),
               ],
             ),

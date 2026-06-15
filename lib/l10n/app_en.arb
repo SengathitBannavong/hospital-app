@@ -637,5 +637,246 @@
   "settingsAbout": "About",
   "settingsVersion": "Version",
   "settingsAboutDescription": "An app that helps patients look up information, navigate inside the hospital and manage their appointments.",
-  "settingsDeletePasswordIncorrect": "Incorrect password. Please try again."
+  "settingsDeletePasswordIncorrect": "Incorrect password. Please try again.",
+
+  "commonHide": "Hide",
+  "commonOptional": "Optional",
+  "commonClear": "Clear",
+
+  "mapScanQrTitle": "Scan QR code",
+  "mapQrNoLocation": "No location found for {code}",
+  "@mapQrNoLocation": {
+    "placeholders": {
+      "code": { "type": "Object" }
+    }
+  },
+  "mapQrLookupFailed": "QR lookup failed",
+  "mapTooltipSearch": "Search",
+  "mapTooltipShowRoute": "Show route pill",
+  "mapTooltipShowStatus": "Show status",
+  "mapTooltipMapActions": "Map actions",
+  "mapTooltipShowNavigation": "Show navigation",
+  "mapTooltipRouteOptions": "Route options",
+  "mapStart": "Start",
+  "mapActionScanQr": "Scan QR",
+  "mapActionLegend": "Map legend",
+  "mapActionRouteHistory": "Route history",
+  "mapActionAnalytics": "Analytics",
+  "mapActionRecenter": "Recenter",
+  "mapActionClearCache": "Clear cache",
+  "mapClearCacheTitle": "Clear map cache?",
+  "mapPickDestination": "Pick a destination",
+
+  "mapHideSearch": "Hide search",
+  "mapSearchHint": "Search rooms, services, places",
+  "mapClearSearch": "Clear search",
+  "mapSearchSemantic": "Map search",
+  "mapMarkerSemantic": "{label} marker",
+  "@mapMarkerSemantic": {
+    "placeholders": {
+      "label": { "type": "Object" }
+    }
+  },
+
+  "obstacleFieldType": "Type",
+  "obstacleOptionBlockage": "Blockage",
+  "obstacleOptionSpill": "Spill",
+  "obstacleOptionCrowd": "Crowd",
+  "obstacleOptionMaintenance": "Maintenance",
+  "obstacleFieldNote": "Note",
+  "obstacleSubmit": "Submit report",
+
+  "rhRefresh": "Refresh history",
+  "timeUnknown": "Unknown time",
+  "timeJustNow": "Just now",
+  "timeMinutesAgo": "{minutes} min ago",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "timeHoursAgo": "{hours} hr ago",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "timeDaysAgo": "{days} d ago",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "rhClearAll": "Clear all",
+  "rhUnavailable": "History unavailable",
+  "rhEmpty": "No completed routes yet",
+
+  "routeModeWalking": "Walking",
+  "routeModeWheelchair": "Wheelchair",
+  "routeModeStretcher": "Stretcher",
+  "routeModeCart": "Hospital cart",
+  "routeStartNavigation": "Start navigation",
+  "routeFrom": "From",
+  "routeDestination": "Destination",
+  "routeSelectorSemantic": "{label}: {value}. Tap to change.",
+  "@routeSelectorSemantic": {
+    "placeholders": {
+      "label": { "type": "Object" },
+      "value": { "type": "Object" }
+    }
+  },
+
+  "poiImHere": "I'm here",
+  "poiSetDestination": "Set destination",
+  "poiAccessible": "Accessible",
+  "poiCapacity": "Capacity {count}",
+  "@poiCapacity": {
+    "placeholders": {
+      "count": { "type": "Object" }
+    }
+  },
+
+  "statusOffline": "Offline",
+  "statusChecking": "Checking",
+  "statusOnline": "Online",
+  "statusSyncError": "Sync error",
+  "statusFlowAlert": "Flow alert",
+  "statusSyncing": "Syncing",
+
+  "flowNoLiveData": "No live flow data",
+  "flowStaleData": "Stale data",
+  "flowAnalyticsTitle": "Flow Analytics",
+  "flowAnalyticsTitleStale": "Flow Analytics · stale",
+  "flowNoBottlenecks": "No bottlenecks detected",
+  "flowRankedHotspots": "Ranked hotspots",
+  "flowForecastUnavailable": "Forecast unavailable",
+  "flowLookback": "Lookback: {hours, plural, =1{1 hr} other{{hours} hrs}}",
+  "@flowLookback": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "flowDensityHeatmap": "Density heatmap",
+  "flowCorridorStatus": "Corridor status",
+  "flowBottlenecks": "Top-N bottlenecks",
+  "flowForecast": "Flow forecast",
+  "flowBlocked": "Blocked",
+  "flowCongested": "Congested",
+
+  "routePillSemantic": "Route from {start} to {dest}. Tap to edit.",
+  "@routePillSemantic": {
+    "placeholders": {
+      "start": { "type": "Object" },
+      "dest": { "type": "Object" }
+    }
+  },
+  "routePreviewHint": "Route preview is ready when both points are selected.",
+  "routeCalculating": "Calculating route...",
+  "routePreviewFailed": "Route preview failed",
+  "routePointsCount": "{count} points",
+  "@routePointsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "mapYouAreHere": "You are here",
+  "mapPlanRoute": "Plan route",
+  "mapRoutePanelTitle": "Plan a route",
+  "mapRoute": "Route",
+  "mapPickAPlace": "Pick a place",
+  "mapLegendTitle": "Legend",
+  "mapLegendSubtitle": "Colors used for points on the map.",
+  "mapSearchPlaceHint": "Search a place",
+  "mapPickerStartTyping": "Start typing to find a place.",
+  "mapPickerNoMatches": "No matches for \"{query}\".",
+  "@mapPickerNoMatches": {
+    "placeholders": {
+      "query": { "type": "Object" }
+    }
+  },
+  "mapSearchTryShorter": "Try a shorter word, or pick a suggestion.",
+  "mapSearchFailed": "Search failed",
+
+  "mapNoticePositionManual": "Position set manually",
+  "mapNoticeMapSynced": "Map synced",
+  "mapNoticePositionQr": "Position set by QR",
+  "mapNoticeHistoryCleared": "Route history cleared",
+  "mapNoticeNoHistoryToClear": "No completed routes to clear",
+  "mapNoticeCacheCleared": "Map cache cleared",
+  "mapNoticeNoPath": "Route preview has no path",
+  "mapClearCacheBody": "This removes cached map, edge, flow, and route data. The app will refresh the cache next time it needs it.",
+
+  "statusCacheData": "Cache data",
+  "statusCacheWithLabel": "Cache {label}",
+  "@statusCacheWithLabel": {
+    "placeholders": {
+      "label": { "type": "Object" }
+    }
+  },
+  "statusSyncNow": "now",
+  "statusPositionQr": "Position QR",
+  "statusPositionManual": "Position local",
+  "statusPositionPin": "Position pin",
+  "statusPositionDefault": "Position default",
+  "statusDataLive": "Data live",
+  "statusLiveWithLabel": "Live {label}",
+  "@statusLiveWithLabel": {
+    "placeholders": {
+      "label": { "type": "Object" }
+    }
+  },
+
+  "obstacleReportTitle": "Report obstacle",
+  "obstacleCell": "Cell {location}",
+  "@obstacleCell": {
+    "placeholders": {
+      "location": { "type": "Object" }
+    }
+  },
+
+  "routeModeLabel": "Mode",
+  "routeLocatingEntrance": "Locating entrance...",
+  "routeChooseBoth": "Choose start and destination to preview route.",
+  "routeChooseStart": "Choose a start point to preview route.",
+  "routeChooseDest": "Choose a destination to preview route.",
+  "routeEtaSeconds": "{seconds} sec",
+  "@routeEtaSeconds": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "routeEtaMinutes": "~{minutes} min",
+  "@routeEtaMinutes": {
+    "placeholders": {
+      "minutes": { "type": "Object" }
+    }
+  },
+
+  "navArrived": "Arrived",
+  "navDurationSeconds": "{seconds} sec",
+  "@navDurationSeconds": {
+    "placeholders": {
+      "seconds": { "type": "Object" }
+    }
+  },
+  "navDurationMinutes": "{minutes} min",
+  "@navDurationMinutes": {
+    "placeholders": {
+      "minutes": { "type": "Object" }
+    }
+  },
+  "navUnmuteVoice": "Unmute voice",
+  "navMuteVoice": "Mute voice",
+  "navResume": "Resume",
+  "navPause": "Pause",
+  "navStop": "Stop",
+
+  "poiTypeEntrance": "Entrance",
+  "poiTypeCorridor": "Corridor",
+  "poiTypeRoom": "Room",
+  "poiTypePharmacy": "Pharmacy",
+  "poiTypeRestroom": "Restroom",
+  "poiTypeCanteen": "Canteen",
+  "poiTypeInformation": "Information"
 }

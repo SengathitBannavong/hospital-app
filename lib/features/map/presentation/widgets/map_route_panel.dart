@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
@@ -52,7 +53,7 @@ class MapRoutePanel extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Plan a route',
+                  context.l10n.mapRoutePanelTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -61,23 +62,23 @@ class MapRoutePanel extends StatelessWidget {
               TextButton.icon(
                 onPressed: dest == null ? null : onClear,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Clear'),
+                label: Text(context.l10n.commonClear),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
           _RouteStartChip(
             icon: Icons.my_location_rounded,
-            label: 'From',
-            value: userPositionName ?? 'You are here',
+            label: context.l10n.routeFrom,
+            value: userPositionName ?? context.l10n.mapYouAreHere,
             isSet: userPosition != null,
             accent: scheme.primary,
           ),
           const SizedBox(height: AppSpacing.sm),
           _RouteEndpointRow(
             icon: Icons.flag_rounded,
-            label: 'Destination',
-            value: dest?.poiName ?? 'Pick a place',
+            label: context.l10n.routeDestination,
+            value: dest?.poiName ?? context.l10n.mapPickAPlace,
             isSet: dest != null,
             onPick: onPickDestination,
             accent: scheme.secondary,
@@ -86,7 +87,7 @@ class MapRoutePanel extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Mode',
+                context.l10n.routeModeLabel,
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -98,19 +99,22 @@ class MapRoutePanel extends StatelessWidget {
                 onChanged: (value) {
                   if (value != null) onModeChanged(value);
                 },
-                items: const [
-                  DropdownMenuItem(value: 'walking', child: Text('Walking')),
+                items: [
+                  DropdownMenuItem(
+                    value: 'walking',
+                    child: Text(context.l10n.routeModeWalking),
+                  ),
                   DropdownMenuItem(
                     value: 'wheelchair',
-                    child: Text('Wheelchair'),
+                    child: Text(context.l10n.routeModeWheelchair),
                   ),
                   DropdownMenuItem(
                     value: 'stretcher',
-                    child: Text('Stretcher'),
+                    child: Text(context.l10n.routeModeStretcher),
                   ),
                   DropdownMenuItem(
                     value: 'hospital_cart',
-                    child: Text('Hospital cart'),
+                    child: Text(context.l10n.routeModeCart),
                   ),
                 ],
               ),
@@ -130,7 +134,7 @@ class MapRoutePanel extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onStartNavigation,
               icon: const Icon(Icons.navigation_rounded),
-              label: const Text('Start navigation'),
+              label: Text(context.l10n.routeStartNavigation),
             ),
           ),
         ],
@@ -191,7 +195,7 @@ class _RouteStartChip extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  isSet ? value : 'Locating entrance...',
+                  isSet ? value : context.l10n.routeLocatingEntrance,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.textTheme.bodyMedium?.copyWith(
@@ -230,7 +234,7 @@ class _RouteEndpointRow extends StatelessWidget {
     final scheme = context.colorScheme;
     return Semantics(
       button: true,
-      label: '$label: $value. Tap to change.',
+      label: context.l10n.routeSelectorSemantic(label, value),
       child: InkWell(
         onTap: onPick,
         borderRadius: AppRadius.borderMd,

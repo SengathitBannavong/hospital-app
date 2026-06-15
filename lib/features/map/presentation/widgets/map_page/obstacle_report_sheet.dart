@@ -43,14 +43,14 @@ class _ObstacleReportSheetState extends State<_ObstacleReportSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Report obstacle',
+              context.l10n.obstacleReportTitle,
               style: context.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Cell ${widget.location}',
+              context.l10n.obstacleCell(widget.location),
               style: context.textTheme.bodySmall?.copyWith(
                 color: context.colorScheme.onSurfaceVariant,
               ),
@@ -58,14 +58,25 @@ class _ObstacleReportSheetState extends State<_ObstacleReportSheet> {
             const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String>(
               initialValue: _type,
-              decoration: const InputDecoration(labelText: 'Type'),
-              items: const [
-                DropdownMenuItem(value: 'blockage', child: Text('Blockage')),
-                DropdownMenuItem(value: 'spill', child: Text('Spill')),
-                DropdownMenuItem(value: 'crowd', child: Text('Crowd')),
+              decoration: InputDecoration(
+                labelText: context.l10n.obstacleFieldType,
+              ),
+              items: [
+                DropdownMenuItem(
+                  value: 'blockage',
+                  child: Text(context.l10n.obstacleOptionBlockage),
+                ),
+                DropdownMenuItem(
+                  value: 'spill',
+                  child: Text(context.l10n.obstacleOptionSpill),
+                ),
+                DropdownMenuItem(
+                  value: 'crowd',
+                  child: Text(context.l10n.obstacleOptionCrowd),
+                ),
                 DropdownMenuItem(
                   value: 'maintenance',
-                  child: Text('Maintenance'),
+                  child: Text(context.l10n.obstacleOptionMaintenance),
                 ),
               ],
               onChanged: (value) {
@@ -79,9 +90,9 @@ class _ObstacleReportSheetState extends State<_ObstacleReportSheet> {
               controller: _noteController,
               minLines: 2,
               maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Note',
-                hintText: 'Optional',
+              decoration: InputDecoration(
+                labelText: context.l10n.obstacleFieldNote,
+                hintText: context.l10n.commonOptional,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -98,7 +109,7 @@ class _ObstacleReportSheetState extends State<_ObstacleReportSheet> {
                   );
                 },
                 icon: const Icon(Icons.report_problem_rounded),
-                label: const Text('Submit report'),
+                label: Text(context.l10n.obstacleSubmit),
               ),
             ),
           ],
