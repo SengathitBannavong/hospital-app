@@ -83,14 +83,14 @@ class MapPoiMetadataPanel extends StatelessWidget {
               ),
               Semantics(
                 button: true,
-                label: 'Close',
+                label: context.l10n.commonClose,
                 child: SizedBox(
                   width: 44,
                   height: 44,
                   child: IconButton(
                     onPressed: onClose,
                     icon: const Icon(Icons.close_rounded),
-                    tooltip: 'Close',
+                    tooltip: context.l10n.commonClose,
                   ),
                 ),
               ),
@@ -124,17 +124,17 @@ class MapPoiMetadataPanel extends StatelessWidget {
               if (poi.capacity != null)
                 _InfoChip(
                   icon: Icons.groups_rounded,
-                  label: 'Capacity ${poi.capacity}',
+                  label: context.l10n.poiCapacity(poi.capacity!),
                 ),
               if (poi.isAccessible)
-                const _InfoChip(
+                _InfoChip(
                   icon: Icons.check_circle_outline_rounded,
-                  label: 'Accessible',
+                  label: context.l10n.poiAccessible,
                 ),
               if (poi.wheelchairAccessible)
-                const _InfoChip(
+                _InfoChip(
                   icon: Icons.accessible_rounded,
-                  label: 'Wheelchair',
+                  label: context.l10n.routeModeWheelchair,
                 ),
             ],
           ),
@@ -147,7 +147,7 @@ class MapPoiMetadataPanel extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onSetCurrentLocation,
                 icon: const Icon(Icons.my_location_rounded),
-                label: const Text("I'm here"),
+                label: Text(context.l10n.poiImHere),
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -157,7 +157,7 @@ class MapPoiMetadataPanel extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onSetDestination,
               icon: const Icon(Icons.flag_rounded),
-              label: const Text('Set destination'),
+              label: Text(context.l10n.poiSetDestination),
             ),
           ),
           if (onFindWheelchair != null) ...[

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
 
@@ -31,14 +32,14 @@ class MapLegendSheet extends StatelessWidget {
               ),
             ),
             Text(
-              'Legend',
+              context.l10n.mapLegendTitle,
               style: context.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Colors used for points on the map.',
+              context.l10n.mapLegendSubtitle,
               style: context.textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -71,7 +72,7 @@ class _LegendItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '$label marker',
+      label: context.l10n.mapMarkerSemantic(label),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -21,7 +21,7 @@ class _FlowLegend extends StatelessWidget {
         ),
         child: noData
             ? Tooltip(
-                message: 'No live flow data',
+                message: context.l10n.flowNoLiveData,
                 child: Icon(
                   Icons.warning_amber_rounded,
                   size: 16,
@@ -61,7 +61,7 @@ class _FlowLegend extends StatelessWidget {
                   if (isStale) ...[
                     const SizedBox(width: 4),
                     Tooltip(
-                      message: 'Stale data',
+                      message: context.l10n.flowStaleData,
                       child: Icon(
                         Icons.schedule_rounded,
                         size: 12,

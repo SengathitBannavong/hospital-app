@@ -79,9 +79,9 @@ class _RoutePoiPickerSheetState extends State<_RoutePoiPickerSheet> {
               TextField(
                 controller: _controller,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Search a place',
-                  prefixIcon: Icon(Icons.search_rounded),
+                decoration: InputDecoration(
+                  hintText: context.l10n.mapSearchPlaceHint,
+                  prefixIcon: const Icon(Icons.search_rounded),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -90,8 +90,8 @@ class _RoutePoiPickerSheetState extends State<_RoutePoiPickerSheet> {
                     ? Center(
                         child: Text(
                           _query.isEmpty
-                              ? 'Start typing to find a place.'
-                              : 'No matches for "$_query".',
+                              ? context.l10n.mapPickerStartTyping
+                              : context.l10n.mapPickerNoMatches(_query),
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),

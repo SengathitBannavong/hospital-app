@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
@@ -57,7 +58,7 @@ class MapSearchResultsPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'No matches for "$query"',
+            context.l10n.mapPickerNoMatches(query),
             style: context.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurface,
               fontWeight: FontWeight.w600,
@@ -65,7 +66,7 @@ class MapSearchResultsPanel extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Try a shorter word, or pick a suggestion.',
+            context.l10n.mapSearchTryShorter,
             style: context.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -104,7 +105,7 @@ class MapSearchResultsPanel extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Search failed',
+                  context.l10n.mapSearchFailed,
                   style: context.textTheme.bodyMedium?.copyWith(
                     color: scheme.error,
                     fontWeight: FontWeight.w600,
@@ -121,7 +122,7 @@ class MapSearchResultsPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
+          TextButton(onPressed: onRetry, child: Text(context.l10n.commonRetry)),
         ],
       ),
     );

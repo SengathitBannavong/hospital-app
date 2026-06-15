@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
 import 'package:hospital_app/features/map/presentation/utils/distance_format.dart';
@@ -35,7 +36,7 @@ class MapRouteStatus extends StatelessWidget {
         if (data == null) {
           return _StatusMessage(
             icon: Icons.alt_route_rounded,
-            message: 'Route preview is ready when both points are selected.',
+            message: context.l10n.routePreviewHint,
             color: context.colorScheme.onSurfaceVariant,
           );
         }
@@ -44,13 +45,13 @@ class MapRouteStatus extends StatelessWidget {
       },
       loading: () => _StatusMessage(
         icon: Icons.sync_rounded,
-        message: 'Calculating route...',
+        message: context.l10n.routeCalculating,
         color: context.colorScheme.primary,
       ),
       error: (_, _) => MapAsyncMessage(
         icon: Icons.error_outline_rounded,
-        title: 'Route preview failed',
-        actionLabel: 'Retry',
+        title: context.l10n.routePreviewFailed,
+        actionLabel: context.l10n.commonRetry,
         onAction: onRetry,
         compact: true,
       ),
@@ -58,13 +59,14 @@ class MapRouteStatus extends StatelessWidget {
   }
 
   String _missingRouteMessage() {
+    final l10n = appL10n;
     if (!hasStart && !hasDestination) {
-      return 'Choose start and destination to preview route.';
+      return l10n.routeChooseBoth;
     }
     if (!hasStart) {
-      return 'Choose a start point to preview route.';
+      return l10n.routeChooseStart;
     }
-    return 'Choose a destination to preview route.';
+    return l10n.routeChooseDest;
   }
 }
 
@@ -82,7 +84,7 @@ class _RouteSummary extends StatelessWidget {
       children: [
         _MetricChip(
           icon: Icons.route_rounded,
-          label: '${routeLocations.length} points',
+          label: context.l10n.routePointsCount(routeLocations.length),
         ),
         _MetricChip(
           icon: Icons.straighten_rounded,
@@ -98,15 +100,16 @@ class _RouteSummary extends StatelessWidget {
 }
 
 String _formatEta(num eta) {
+  final l10n = appL10n;
   final seconds = eta.round().clamp(0, 1 << 31);
   if (seconds < 60) {
-    return '$seconds sec';
+    return l10n.routeEtaSeconds(seconds);
   }
   final minutes = seconds / 60;
   if (minutes < 10) {
-    return '~${minutes.toStringAsFixed(1)} min';
+    return l10n.routeEtaMinutes(minutes.toStringAsFixed(1));
   }
-  return '~${minutes.round()} min';
+  return l10n.routeEtaMinutes(minutes.round().toString());
 }
 
 class _MetricChip extends StatelessWidget {

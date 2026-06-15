@@ -56,7 +56,9 @@ class _FlowAnalyticsPanel extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  isStale ? 'Flow Analytics · stale' : 'Flow Analytics',
+                  isStale
+                      ? context.l10n.flowAnalyticsTitleStale
+                      : context.l10n.flowAnalyticsTitle,
                   style: context.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: scheme.primary,
@@ -80,7 +82,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
 
             // 1. Heatmap / Density
             _AnalyticsRow(
-              title: 'Density Heatmap',
+              title: context.l10n.flowDensityHeatmap,
               active: heatmapActive,
               onChanged: onHeatmapChanged,
             ),
@@ -96,7 +98,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'No live flow data',
+                      context.l10n.flowNoLiveData,
                       style: context.textTheme.labelSmall?.copyWith(
                         color: scheme.error,
                       ),
@@ -120,7 +122,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
 
             // 2. Edge status / congestion
             _AnalyticsRow(
-              title: 'Corridor Status',
+              title: context.l10n.flowCorridorStatus,
               active: edgeStatusActive,
               onChanged: onEdgeStatusChanged,
             ),
@@ -137,7 +139,10 @@ class _FlowAnalyticsPanel extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Text('Blocked', style: context.textTheme.labelSmall),
+                  Text(
+                    context.l10n.flowBlocked,
+                    style: context.textTheme.labelSmall,
+                  ),
                   const SizedBox(width: AppSpacing.sm),
                   Container(
                     width: 14,
@@ -148,7 +153,10 @@ class _FlowAnalyticsPanel extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Text('Congested', style: context.textTheme.labelSmall),
+                  Text(
+                    context.l10n.flowCongested,
+                    style: context.textTheme.labelSmall,
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -156,7 +164,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
 
             // 3. Bottlenecks
             _AnalyticsRow(
-              title: 'Top-N Bottlenecks',
+              title: context.l10n.flowBottlenecks,
               active: bottlenecksActive,
               onChanged: onBottlenecksChanged,
             ),
@@ -164,7 +172,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               if (noLiveBottlenecksData)
                 Text(
-                  'No bottlenecks detected',
+                  context.l10n.flowNoBottlenecks,
                   style: context.textTheme.labelSmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -191,7 +199,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Ranked hotspots',
+                      context.l10n.flowRankedHotspots,
                       style: context.textTheme.labelSmall,
                     ),
                   ],
@@ -201,7 +209,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
 
             // 4. Forecast
             _AnalyticsRow(
-              title: 'Flow Forecast',
+              title: context.l10n.flowForecast,
               active: forecastActive,
               onChanged: onForecastChanged,
             ),
@@ -217,7 +225,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Forecast unavailable',
+                      context.l10n.flowForecastUnavailable,
                       style: context.textTheme.labelSmall?.copyWith(
                         color: scheme.error,
                       ),
@@ -228,7 +236,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
                 _HourlyForecastChart(buckets: forecastBuckets),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Lookback: $forecastHours hr${forecastHours > 1 ? 's' : ''}',
+                context.l10n.flowLookback(forecastHours),
                 style: context.textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),

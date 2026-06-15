@@ -16,9 +16,11 @@ class _AnalyticsRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: context.textTheme.bodyMedium),
+          // Expanded lets longer labels (e.g. Vietnamese) wrap instead of
+          // overflowing the fixed-width analytics panel.
+          Expanded(child: Text(title, style: context.textTheme.bodyMedium)),
+          const SizedBox(width: AppSpacing.sm),
           Transform.scale(
             scale: 0.75,
             child: Switch(

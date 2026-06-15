@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/features/map/data/models/location_source.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
@@ -21,7 +22,7 @@ class _MapQrScannerPageState extends ConsumerState<MapQrScannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan QR code')),
+      appBar: AppBar(title: Text(context.l10n.mapScanQrTitle)),
       body: Stack(
         children: [
           MobileScanner(onDetect: _handleDetection),
@@ -78,7 +79,7 @@ class _MapQrScannerPageState extends ConsumerState<MapQrScannerPage> {
       final poi = await _resolvePoi(code);
       if (!mounted) return;
       if (poi == null) {
-        _showFailure('No location found for $code');
+        _showFailure(appL10n.mapQrNoLocation(code));
         _handlingCode = false;
         return;
       }
@@ -89,7 +90,7 @@ class _MapQrScannerPageState extends ConsumerState<MapQrScannerPage> {
       Navigator.of(context).maybePop(true);
     } catch (_) {
       if (!mounted) return;
-      _showFailure('QR lookup failed');
+      _showFailure(appL10n.mapQrLookupFailed);
       _handlingCode = false;
     }
   }
