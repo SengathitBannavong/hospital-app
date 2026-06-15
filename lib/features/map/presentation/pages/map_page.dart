@@ -938,6 +938,9 @@ class _MapPageState extends ConsumerState<MapPage>
                 : FloatingActionButton.extended(
                     heroTag: 'map-start-fab',
                     onPressed: _startNavigation,
+                    // The global FAB theme forces CircleBorder, which clips an
+                    // extended FAB's label; restore the pill shape here.
+                    shape: const StadiumBorder(),
                     icon: const Icon(Icons.navigation_rounded),
                     label: Text(context.l10n.mapStart),
                   ),
@@ -967,6 +970,9 @@ class _MapPageState extends ConsumerState<MapPage>
           : FloatingActionButton.extended(
               heroTag: 'map-route-fab',
               onPressed: _showRoutePanel,
+              // The global FAB theme forces CircleBorder, which clips an
+              // extended FAB's label; restore the pill shape here.
+              shape: const StadiumBorder(),
               icon: Icon(
                 hasRoute
                     ? Icons.edit_location_alt_rounded
