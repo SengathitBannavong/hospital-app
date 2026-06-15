@@ -19,9 +19,7 @@ class _AnalyticsRow extends StatelessWidget {
         children: [
           // Expanded lets longer labels (e.g. Vietnamese) wrap instead of
           // overflowing the fixed-width analytics panel.
-          Expanded(
-            child: Text(title, style: context.textTheme.bodyMedium),
-          ),
+          Expanded(child: Text(title, style: context.textTheme.bodyMedium)),
           const SizedBox(width: AppSpacing.sm),
           Transform.scale(
             scale: 0.75,
