@@ -1,6 +1,7 @@
 // lib/features/sos/data/repository/sos_repository.dart
 
 import 'package:dio/dio.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
 import '../models/sos_detail.dart';
@@ -38,8 +39,8 @@ class SosRepository {
     if (data is Map) {
       return data['message']?.toString() ??
           data['error']?.toString() ??
-          'Đã xảy ra lỗi';
+          appL10n.commonErrorShort;
     }
-    return e.message ?? 'Đã xảy ra lỗi';
+    return e.message ?? appL10n.commonErrorShort;
   }
 }

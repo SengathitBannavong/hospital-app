@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 
 Future<void> showLogoutSheet(
@@ -18,10 +19,13 @@ Future<void> showLogoutSheet(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Đăng xuất', style: context.textTheme.titleMedium),
+              Text(
+                context.l10n.settingsLogout,
+                style: context.textTheme.titleMedium,
+              ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Bạn sẽ phải đăng nhập lại để tiếp tục.',
+                context.l10n.logoutSheetMessage,
                 style: context.textTheme.bodyMedium?.copyWith(
                   color: context.colorScheme.onSurfaceVariant,
                 ),
@@ -38,14 +42,14 @@ Future<void> showLogoutSheet(
                     Navigator.pop(context);
                     onConfirm();
                   },
-                  child: const Text('Đăng xuất'),
+                  child: Text(context.l10n.settingsLogout),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Hủy'),
+                  child: Text(context.l10n.commonCancel),
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),

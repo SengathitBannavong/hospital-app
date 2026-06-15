@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
 import 'package:hospital_app/core/network/api_response_codes.dart';
@@ -32,10 +33,10 @@ class StaffRepository {
       final data = e.response?.data;
       if (data is Map<String, dynamic>) {
         throw Exception(
-          data['message']?.toString() ?? e.message ?? 'Đã xảy ra lỗi',
+          data['message']?.toString() ?? e.message ?? appL10n.commonErrorShort,
         );
       }
-      throw Exception(e.message ?? 'Đã xảy ra lỗi');
+      throw Exception(e.message ?? appL10n.commonErrorShort);
     }
   }
 }

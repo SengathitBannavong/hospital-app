@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import '../../data/models/chat_room.dart';
 import 'chat_avatar.dart';
@@ -42,7 +43,9 @@ class ChatRoomCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          room.name.isEmpty ? 'Phòng chat' : room.name,
+                          room.name.isEmpty
+                              ? context.l10n.chatRoomDefault
+                              : room.name,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 fontWeight: shouldHighlight
@@ -63,7 +66,7 @@ class ChatRoomCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           room.lastMessage.isEmpty
-                              ? 'Chưa có tin nhắn'
+                              ? context.l10n.chatNoMessages
                               : room.lastMessage,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(

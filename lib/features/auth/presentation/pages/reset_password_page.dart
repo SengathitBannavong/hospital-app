@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
@@ -56,17 +57,17 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     final confirmPassword = _confirmPasswordController.text;
 
     if (password.isEmpty || confirmPassword.isEmpty) {
-      AppToast.showError('Vui lòng điền tất cả các trường.');
+      AppToast.showError(context.l10n.resetErrorEmptyFields);
       return;
     }
 
     if (password.length < 6) {
-      AppToast.showError('Mật khẩu phải có ít nhất 6 ký tự.');
+      AppToast.showError(context.l10n.resetErrorShortPassword);
       return;
     }
 
     if (password != confirmPassword) {
-      AppToast.showError('Mật khẩu không khớp.');
+      AppToast.showError(context.l10n.resetErrorMismatch);
       return;
     }
 
@@ -82,7 +83,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
           );
 
       if (mounted) {
-        AppToast.showSuccess('Mật khẩu đã được đặt lại thành công.');
+        AppToast.showSuccess(context.l10n.resetSuccess);
         // Navigate back to login
         context.go('/login');
       }
@@ -141,7 +142,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         height: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
                       ),
                       Text(
-                        'Đặt lại mật khẩu',
+                        context.l10n.resetTitle,
                         textAlign: TextAlign.center,
                         style: context.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -150,7 +151,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Tạo mật khẩu mới cho tài khoản của bạn',
+                        context.l10n.resetSubtitle,
                         textAlign: TextAlign.center,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
@@ -185,7 +186,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Mật khẩu mới',
+                            context.l10n.authPasswordNew,
                             style: context.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -197,7 +198,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                           ),
                           AuthTextField(
                             controller: _passwordController,
-                            hintText: 'Mật khẩu mới',
+                            hintText: context.l10n.authPasswordNew,
                             obscureText: !_isPasswordVisible,
                             prefixIcon: Icons.lock_outline,
                             suffixIcon: IconButton(
@@ -207,14 +208,16 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
                               ),
-                              tooltip: _isPasswordVisible ? 'Ẩn' : 'Hiện',
+                              tooltip: _isPasswordVisible
+                                  ? context.l10n.authHide
+                                  : context.l10n.authShow,
                               visualDensity: VisualDensity.compact,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.md),
                           AuthTextField(
                             controller: _confirmPasswordController,
-                            hintText: 'Xác nhận mật khẩu',
+                            hintText: context.l10n.authConfirmPassword,
                             obscureText: !_isConfirmPasswordVisible,
                             prefixIcon: Icons.lock_outline,
                             suffixIcon: IconButton(
@@ -225,8 +228,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                                     : Icons.visibility_outlined,
                               ),
                               tooltip: _isConfirmPasswordVisible
-                                  ? 'Ẩn'
-                                  : 'Hiện',
+                                  ? context.l10n.authHide
+                                  : context.l10n.authShow,
                               visualDensity: VisualDensity.compact,
                             ),
                           ),
@@ -256,9 +259,9 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                                             ),
                                       ),
                                     )
-                                  : const Text(
-                                      'Đặt lại mật khẩu',
-                                      style: TextStyle(
+                                  : Text(
+                                      context.l10n.resetTitle,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -280,7 +283,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Đã nhớ mật khẩu?',
+                        context.l10n.authRememberedPassword,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
                           fontSize: isSmallScreen ? 13 : null,
@@ -293,7 +296,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                           fontSize: isSmallScreen ? 13 : null,
                           fontWeight: FontWeight.bold,
                         ),
-                        child: const Text('Đăng nhập'),
+                        child: Text(context.l10n.authLogin),
                       ),
                     ],
                   ),

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/features/util/data/repository/util_repository.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -67,12 +68,12 @@ Future<void> _showUpdateDialog(
     barrierDismissible: true,
     builder: (context) {
       return AlertDialog(
-        title: const Text('Có bản cập nhật mới'),
+        title: Text(context.l10n.vgUpdateTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Phiên bản mới: $latestVersion'),
+            Text(context.l10n.vgNewVersion(latestVersion)),
             const SizedBox(height: 12),
             Text(changeLog),
           ],
@@ -80,7 +81,7 @@ Future<void> _showUpdateDialog(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Để sau'),
+            child: Text(context.l10n.vgLater),
           ),
           FilledButton(
             onPressed: () async {
@@ -90,7 +91,7 @@ Future<void> _showUpdateDialog(
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
               }
             },
-            child: const Text('Cập nhật'),
+            child: Text(context.l10n.vgUpdate),
           ),
         ],
       );

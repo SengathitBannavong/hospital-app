@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/device/presentation/providers/asset_providers.dart';
 
@@ -19,7 +20,7 @@ class AssetTrackingPage extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: Text('Vị trí $assetId'),
+        title: Text(context.l10n.trackTitle(assetId)),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -44,7 +45,7 @@ class AssetTrackingPage extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.md),
                 FilledButton(
                   onPressed: () => ref.invalidate(assetTrackProvider(assetId)),
-                  child: const Text('Thử lại'),
+                  child: Text(context.l10n.commonRetry),
                 ),
               ],
             ),
@@ -67,25 +68,37 @@ class AssetTrackingPage extends ConsumerWidget {
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Text(
-                        'Thông tin theo dõi',
+                        context.l10n.trackInfoTitle,
                         style: context.textTheme.titleMedium,
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  _InfoRow(label: 'Mã thiết bị', value: info.assetId),
-                  _InfoRow(label: 'Trạng thái', value: info.status),
+                  _InfoRow(
+                    label: context.l10n.trackAssetCode,
+                    value: info.assetId,
+                  ),
+                  _InfoRow(label: context.l10n.trackStatus, value: info.status),
                   if (info.movingStatus != null)
-                    _InfoRow(label: 'Chuyển động', value: info.movingStatus!),
+                    _InfoRow(
+                      label: context.l10n.trackMoving,
+                      value: info.movingStatus!,
+                    ),
                   if (info.currentNodeId != null)
                     _InfoRow(
-                      label: 'Vị trí hiện tại',
+                      label: context.l10n.trackCurrentPos,
                       value: info.currentNodeId.toString(),
                     ),
                   if (info.condition != null)
-                    _InfoRow(label: 'Tình trạng', value: info.condition!),
+                    _InfoRow(
+                      label: context.l10n.trackCondition,
+                      value: info.condition!,
+                    ),
                   if (info.batteryLevel != null)
-                    _InfoRow(label: 'Pin', value: info.batteryLevel!),
+                    _InfoRow(
+                      label: context.l10n.trackBattery,
+                      value: info.batteryLevel!,
+                    ),
                 ],
               ),
             ),

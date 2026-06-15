@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/utils/dob_utils.dart';
@@ -67,13 +68,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     }
 
     if (_selectedDob == null) {
-      AppToast.showError('Vui lòng chọn ngày sinh.');
+      AppToast.showError(context.l10n.registerErrorSelectDob);
       return;
     }
 
     // Enforce minimum age of 13 (defensive check in case picker was bypassed)
     if (!isAtLeastAge(_selectedDob!, 13)) {
-      AppToast.showError('Bạn phải ít nhất 13 tuổi để đăng ký.');
+      AppToast.showError(context.l10n.registerErrorMinAge);
       return;
     }
 
@@ -98,7 +99,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           );
 
       if (mounted) {
-        AppToast.showSuccess('Mã xác thực đã được gửi.');
+        AppToast.showSuccess(context.l10n.forgotOtpSent);
         context.push(
           '/verify-otp/$phone/signup',
           extra: {
@@ -135,7 +136,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
     final dobFormatted = _selectedDob != null
         ? '${_selectedDob!.day.toString().padLeft(2, '0')}/${_selectedDob!.month.toString().padLeft(2, '0')}/${_selectedDob!.year}'
-        : 'Chọn ngày sinh';
+        : context.l10n.registerSelectDob;
 
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
@@ -181,7 +182,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           height: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
                         ),
                         Text(
-                          'Tạo tài khoản',
+                          context.l10n.registerTitle,
                           textAlign: TextAlign.center,
                           style: context.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
@@ -190,7 +191,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'Tham gia cùng chúng tôi để được hỗ trợ tốt nhất',
+                          context.l10n.registerSubtitle,
                           textAlign: TextAlign.center,
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: context.colorScheme.onSurfaceVariant,
@@ -225,7 +226,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Thông tin cá nhân',
+                              context.l10n.registerPersonalInfo,
                               style: context.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -237,17 +238,17 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             ),
                             AuthTextField(
                               controller: _nameController,
-                              hintText: 'Họ và tên',
+                              hintText: context.l10n.registerFullName,
                               prefixIcon: Icons.person_outline,
                               validator: (value) =>
                                   (value == null || value.trim().isEmpty)
-                                  ? 'Nhập họ tên của bạn'
+                                  ? context.l10n.registerFullNameError
                                   : null,
                             ),
                             const SizedBox(height: AppSpacing.md),
                             AuthTextField(
                               controller: _phoneController,
-                              hintText: 'Số điện thoại',
+                              hintText: context.l10n.authPhone,
                               keyboardType: TextInputType.phone,
                               prefixIcon: Icons.phone_outlined,
                               inputFormatters: [
@@ -256,7 +257,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               maxLength: 11,
                               validator: (value) =>
                                   (value == null || value.trim().length < 8)
-                                  ? 'Số điện thoại không hợp lệ'
+                                  ? context.l10n.registerPhoneInvalid
                                   : null,
                             ),
                             const SizedBox(height: AppSpacing.md),
@@ -326,7 +327,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                                 .onSurfaceVariant,
                                           ),
                                           const SizedBox(width: AppSpacing.md),
-                                          const Text('Nam'),
+                                          Text(context.l10n.genderMale),
                                         ],
                                       ),
                                     ),
@@ -341,7 +342,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                                 .onSurfaceVariant,
                                           ),
                                           const SizedBox(width: AppSpacing.md),
-                                          const Text('Nữ'),
+                                          Text(context.l10n.genderFemale),
                                         ],
                                       ),
                                     ),
@@ -356,7 +357,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                                 .onSurfaceVariant,
                                           ),
                                           const SizedBox(width: AppSpacing.md),
-                                          const Text('Khác'),
+                                          Text(context.l10n.genderOther),
                                         ],
                                       ),
                                     ),
@@ -375,7 +376,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                   : AppSpacing.xl,
                             ),
                             Text(
-                              'Thông tin bảo mật',
+                              context.l10n.registerSecurityInfo,
                               style: context.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -387,7 +388,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             ),
                             AuthTextField(
                               controller: _passwordController,
-                              hintText: 'Mật khẩu',
+                              hintText: context.l10n.authPassword,
                               obscureText: !_isPasswordVisible,
                               prefixIcon: Icons.lock_outline,
                               suffixIcon: IconButton(
@@ -398,19 +399,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                       : Icons.visibility_outlined,
                                 ),
                                 tooltip: _isPasswordVisible
-                                    ? 'Ẩn mật khẩu'
-                                    : 'Hiện mật khẩu',
+                                    ? context.l10n.authHidePassword
+                                    : context.l10n.authShowPassword,
                                 visualDensity: VisualDensity.compact,
                               ),
                               validator: (value) =>
                                   (value == null || value.trim().length < 6)
-                                  ? 'Mật khẩu tối thiểu 6 ký tự'
+                                  ? context.l10n.registerPasswordMin
                                   : null,
                             ),
                             const SizedBox(height: AppSpacing.md),
                             AuthTextField(
                               controller: _confirmPasswordController,
-                              hintText: 'Xác nhận mật khẩu',
+                              hintText: context.l10n.authConfirmPassword,
                               obscureText: !_isConfirmPasswordVisible,
                               prefixIcon: Icons.lock_outline,
                               suffixIcon: IconButton(
@@ -421,16 +422,17 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                       : Icons.visibility_outlined,
                                 ),
                                 tooltip: _isConfirmPasswordVisible
-                                    ? 'Ẩn mật khẩu'
-                                    : 'Hiện mật khẩu',
+                                    ? context.l10n.authHidePassword
+                                    : context.l10n.authShowPassword,
                                 visualDensity: VisualDensity.compact,
                               ),
                               validator: (value) {
+                                final l10n = context.l10n;
                                 if (value == null || value.trim().isEmpty) {
-                                  return 'Vui lòng xác nhận mật khẩu';
+                                  return l10n.registerConfirmPasswordError;
                                 }
                                 if (value != _passwordController.text) {
-                                  return 'Mật khẩu không khớp';
+                                  return context.l10n.registerPasswordMismatch;
                                 }
                                 return null;
                               },
@@ -461,9 +463,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                               ),
                                         ),
                                       )
-                                    : const Text(
-                                        'Đăng ký',
-                                        style: TextStyle(
+                                    : Text(
+                                        context.l10n.registerButton,
+                                        style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -487,7 +489,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Đã có tài khoản?',
+                          context.l10n.registerHaveAccount,
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: context.colorScheme.onSurfaceVariant,
                             fontSize: isSmallScreen ? 13 : null,
@@ -500,7 +502,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             fontSize: isSmallScreen ? 13 : null,
                             fontWeight: FontWeight.bold,
                           ),
-                          child: const Text('Đăng nhập ngay'),
+                          child: Text(context.l10n.registerLoginNow),
                         ),
                       ],
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
@@ -57,22 +58,22 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
     final confirmPassword = _confirmPasswordController.text;
 
     if (oldPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
-      AppToast.showError('Vui lòng điền tất cả các trường.');
+      AppToast.showError(context.l10n.resetErrorEmptyFields);
       return;
     }
 
     if (newPassword.length < 6) {
-      AppToast.showError('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      AppToast.showError(context.l10n.changePwdErrorShortNew);
       return;
     }
 
     if (newPassword != confirmPassword) {
-      AppToast.showError('Mật khẩu mới không khớp.');
+      AppToast.showError(context.l10n.changePwdErrorMismatch);
       return;
     }
 
     if (oldPassword == newPassword) {
-      AppToast.showError('Mật khẩu mới phải khác mật khẩu cũ.');
+      AppToast.showError(context.l10n.changePwdErrorSameAsOld);
       return;
     }
 
@@ -84,7 +85,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
           .changePassword(oldPassword: oldPassword, newPassword: newPassword);
 
       if (mounted) {
-        AppToast.showSuccess('Mật khẩu đã được thay đổi thành công.');
+        AppToast.showSuccess(context.l10n.changePwdSuccess);
         // Return to previous page or home
         if (context.canPop()) {
           context.pop();
@@ -103,9 +104,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
         // already rejected, so skip the backend logout call.
         await ref.read(authStateProvider.notifier).logout(notifyBackend: false);
         if (mounted) {
-          AppToast.showError(
-            'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.',
-          );
+          AppToast.showError(context.l10n.changePwdSessionExpired);
           context.go('/login');
         }
       } else {
@@ -127,7 +126,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Thay đổi mật khẩu'),
+        title: Text(context.l10n.changePwdTitle),
       ),
       body: SafeArea(
         child: Center(
@@ -156,7 +155,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'Thay đổi mật khẩu',
+                        context.l10n.changePwdTitle,
                         textAlign: TextAlign.center,
                         style: context.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -164,7 +163,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Cập nhật mật khẩu để bảo mật tài khoản',
+                        context.l10n.changePwdSubtitle,
                         textAlign: TextAlign.center,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
@@ -196,7 +195,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Xác minh mật khẩu',
+                            context.l10n.changePwdVerifySection,
                             style: context.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -204,7 +203,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                           const SizedBox(height: AppSpacing.xl),
                           AuthTextField(
                             controller: _oldPasswordController,
-                            hintText: 'Mật khẩu hiện tại',
+                            hintText: context.l10n.changePwdCurrentHint,
                             obscureText: !_isOldPasswordVisible,
                             prefixIcon: Icons.lock_outline,
                             suffixIcon: IconButton(
@@ -214,12 +213,14 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
                               ),
-                              tooltip: _isOldPasswordVisible ? 'Ẩn' : 'Hiện',
+                              tooltip: _isOldPasswordVisible
+                                  ? context.l10n.authHide
+                                  : context.l10n.authShow,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.xl),
                           Text(
-                            'Mật khẩu mới',
+                            context.l10n.authPasswordNew,
                             style: context.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -227,7 +228,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                           const SizedBox(height: AppSpacing.xl),
                           AuthTextField(
                             controller: _newPasswordController,
-                            hintText: 'Mật khẩu mới',
+                            hintText: context.l10n.authPasswordNew,
                             obscureText: !_isNewPasswordVisible,
                             prefixIcon: Icons.lock_outline,
                             suffixIcon: IconButton(
@@ -237,13 +238,15 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
                               ),
-                              tooltip: _isNewPasswordVisible ? 'Ẩn' : 'Hiện',
+                              tooltip: _isNewPasswordVisible
+                                  ? context.l10n.authHide
+                                  : context.l10n.authShow,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.md),
                           AuthTextField(
                             controller: _confirmPasswordController,
-                            hintText: 'Xác nhận mật khẩu mới',
+                            hintText: context.l10n.changePwdConfirmHint,
                             obscureText: !_isConfirmPasswordVisible,
                             prefixIcon: Icons.lock_outline,
                             suffixIcon: IconButton(
@@ -254,8 +257,8 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                     : Icons.visibility_outlined,
                               ),
                               tooltip: _isConfirmPasswordVisible
-                                  ? 'Ẩn'
-                                  : 'Hiện',
+                                  ? context.l10n.authHide
+                                  : context.l10n.authShow,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.lg),
@@ -280,9 +283,9 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                             ),
                                       ),
                                     )
-                                  : const Text(
-                                      'Thay đổi mật khẩu',
-                                      style: TextStyle(
+                                  : Text(
+                                      context.l10n.changePwdTitle,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),

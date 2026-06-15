@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../providers/notification_provider.dart';
@@ -71,9 +72,9 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
         ),
         title: Row(
           children: [
-            const Text(
-              'Thông báo',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              context.l10n.homeNotificationsTitle,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             if (state.unreadCount > 0) ...[
               const SizedBox(width: AppSpacing.xs),
@@ -98,15 +99,16 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.done_all_rounded),
-            tooltip: 'Đánh dấu tất cả đã đọc',
+            tooltip: context.l10n.notifMarkAllRead,
             onPressed: state.unreadCount == 0
                 ? null
                 : () async {
+                    final l10n = context.l10n;
                     try {
                       await ref
                           .read(notificationProvider.notifier)
                           .markAllAsRead();
-                      AppToast.showSuccess('Đã đọc tất cả thông báo');
+                      AppToast.showSuccess(l10n.notifAllRead);
                     } catch (error) {
                       AppToast.showError(_formatError(error));
                     }
@@ -114,7 +116,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Cài đặt thông báo',
+            tooltip: context.l10n.notifSettings,
             onPressed: () => context.push('/settings'),
           ),
         ],
@@ -141,9 +143,9 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: AppSpacing.pageWithTop,
-          children: const [
-            SizedBox(height: AppSpacing.xxl),
-            Center(child: Text('Không có thông báo nào')),
+          children: [
+            const SizedBox(height: AppSpacing.xxl),
+            Center(child: Text(context.l10n.notifEmpty)),
           ],
         ),
       );
@@ -190,11 +192,12 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                 }
               },
               onDelete: () async {
+                final l10n = context.l10n;
                 try {
                   await ref
                       .read(notificationProvider.notifier)
                       .deleteNotifications([item.id]);
-                  AppToast.showSuccess('Đã xóa thông báo');
+                  AppToast.showSuccess(l10n.notifDeleted);
                 } catch (error) {
                   AppToast.showError(_formatError(error));
                 }
@@ -230,7 +233,10 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
           Expanded(
             child: Text(message, style: TextStyle(color: cs.onErrorContainer)),
           ),
-          TextButton(onPressed: _refresh, child: const Text('Thử lại')),
+          TextButton(
+            onPressed: _refresh,
+            child: Text(context.l10n.commonRetry),
+          ),
         ],
       ),
     );
@@ -251,9 +257,9 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
     }
 
     if (!state.hasMore) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-        child: Center(child: Text('Đã tải hết thông báo')),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Center(child: Text(context.l10n.notifAllLoaded)),
       );
     }
 
@@ -269,14 +275,14 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
           children: [
             const Icon(Icons.notifications_off_rounded, size: 48),
             const SizedBox(height: AppSpacing.md),
-            const Text('Không thể tải thông báo'),
+            Text(context.l10n.notifLoadError),
             const SizedBox(height: AppSpacing.xs),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.md),
             ElevatedButton.icon(
               onPressed: _refresh,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
+              label: Text(context.l10n.commonRetry),
             ),
           ],
         ),

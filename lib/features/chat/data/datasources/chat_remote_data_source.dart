@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
 import 'package:hospital_app/core/network/api_response.dart';
@@ -161,7 +162,7 @@ class ChatRemoteDataSource {
     String mediaUrl = '',
   }) async {
     if (content.trim().isEmpty && mediaUrl.trim().isEmpty) {
-      throw Exception('Nội dung tin nhắn không được để trống');
+      throw Exception(appL10n.chatEmptyContent);
     }
 
     try {

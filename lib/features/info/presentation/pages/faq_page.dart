@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hospital_app/features/util/data/models/faq_item.dart';
 import 'package:hospital_app/features/util/presentation/providers/util_providers.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 
 class FaqPage extends ConsumerStatefulWidget {
@@ -25,7 +26,7 @@ class _FaqPageState extends ConsumerState<FaqPage> {
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/info'),
         ),
-        title: const Text('FAQ'),
+        title: Text(context.l10n.faqTitle),
       ),
       body: faqs.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -49,7 +50,7 @@ class _FaqPageState extends ConsumerState<FaqPage> {
                       Padding(
                         padding: const EdgeInsets.only(right: AppSpacing.sm),
                         child: ChoiceChip(
-                          label: const Text('Tất cả'),
+                          label: Text(context.l10n.faqAll),
                           selected: _selectedCategory == null,
                           onSelected: (_) {
                             setState(() => _selectedCategory = null);
@@ -77,7 +78,7 @@ class _FaqPageState extends ConsumerState<FaqPage> {
                   child: Padding(
                     padding: AppSpacing.cardPaddingLarge,
                     child: Text(
-                      'Chưa có câu hỏi thường gặp.',
+                      context.l10n.faqEmpty,
                       style: context.textTheme.bodyMedium,
                     ),
                   ),
@@ -145,12 +146,15 @@ class _FaqErrorState extends StatelessWidget {
             const Icon(Icons.error_outline_rounded, size: 36),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Không thể tải câu hỏi thường gặp. Vui lòng thử lại.',
+              context.l10n.faqError,
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.md),
-            FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
+            FilledButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.commonRetry),
+            ),
           ],
         ),
       ),

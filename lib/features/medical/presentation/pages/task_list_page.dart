@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../data/models/medical_task.dart';
 import '../providers/medical_providers.dart';
@@ -38,7 +39,7 @@ class TaskListPage extends ConsumerWidget {
     List<MedicalTask> tasks,
   ) {
     if (tasks.isEmpty) {
-      return _buildEmptyState(context, 'Chưa có chỉ định nào');
+      return _buildEmptyState(context, context.l10n.mlEmptyTasks);
     }
 
     return Column(
@@ -58,13 +59,13 @@ class TaskListPage extends ConsumerWidget {
     final historyAsync = ref.watch(medicalHistoryProvider);
 
     return ExpansionTile(
-      title: const Text('Lịch sử hôm nay'),
+      title: Text(context.l10n.mlHistoryToday),
       childrenPadding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       children: [
         historyAsync.when(
           data: (items) {
             if (items.isEmpty) {
-              return _buildEmptyState(context, 'Chưa có lịch sử');
+              return _buildEmptyState(context, context.l10n.mlNoHistory);
             }
             return Column(
               children: [
@@ -94,52 +95,53 @@ class TaskListPage extends ConsumerWidget {
   }
 
   Widget _buildQuickActions(BuildContext context) {
+    final l10n = context.l10n;
     final cards = <_ActionCard>[
       _ActionCard(
-        title: 'Hàng đợi',
-        subtitle: 'Xem số thứ tự',
+        title: l10n.homeActionQueue,
+        subtitle: l10n.mlQueueSubtitle,
         icon: Icons.people_outline,
         color: AppColors.taskInProgress,
         onTap: () => context.push('/medical/queue'),
       ),
       _ActionCard(
-        title: 'Đơn thuốc',
-        subtitle: 'Lịch sử đơn thuốc',
+        title: l10n.homeActionPrescription,
+        subtitle: l10n.mlPrescriptionSubtitle,
         icon: Icons.receipt_long,
         color: AppColors.taskWaiting,
         onTap: () => context.push('/medical/prescription'),
       ),
       _ActionCard(
-        title: 'Trạm xe lăn',
-        subtitle: 'Các trạm xe lăn',
+        title: l10n.mlStationsTitle,
+        subtitle: l10n.mlStationsSubtitle,
         icon: Icons.local_parking_rounded,
         color: AppColors.secondary,
         onTap: () => context.push('/asset/stations'),
       ),
       _ActionCard(
-        title: 'Tìm xe lăn gần đây',
-        subtitle: 'Xe lăn còn trống',
+        title: l10n.mlFindNearbyTitle,
+        subtitle: l10n.mlFindNearbySubtitle,
         icon: Icons.accessible_rounded,
         color: AppColors.deptNeurology,
         onTap: () => context.push('/asset/search'),
       ),
       _ActionCard(
-        title: 'Hỗ trợ nhân viên',
-        subtitle: 'Yêu cầu hỗ trợ',
+        title: l10n.mlStaffTitle,
+        subtitle: l10n.staffTitle,
         icon: Icons.support_agent_rounded,
         color: AppColors.success,
         onTap: () => context.push('/staff'),
       ),
       _ActionCard(
-        title: 'Báo cáo vật cản',
-        subtitle: 'Báo lối đi bị chặn',
+        title: l10n.mlObstacleTitle,
+        subtitle: l10n.mlObstacleSubtitle,
         icon: Icons.report_rounded,
         color: AppColors.warning,
         onTap: () => context.push('/flow/report-obstacle'),
       ),
       _ActionCard(
-        title: 'Thông tin & FAQ',
-        subtitle: 'Hướng dẫn, câu hỏi',
+        title: l10n.mlInfoTitle,
+        subtitle: l10n.mlInfoSubtitle,
         icon: Icons.info_outline_rounded,
         color: AppColors.statusOffline,
         onTap: () => context.push('/info'),
@@ -177,12 +179,13 @@ class TaskListPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chỉ định khám'),
+        title: Text(context.l10n.mlTitle),
         actions: [
           IconButton(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
               final scheme = Theme.of(context).colorScheme;
+              final l10n = context.l10n;
               try {
                 // เรียก API เพื่อ sync dữ liệu HIS
                 await ref.read(medicalRepositoryProvider).syncNow();
@@ -191,7 +194,7 @@ class TaskListPage extends ConsumerWidget {
                   ..invalidate(medicalHistoryProvider);
                 messenger.showSnackBar(
                   SnackBar(
-                    content: const Text('Đã đồng bộ HIS'),
+                    content: Text(l10n.mlSyncSuccess),
                     backgroundColor: scheme.primary,
                   ),
                 );
@@ -205,7 +208,7 @@ class TaskListPage extends ConsumerWidget {
               }
             },
             icon: const Icon(Icons.sync_rounded),
-            tooltip: 'Sync HIS',
+            tooltip: context.l10n.mlSyncTooltip,
           ),
         ],
       ),

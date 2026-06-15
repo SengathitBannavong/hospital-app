@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/app_toast.dart';
@@ -21,6 +22,7 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   String? _syncedTheme;
+  String? _syncedLanguage;
   String _appVersion = '';
 
   @override
@@ -47,7 +49,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (!mounted || success) {
       return;
     }
-    AppToast.showError('Không thể lưu cài đặt');
+    AppToast.showError(context.l10n.settingsSaveError);
+  }
+
+  Future<void> _saveLanguage(
+    NotificationSettingsModel settings,
+    String code,
+  ) async {
+    localeController.setLanguageCode(code);
+    await _save(settings.copyWith(language: code));
   }
 
   Future<void> _saveTheme(
@@ -64,12 +74,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cài đặt')),
+      appBar: AppBar(title: Text(context.l10n.settingsTitle)),
       body: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _buildErrorState(error),
         data: (settings) {
           _syncTheme(settings.theme);
+          _syncLanguage(settings.language);
           return _buildContent(settings, cs);
         },
       ),
@@ -85,7 +96,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           children: [
             const Icon(Icons.error_outline_rounded, size: 48),
             const SizedBox(height: AppSpacing.md),
-            const Text('Không thể tải cài đặt'),
+            Text(context.l10n.settingsLoadError),
             const SizedBox(height: AppSpacing.xs),
             Text(
               error.toString().replaceFirst('Exception: ', ''),
@@ -97,7 +108,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ref.read(notificationSettingsProvider.notifier).loadSettings();
               },
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
+              label: Text(context.l10n.commonRetry),
             ),
           ],
         ),
@@ -106,16 +117,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildContent(NotificationSettingsModel settings, ColorScheme cs) {
+    final l10n = context.l10n;
     return ListView(
       padding: AppSpacing.pageWithTop,
       children: [
-        const _SectionHeader(title: 'Tài khoản'),
+        _SectionHeader(title: l10n.settingsSectionAccount),
         Card(
           child: Column(
             children: [
               ListTile(
                 leading: Icon(Icons.lock_outline_rounded, color: cs.primary),
-                title: const Text('Đổi mật khẩu'),
+                title: Text(l10n.settingsChangePassword),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push('/change-password'),
               ),
@@ -125,9 +137,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   Icons.logout_rounded,
                   color: AppColors.error,
                 ),
-                title: const Text(
-                  'Đăng xuất',
-                  style: TextStyle(color: AppColors.error),
+                title: Text(
+                  l10n.settingsLogout,
+                  style: const TextStyle(color: AppColors.error),
                 ),
                 onTap: () => _confirmLogout(context),
               ),
@@ -137,11 +149,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   Icons.delete_outline_rounded,
                   color: AppColors.error,
                 ),
-                title: const Text(
-                  'Xóa tài khoản',
-                  style: TextStyle(color: AppColors.error),
+                title: Text(
+                  l10n.settingsDeleteAccount,
+                  style: const TextStyle(color: AppColors.error),
                 ),
-                subtitle: const Text('Xóa vĩnh viễn tài khoản và dữ liệu'),
+                subtitle: Text(l10n.settingsDeleteAccountSubtitle),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: _handleDeleteAccount,
               ),
@@ -151,7 +163,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
         const SizedBox(height: AppSpacing.xl),
 
-        const _SectionHeader(title: 'Giao diện'),
+        _SectionHeader(title: l10n.settingsSectionAppearance),
         _ThemeTile(
           current: _themeFromString(settings.theme),
           onChanged: (mode) => _saveTheme(settings, mode),
@@ -159,12 +171,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
         const SizedBox(height: AppSpacing.xl),
 
-        const _SectionHeader(title: 'Thông báo'),
+        _SectionHeader(title: l10n.settingsSectionNotification),
         _SettingsTile(
           icon: Icons.notifications_active_rounded,
           iconColor: cs.primary,
-          title: 'Bật thông báo',
-          subtitle: 'Nhận thông báo từ hệ thống',
+          title: l10n.settingsEnableNotification,
+          subtitle: l10n.settingsEnableNotificationSubtitle,
           value: settings.notification,
           onChanged: (value) {
             _save(settings.copyWith(notification: value));
@@ -173,26 +185,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
         const SizedBox(height: AppSpacing.xl),
 
-        const _SectionHeader(title: 'Ngôn ngữ'),
+        _SectionHeader(title: l10n.settingsSectionLanguage),
         _DropdownTile(
           icon: Icons.language_rounded,
           iconColor: cs.tertiary,
-          title: 'Ngôn ngữ hiển thị',
+          title: l10n.settingsDisplayLanguage,
           value: settings.language,
-          items: const {'vi': 'Tiếng Việt', 'en': 'English'},
-          onChanged: (value) => _save(settings.copyWith(language: value)),
+          items: {
+            'vi': l10n.settingsLanguageVietnamese,
+            'en': l10n.settingsLanguageEnglish,
+          },
+          onChanged: (value) => _saveLanguage(settings, value),
         ),
 
         const SizedBox(height: AppSpacing.xl),
 
-        const _SectionHeader(title: 'Dữ liệu ngoại tuyến'),
+        _SectionHeader(title: l10n.settingsSectionOffline),
         Card(
           child: ListTile(
             leading: Icon(Icons.cleaning_services_rounded, color: cs.primary),
-            title: const Text('Xóa bộ nhớ đệm bản đồ'),
-            subtitle: const Text(
-              'Gỡ dữ liệu bản đồ và lộ trình đã tải về thiết bị',
-            ),
+            title: Text(l10n.settingsClearMapCache),
+            subtitle: Text(l10n.settingsClearMapCacheSubtitle),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _confirmClearMapCache(context),
           ),
@@ -200,27 +213,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
         const SizedBox(height: AppSpacing.xl),
 
-        const _SectionHeader(title: 'Thông tin ứng dụng'),
+        _SectionHeader(title: l10n.settingsSectionAppInfo),
         Card(
           child: Column(
             children: [
               ListTile(
                 leading: Icon(Icons.help_outline_rounded, color: cs.primary),
-                title: const Text('Trợ giúp'),
+                title: Text(l10n.settingsHelp),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push('/help'),
               ),
               const Divider(height: 1, indent: 56),
               ListTile(
                 leading: Icon(Icons.info_outline_rounded, color: cs.primary),
-                title: const Text('Về ứng dụng'),
+                title: Text(l10n.settingsAbout),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => _showAboutDialog(context),
               ),
               const Divider(height: 1, indent: 56),
               ListTile(
                 leading: Icon(Icons.verified_outlined, color: cs.primary),
-                title: const Text('Phiên bản'),
+                title: Text(l10n.settingsVersion),
                 trailing: Text(
                   _appVersion,
                   style: TextStyle(color: cs.onSurfaceVariant),
@@ -248,21 +261,38 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
+  void _syncLanguage(String language) {
+    if (_syncedLanguage == language) {
+      return;
+    }
+    _syncedLanguage = language;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      localeController.setLanguageCode(language);
+    });
+  }
+
   void _confirmLogout(BuildContext context) {
+    final l10n = context.l10n;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Đăng xuất'),
-        content: const Text('Bạn có chắc muốn đăng xuất khỏi ứng dụng?'),
+        title: Text(l10n.settingsLogoutConfirmTitle),
+        content: Text(l10n.settingsLogoutConfirmMessage),
         actions: [
-          TextButton(onPressed: () => ctx.pop(), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => ctx.pop(),
+            child: Text(l10n.commonCancel),
+          ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             onPressed: () {
               ctx.pop();
               ref.read(authStateProvider.notifier).logout();
             },
-            child: const Text('Đăng xuất'),
+            child: Text(l10n.settingsLogout),
           ),
         ],
       ),
@@ -287,12 +317,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       context: context,
       useRootNavigator: true,
       barrierDismissible: false,
-      builder: (context) => const AlertDialog(
+      builder: (context) => AlertDialog(
         content: Row(
           children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 24),
-            Text('Đang xử lý...'),
+            const CircularProgressIndicator(),
+            const SizedBox(width: 24),
+            Text(context.l10n.commonProcessing),
           ],
         ),
       ),
@@ -324,9 +354,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         String errorMessage = e.toString().replaceFirst('Exception: ', '');
         if (errorMessage.toLowerCase().contains('password') ||
             errorMessage.toLowerCase().contains('incorrect')) {
-          errorMessage = 'Mật khẩu không chính xác. Vui lòng thử lại.';
+          errorMessage = context.l10n.settingsDeletePasswordIncorrect;
         } else {
-          errorMessage = 'Đã xảy ra lỗi, vui lòng thử lại';
+          errorMessage = context.l10n.commonError;
         }
         DeleteAccountService.showError(context, errorMessage);
       }
@@ -334,22 +364,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _confirmClearMapCache(BuildContext context) async {
+    final l10n = context.l10n;
     final shouldClear = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Xóa bộ nhớ đệm bản đồ'),
-        content: const Text(
-          'Thao tác này gỡ dữ liệu bản đồ và lộ trình đã tải về thiết bị. '
-          'Ứng dụng sẽ tải lại khi cần.',
-        ),
+        title: Text(l10n.settingsClearMapCache),
+        content: Text(l10n.settingsClearMapCacheConfirm),
         actions: [
           TextButton(
             onPressed: () => dialogContext.pop(false),
-            child: const Text('Hủy'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => dialogContext.pop(true),
-            child: const Text('Xóa'),
+            child: Text(l10n.commonDelete),
           ),
         ],
       ),
@@ -370,7 +398,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ..invalidate(mapObstaclesProvider)
       ..invalidate(mapLastSyncedAtProvider)
       ..invalidate(routeResultProvider);
-    AppToast.showSuccess('Đã xóa bộ nhớ đệm bản đồ');
+    AppToast.showSuccess(l10n.settingsClearMapCacheSuccess);
   }
 
   void _showAboutDialog(BuildContext context) {
@@ -379,12 +407,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       applicationName: 'Hospital App',
       applicationVersion: _appVersion,
       applicationLegalese: '© 2025 Hospital App Team',
-      children: const [
-        SizedBox(height: 16),
-        Text(
-          'Ứng dụng hỗ trợ bệnh nhân tra cứu thông tin, '
-          'điều hướng nội viện và quản lý lịch khám bệnh.',
-        ),
+      children: [
+        const SizedBox(height: 16),
+        Text(context.l10n.settingsAboutDescription),
       ],
     );
   }
@@ -430,21 +455,21 @@ class _ThemeTile extends StatelessWidget {
         padding: AppSpacing.cardPadding,
         child: SegmentedButton<ThemeMode>(
           showSelectedIcon: false,
-          segments: const [
+          segments: [
             ButtonSegment(
               value: ThemeMode.light,
-              icon: Icon(Icons.light_mode_outlined),
-              label: Text('Sáng'),
+              icon: const Icon(Icons.light_mode_outlined),
+              label: Text(context.l10n.settingsThemeLight),
             ),
             ButtonSegment(
               value: ThemeMode.system,
-              icon: Icon(Icons.brightness_auto_outlined),
-              label: Text('Hệ thống'),
+              icon: const Icon(Icons.brightness_auto_outlined),
+              label: Text(context.l10n.settingsThemeSystem),
             ),
             ButtonSegment(
               value: ThemeMode.dark,
-              icon: Icon(Icons.dark_mode_outlined),
-              label: Text('Tối'),
+              icon: const Icon(Icons.dark_mode_outlined),
+              label: Text(context.l10n.settingsThemeDark),
             ),
           ],
           selected: {current},

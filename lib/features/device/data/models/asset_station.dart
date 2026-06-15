@@ -1,3 +1,5 @@
+import 'package:hospital_app/core/l10n/locale_controller.dart';
+
 class AssetStation {
   const AssetStation({
     required this.stationId,
@@ -16,7 +18,8 @@ class AssetStation {
   factory AssetStation.fromJson(Map<String, dynamic> json) {
     return AssetStation(
       stationId: _parseInt(json['station_id'] ?? json['id']),
-      stationName: json['station_name']?.toString() ?? 'Trạm thiết bị',
+      stationName:
+          json['station_name']?.toString() ?? appL10n.homeActionDeviceStations,
       capacity: _parseInt(json['capacity']),
       availableWheelchairs: _parseInt(
         json['available_wheelchairs'] ?? json['available_count'] ?? 0,

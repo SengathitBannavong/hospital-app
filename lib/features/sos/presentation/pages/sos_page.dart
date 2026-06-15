@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import '../../data/models/sos_detail.dart';
@@ -42,7 +43,7 @@ class _SosPageState extends ConsumerState<SosPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SOS — Khẩn Cấp'),
+        title: Text(context.l10n.sosTitle),
         actions: [
           if (state.isLoading)
             const Padding(
@@ -56,7 +57,7 @@ class _SosPageState extends ConsumerState<SosPage> {
           else
             IconButton(
               icon: const Icon(Icons.refresh_rounded),
-              tooltip: 'Tải lại',
+              tooltip: context.l10n.homeReload,
               onPressed: () => ref.read(sosProvider.notifier).loadDetail(),
             ),
         ],
@@ -97,14 +98,15 @@ class _SosPageState extends ConsumerState<SosPage> {
                             size: 20,
                           ),
                           const SizedBox(width: AppSpacing.sm),
-                          Text('Lưu ý', style: context.textTheme.titleSmall),
+                          Text(
+                            context.l10n.sosNote,
+                            style: context.textTheme.titleSmall,
+                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        '• Chỉ sử dụng khi thực sự có tình huống khẩn cấp.\n'
-                        '• Nhân viên y tế sẽ đến trong thời gian sớm nhất.\n'
-                        '• Nếu cần trợ giúp ngay, hãy gọi quầy lễ tân.',
+                        context.l10n.sosNoteContent,
                         style: context.textTheme.bodySmall,
                       ),
                     ],
@@ -207,18 +209,18 @@ class _SosHeroButtonState extends State<_SosHeroButton>
         ? AppColors.emergencyActive
         : context.colorScheme.onSurface;
     final helperText = widget.isActive
-        ? 'Đang có yêu cầu khẩn cấp'
+        ? context.l10n.sosHelperActive
         : widget.isSending
-        ? 'Đang gửi tín hiệu...'
-        : 'Nhấn và giữ để gửi tín hiệu';
+        ? context.l10n.sosHelperSending
+        : context.l10n.sosHelperIdle;
 
     return Center(
       child: Column(
         children: [
           Semantics(
             button: true,
-            label: 'Gửi tín hiệu SOS',
-            hint: 'Nhấn và giữ trong 1.2 giây để xác nhận',
+            label: context.l10n.sosSemanticsSend,
+            hint: context.l10n.sosSemanticsHint,
             enabled: widget.onConfirm != null,
             child: GestureDetector(
               onTap: disableAnimations ? widget.onConfirm : null,
@@ -291,7 +293,7 @@ class _SosHeroContent extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isSending) {
       return Semantics(
-        label: 'Đang gửi tín hiệu SOS',
+        label: context.l10n.sosSemanticsSending,
         liveRegion: true,
         child: const Center(
           child: Icon(
@@ -305,7 +307,7 @@ class _SosHeroContent extends StatelessWidget {
 
     if (isActive) {
       return Semantics(
-        label: 'Đang có yêu cầu khẩn cấp, nhân viên đang được điều phối',
+        label: context.l10n.sosSemanticsActive,
         liveRegion: true,
         child: const Center(
           child: Icon(
@@ -347,7 +349,9 @@ class _SosStatusCard extends StatelessWidget {
     final isActive = detail.status == SosStatus.active;
     final color = isActive ? AppColors.emergencyActive : AppColors.taskDone;
     final icon = isActive ? Icons.pending_rounded : Icons.check_circle_rounded;
-    final statusText = isActive ? 'Đang xử lý' : 'Đã giải quyết';
+    final statusText = isActive
+        ? context.l10n.sosStatusProcessing
+        : context.l10n.sosStatusResolved;
 
     return Card(
       child: Padding(
@@ -359,7 +363,10 @@ class _SosStatusCard extends StatelessWidget {
               children: [
                 Icon(icon, color: color),
                 const SizedBox(width: AppSpacing.sm),
-                Text('Trạng thái yêu cầu', style: context.textTheme.titleSmall),
+                Text(
+                  context.l10n.sosStatusTitle,
+                  style: context.textTheme.titleSmall,
+                ),
                 const Spacer(),
                 Chip(
                   label: Text(statusText),
@@ -376,7 +383,7 @@ class _SosStatusCard extends StatelessWidget {
                   const Icon(Icons.schedule_rounded, size: 16),
                   const SizedBox(width: 6),
                   Text(
-                    'Gửi lúc: ${detail.createdAt}',
+                    context.l10n.sosSentAt(detail.createdAt),
                     style: context.textTheme.bodySmall,
                   ),
                 ],
@@ -408,12 +415,12 @@ class _SosInfoCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Không có yêu cầu khẩn cấp',
+                    context.l10n.sosNoRequest,
                     style: context.textTheme.titleSmall,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Nhấn nút SOS phía trên nếu bạn cần hỗ trợ y tế khẩn cấp.',
+                    context.l10n.sosNoRequestSubtitle,
                     style: context.textTheme.bodySmall,
                   ),
                 ],

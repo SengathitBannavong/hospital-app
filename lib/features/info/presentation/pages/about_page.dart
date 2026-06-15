@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hospital_app/features/util/presentation/providers/util_providers.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 
 class AboutPage extends ConsumerWidget {
@@ -18,7 +19,7 @@ class AboutPage extends ConsumerWidget {
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/info'),
         ),
-        title: const Text('Giới thiệu'),
+        title: Text(context.l10n.infoAbout),
       ),
       body: about.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -46,7 +47,7 @@ class AboutPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        'Phiên bản ${info.version}',
+                        context.l10n.aboutVersion(info.version),
                         style: context.textTheme.bodySmall?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
                         ),
@@ -58,28 +59,31 @@ class AboutPage extends ConsumerWidget {
 
               const SizedBox(height: AppSpacing.xl),
 
-              Text('Tính năng chính', style: context.textTheme.titleMedium),
+              Text(
+                context.l10n.aboutKeyFeatures,
+                style: context.textTheme.titleMedium,
+              ),
 
               const SizedBox(height: AppSpacing.md),
 
-              const ListTile(
-                leading: Icon(Icons.map_rounded),
-                title: Text('Bản đồ bệnh viện'),
+              ListTile(
+                leading: const Icon(Icons.map_rounded),
+                title: Text(context.l10n.mapPreviewTitle),
               ),
 
-              const ListTile(
-                leading: Icon(Icons.notifications_rounded),
-                title: Text('Thông báo'),
+              ListTile(
+                leading: const Icon(Icons.notifications_rounded),
+                title: Text(context.l10n.homeNotificationsTitle),
               ),
 
-              const ListTile(
-                leading: Icon(Icons.local_hospital_rounded),
-                title: Text('Quản lý y tế'),
+              ListTile(
+                leading: const Icon(Icons.local_hospital_rounded),
+                title: Text(context.l10n.aboutFeatureMedical),
               ),
 
-              const ListTile(
-                leading: Icon(Icons.person_rounded),
-                title: Text('Hồ sơ người dùng'),
+              ListTile(
+                leading: const Icon(Icons.person_rounded),
+                title: Text(context.l10n.aboutFeatureProfile),
               ),
             ],
           ),
@@ -105,12 +109,15 @@ class _InfoErrorState extends StatelessWidget {
             const Icon(Icons.error_outline_rounded, size: 36),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Không thể tải thông tin. Vui lòng thử lại.',
+              context.l10n.aboutError,
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.md),
-            FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
+            FilledButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.commonRetry),
+            ),
           ],
         ),
       ),

@@ -1,3 +1,5 @@
+import 'package:hospital_app/core/l10n/locale_controller.dart';
+
 class ChatRoom {
   const ChatRoom({
     required this.id,
@@ -31,7 +33,7 @@ class ChatRoom {
         json['topic'] ??
             json['name'] ??
             json['room_name'] ??
-            'Hỗ trợ bệnh nhân',
+            appL10n.chatSupportDefault,
       ),
       lastMessage: _parseString(
         json['last_message'] ?? json['lastMessage'] ?? '',

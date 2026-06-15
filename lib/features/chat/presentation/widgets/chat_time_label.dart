@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 
 class ChatTimeLabel extends StatelessWidget {
   const ChatTimeLabel({required this.isoString, super.key});
@@ -27,7 +28,7 @@ class ChatTimeLabel extends StatelessWidget {
         return '${_pad(dt.hour)}:${_pad(dt.minute)}';
       }
       final yesterday = today.subtract(const Duration(days: 1));
-      if (msgDay == yesterday) return 'Hôm qua';
+      if (msgDay == yesterday) return appL10n.chatYesterday;
 
       return '${_pad(dt.day)}/${_pad(dt.month)}';
     } catch (_) {

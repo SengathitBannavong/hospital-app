@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/features/chat/presentation/providers/chat_provider.dart';
 
 class MainShell extends ConsumerWidget {
@@ -29,20 +30,20 @@ class MainShell extends ConsumerWidget {
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: goToIndex,
         destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Trang chủ',
+          NavigationDestination(
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home_rounded),
+            label: context.l10n.navHome,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.local_hospital_outlined),
-            selectedIcon: Icon(Icons.local_hospital_rounded),
-            label: 'Utilities',
+          NavigationDestination(
+            icon: const Icon(Icons.local_hospital_outlined),
+            selectedIcon: const Icon(Icons.local_hospital_rounded),
+            label: context.l10n.navUtilities,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map_rounded),
-            label: 'Bản đồ',
+          NavigationDestination(
+            icon: const Icon(Icons.map_outlined),
+            selectedIcon: const Icon(Icons.map_rounded),
+            label: context.l10n.navMap,
           ),
           NavigationDestination(
             icon: _ChatNavIcon(
@@ -55,12 +56,12 @@ class MainShell extends ConsumerWidget {
               hasActivity: hasChatActivity,
               child: const Icon(Icons.chat_bubble_rounded),
             ),
-            label: 'Chat',
+            label: context.l10n.navChat,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Hồ sơ',
+          NavigationDestination(
+            icon: const Icon(Icons.person_outline_rounded),
+            selectedIcon: const Icon(Icons.person_rounded),
+            label: context.l10n.navProfile,
           ),
         ],
       ),

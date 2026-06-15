@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 
 class InfoPage extends StatelessWidget {
@@ -13,30 +14,30 @@ class InfoPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Thông tin'),
+        title: Text(context.l10n.infoTitle),
       ),
       body: ListView(
         padding: AppSpacing.pageWithTop,
-        children: const [
+        children: [
           // ── Help & Info ──────────────────────────────────────
-          _SectionHeader(title: 'Trợ giúp & Giới thiệu'),
+          _SectionHeader(title: context.l10n.infoHelpSection),
           _InfoTile(
             icon: Icons.help_outline_rounded,
-            title: 'FAQ',
+            title: context.l10n.faqTitle,
             route: '/faq',
           ),
           _InfoTile(
             icon: Icons.info_outline_rounded,
-            title: 'Giới thiệu',
+            title: context.l10n.infoAbout,
             route: '/about',
           ),
           _InfoTile(
             icon: Icons.contact_support_outlined,
-            title: 'Liên hệ',
+            title: context.l10n.infoContact,
             route: '/contact',
           ),
 
-          SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: AppSpacing.xxl),
         ],
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
@@ -42,7 +43,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
     final password = _passwordController.text;
 
     if (phoneNumber.isEmpty || password.isEmpty) {
-      AppToast.showError('Vui lòng nhập số điện thoại và mật khẩu.');
+      AppToast.showError(context.l10n.loginErrorEmptyFields);
       return;
     }
 
@@ -53,7 +54,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
 
       if (mounted) {
         // Login is a single-step flow on the current backend.
-        AppToast.showSuccess('Đăng nhập thành công.');
+        AppToast.showSuccess(context.l10n.loginSuccess);
         context.go('/');
       }
     } catch (error) {
@@ -102,7 +103,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                         height: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
                       ),
                       Text(
-                        'Chào mừng trở lại',
+                        context.l10n.loginWelcomeBack,
                         textAlign: TextAlign.center,
                         style: context.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -111,7 +112,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Đăng nhập để tiếp tục chăm sóc sức khỏe',
+                        context.l10n.loginSubtitle,
                         textAlign: TextAlign.center,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
@@ -146,7 +147,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Thông tin đăng nhập',
+                            context.l10n.loginCredentials,
                             style: context.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -158,7 +159,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                           ),
                           AuthTextField(
                             controller: _phoneController,
-                            hintText: 'Số điện thoại',
+                            hintText: context.l10n.authPhone,
                             keyboardType: TextInputType.phone,
                             prefixIcon: Icons.phone_outlined,
                             inputFormatters: [
@@ -169,7 +170,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                           const SizedBox(height: AppSpacing.md),
                           AuthTextField(
                             controller: _passwordController,
-                            hintText: 'Mật khẩu',
+                            hintText: context.l10n.authPassword,
                             obscureText: !_isPasswordVisible,
                             prefixIcon: Icons.lock_outline,
                             suffixIcon: IconButton(
@@ -179,7 +180,9 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
                               ),
-                              tooltip: _isPasswordVisible ? 'Ẩn' : 'Hiện',
+                              tooltip: _isPasswordVisible
+                                  ? context.l10n.authHide
+                                  : context.l10n.authShow,
                               visualDensity: VisualDensity.compact,
                             ),
                           ),
@@ -192,7 +195,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                                 context,
                                 compact: true,
                               ),
-                              child: const Text('Quên mật khẩu?'),
+                              child: Text(context.l10n.loginForgotPassword),
                             ),
                           ),
                           SizedBox(
@@ -221,9 +224,9 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                                             ),
                                       ),
                                     )
-                                  : const Text(
-                                      'Tiếp tục',
-                                      style: TextStyle(
+                                  : Text(
+                                      context.l10n.commonContinue,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -245,7 +248,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Chưa có tài khoản?',
+                        context.l10n.loginNoAccount,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
                           fontSize: isSmallScreen ? 13 : null,
@@ -258,7 +261,7 @@ class _LoginOtpPageState extends ConsumerState<LoginOtpPage> {
                           fontSize: isSmallScreen ? 13 : null,
                           fontWeight: FontWeight.bold,
                         ),
-                        child: const Text('Đăng ký ngay'),
+                        child: Text(context.l10n.loginRegisterNow),
                       ),
                     ],
                   ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/device/presentation/providers/asset_providers.dart';
@@ -55,7 +56,7 @@ class _MyWheelchairPageState extends ConsumerState<MyWheelchairPage> {
           .release(assetId: assetId, stationId: stationId);
       if (mounted) {
         setState(() => _isBusy = false);
-        AppToast.showSuccess('Đã trả thiết bị thành công!');
+        AppToast.showSuccess(context.l10n.mwReleaseSuccess);
         ref
           ..invalidate(assetStationsProvider)
           ..invalidate(assetHealthProvider(assetId));
@@ -79,10 +80,10 @@ class _MyWheelchairPageState extends ConsumerState<MyWheelchairPage> {
 
       if (candidates.isEmpty) {
         if (!silent) {
-          AppToast.showWarning('Không tìm thấy lượt mượn nào của bạn.');
+          AppToast.showWarning(context.l10n.mwNoBookingFound);
         }
       } else if (candidates.length == 1) {
-        AppToast.showSuccess('Đã khôi phục lượt mượn: ${candidates.first}');
+        AppToast.showSuccess(context.l10n.mwRecovered(candidates.first));
       } else {
         await _pickFromCandidates(candidates);
       }
@@ -100,12 +101,12 @@ class _MyWheelchairPageState extends ConsumerState<MyWheelchairPage> {
     final chosen = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Chọn xe lăn của bạn'),
+        title: Text(ctx.l10n.mwPickTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Có nhiều xe lăn đang được mượn. Chọn đúng xe của bạn:'),
+            Text(ctx.l10n.mwPickContent),
             const SizedBox(height: AppSpacing.md),
             ...candidates.map(
               (id) => ListTile(
@@ -119,14 +120,14 @@ class _MyWheelchairPageState extends ConsumerState<MyWheelchairPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
+            child: Text(ctx.l10n.commonCancel),
           ),
         ],
       ),
     );
     if (chosen != null) {
       await ref.read(activeBookingProvider.notifier).adopt(chosen);
-      if (mounted) AppToast.showSuccess('Đã chọn lượt mượn: $chosen');
+      if (mounted) AppToast.showSuccess(context.l10n.mwAdopted(chosen));
     }
   }
 
@@ -140,7 +141,7 @@ class _MyWheelchairPageState extends ConsumerState<MyWheelchairPage> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Xe lăn của tôi'),
+        title: Text(context.l10n.mwTitle),
       ),
       body: SingleChildScrollView(
         padding: AppSpacing.pageWithTop,
@@ -193,7 +194,7 @@ class _BookingView extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Đang mượn · $assetId',
+                        context.l10n.mwBorrowing(assetId),
                         style: context.textTheme.titleMedium?.copyWith(
                           color: context.colorScheme.onPrimaryContainer,
                         ),
@@ -203,9 +204,9 @@ class _BookingView extends ConsumerWidget {
                         error: (_, _) => const SizedBox.shrink(),
                         data: (info) => Text(
                           [
-                            'Trạng thái: ${info.status}',
+                            context.l10n.mwStatus(info.status),
                             if (info.batteryLevel != null)
-                              'Pin ${info.batteryLevel}',
+                              context.l10n.mwBattery(info.batteryLevel!),
                           ].join(' · '),
                           style: context.textTheme.bodySmall?.copyWith(
                             color: context.colorScheme.onPrimaryContainer,
@@ -223,7 +224,7 @@ class _BookingView extends ConsumerWidget {
         OutlinedButton.icon(
           onPressed: () => context.push('/asset/track/$assetId'),
           icon: const Icon(Icons.location_on_outlined),
-          label: const Text('Theo dõi vị trí'),
+          label: Text(context.l10n.mwTrackLocation),
         ),
         const SizedBox(height: AppSpacing.md),
         FilledButton.icon(
@@ -235,13 +236,13 @@ class _BookingView extends ConsumerWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.logout_rounded),
-          label: const Text('Trả thiết bị'),
+          label: Text(context.l10n.homeReturnDevice),
         ),
         const SizedBox(height: AppSpacing.md),
         TextButton.icon(
           onPressed: () => context.push('/asset/report/$assetId'),
           icon: const Icon(Icons.report_problem_outlined),
-          label: const Text('Báo hỏng'),
+          label: Text(context.l10n.mwReportBroken),
         ),
       ],
     );
@@ -259,7 +260,7 @@ class _RecoveringState extends StatelessWidget {
         const Center(child: CircularProgressIndicator()),
         const SizedBox(height: AppSpacing.md),
         Text(
-          'Đang kiểm tra lượt mượn của bạn...',
+          context.l10n.mwChecking,
           textAlign: TextAlign.center,
           style: context.textTheme.bodyMedium?.copyWith(
             color: context.colorScheme.onSurfaceVariant,
@@ -289,13 +290,13 @@ class _EmptyState extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         Text(
-          'Bạn chưa mượn xe lăn nào',
+          context.l10n.mwEmptyTitle,
           textAlign: TextAlign.center,
           style: context.textTheme.titleMedium,
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Nếu bạn đã mượn trên thiết bị khác, hãy khôi phục lượt mượn.',
+          context.l10n.mwEmptySubtitle,
           textAlign: TextAlign.center,
           style: context.textTheme.bodySmall?.copyWith(
             color: context.colorScheme.onSurfaceVariant,
@@ -305,7 +306,7 @@ class _EmptyState extends StatelessWidget {
         FilledButton.icon(
           onPressed: () => context.push('/asset/search'),
           icon: const Icon(Icons.search_rounded),
-          label: const Text('Tìm xe lăn'),
+          label: Text(context.l10n.homeActionFindWheelchair),
         ),
         const SizedBox(height: AppSpacing.md),
         OutlinedButton.icon(
@@ -317,7 +318,7 @@ class _EmptyState extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.restore_rounded),
-          label: const Text('Khôi phục lượt mượn'),
+          label: Text(context.l10n.mwRecoverBooking),
         ),
       ],
     );

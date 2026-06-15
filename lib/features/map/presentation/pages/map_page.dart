@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_cell.dart';
@@ -575,12 +576,11 @@ class _MapPageState extends ConsumerState<MapPage>
     required RouteResult? route,
   }) {
     if (dest == null || route == null) {
-      return 'Bản đồ bệnh viện. Chọn điểm đến để bắt đầu.';
+      return appL10n.mapSemanticIdle;
     }
     final steps = route.steps.length;
     final distance = route.distance.round();
-    return 'Đang chỉ đường đến ${dest.poiName}. '
-        '$steps bước, khoảng $distance mét.';
+    return appL10n.mapSemanticNavigating(dest.poiName, steps, distance);
   }
 
   Widget _buildSearchOverlay({

@@ -1,3 +1,5 @@
+import 'package:hospital_app/core/l10n/locale_controller.dart';
+
 class AppNotification {
   const AppNotification({
     required this.id,
@@ -23,7 +25,7 @@ class AppNotification {
 
     return AppNotification(
       id: _parseInt(json['id'] ?? json['notif_id'] ?? json['notification_id']),
-      title: title.isEmpty ? 'Thông báo' : title,
+      title: title.isEmpty ? appL10n.homeNotificationsTitle : title,
       message: message,
       createdAt: _parseString(
         json['created_at'] ?? json['time'] ?? json['createdAt'],

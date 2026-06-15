@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
 import 'package:hospital_app/core/network/api_error_messages.dart';
@@ -26,9 +27,8 @@ class AssetRepository {
   // Shown when track_asset rejects with accessDenied (1009). The backend does
   // not expose booked_by/user_id/is_mine, so 1009 is the only ownership signal:
   // the asset is in use by another user, or the caller may not track it.
-  static const _trackAccessDeniedMessage =
-      'Thiết bị này đang được người dùng khác sử dụng, '
-      'hoặc bạn không có quyền theo dõi thiết bị này.';
+  static String get _trackAccessDeniedMessage =>
+      appL10n.assetInUseOrNoPermission;
 
   Future<List<AssetStation>> getStations() async {
     try {
@@ -262,7 +262,7 @@ class AssetRepository {
     if (data is Map) {
       return friendlyMessage(_bodyCode(data), data['message']?.toString());
     }
-    return e.message ?? 'Đã xảy ra lỗi, vui lòng thử lại.';
+    return e.message ?? appL10n.assetGenericError;
   }
 
   int? _bodyCode(dynamic data) {

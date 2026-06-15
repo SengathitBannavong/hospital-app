@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../data/models/medical_task.dart';
 
@@ -55,11 +56,13 @@ class TaskCard extends StatelessWidget {
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.xs,
                 children: [
-                  _InfoChip(label: 'Phòng: ${task.poiName}'),
+                  _InfoChip(label: context.l10n.tcRoom(task.poiName)),
                   if (task.wardName != null && task.wardName!.isNotEmpty)
-                    _InfoChip(label: 'Khoa: ${task.wardName}'),
-                  _InfoChip(label: 'Ưu tiên: ${task.priority}'),
-                  _InfoChip(label: 'STT: ${task.sequenceNumber}'),
+                    _InfoChip(label: context.l10n.tcWard(task.wardName!)),
+                  _InfoChip(label: context.l10n.tcPriority(task.priority)),
+                  _InfoChip(
+                    label: context.l10n.tcSequence(task.sequenceNumber),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -91,7 +94,9 @@ class TaskCard extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
-                    task.hasResult ? 'Có kết quả' : 'Chưa có kết quả',
+                    task.hasResult
+                        ? context.l10n.tcHasResult
+                        : context.l10n.tcNoResult,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -99,8 +104,10 @@ class TaskCard extends StatelessWidget {
               if (task.checkinAt != null || task.completedAt != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Check-in: ${task.checkinAt ?? '-'}\n'
-                  'Hoàn tất: ${task.completedAt ?? '-'}',
+                  context.l10n.tcCheckinCompleted(
+                    task.checkinAt ?? '-',
+                    task.completedAt ?? '-',
+                  ),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

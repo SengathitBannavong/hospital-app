@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/network/api_client.dart';
 import 'package:hospital_app/core/network/api_endpoints.dart';
 import 'package:hospital_app/core/network/api_response_codes.dart';
@@ -183,8 +184,8 @@ class UtilRepository {
       return data['message']?.toString() ??
           data['error']?.toString() ??
           e.message ??
-          'Đã xảy ra lỗi';
+          appL10n.commonErrorShort;
     }
-    return e.message ?? 'Đã xảy ra lỗi';
+    return e.message ?? appL10n.commonErrorShort;
   }
 }

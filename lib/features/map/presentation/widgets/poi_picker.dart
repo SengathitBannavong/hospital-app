@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
@@ -7,15 +8,13 @@ import 'package:hospital_app/features/map/presentation/providers/map_provider.da
 /// Opens a searchable bottom-sheet of all POIs on the active map and returns
 /// the chosen POI (or null if dismissed). Shared by the queue, wheelchair and
 /// staff pages so users pick a location instead of typing a code.
-Future<MapPoi?> showPoiPicker(
-  BuildContext context, {
-  String title = 'Chọn vị trí',
-}) {
+Future<MapPoi?> showPoiPicker(BuildContext context, {String? title}) {
+  final resolvedTitle = title ?? context.l10n.poiPickerDefaultTitle;
   return showModalBottomSheet<MapPoi>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (_) => _PoiPickerSheet(title: title),
+    builder: (_) => _PoiPickerSheet(title: resolvedTitle),
   );
 }
 
@@ -26,19 +25,21 @@ class PoiPickerField extends StatelessWidget {
     super.key,
     required this.onTap,
     this.selected,
-    this.label = 'Vị trí',
-    this.hint = 'Chọn vị trí...',
+    this.label,
+    this.hint,
   });
 
   final VoidCallback onTap;
   final MapPoi? selected;
-  final String label;
-  final String hint;
+  final String? label;
+  final String? hint;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final poi = selected;
+    final label = this.label ?? context.l10n.poiFieldLabel;
+    final hint = this.hint ?? context.l10n.poiFieldHint;
     return InkWell(
       onTap: onTap,
       borderRadius: AppRadius.borderLg,
@@ -116,9 +117,9 @@ class _PoiPickerSheetState extends ConsumerState<_PoiPickerSheet> {
     if (floors.isLoading || (floors.hasValue && mapId == null)) {
       body = const Center(child: CircularProgressIndicator());
     } else if (floors.hasError) {
-      body = const Center(child: Text('Không tải được danh sách vị trí.'));
+      body = Center(child: Text(context.l10n.poiLoadError));
     } else if (mapId == null) {
-      body = const Center(child: Text('Không có bản đồ khả dụng.'));
+      body = Center(child: Text(context.l10n.poiNoMap));
     } else {
       body = ref
           .watch(mapNodesProvider(mapId))
@@ -133,8 +134,8 @@ class _PoiPickerSheetState extends ConsumerState<_PoiPickerSheet> {
                 return Center(
                   child: Text(
                     _query.isEmpty
-                        ? 'Chưa có vị trí nào.'
-                        : 'Không tìm thấy "$_query".',
+                        ? context.l10n.poiEmpty
+                        : context.l10n.poiNotFound(_query),
                     style: context.textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -185,9 +186,9 @@ class _PoiPickerSheetState extends ConsumerState<_PoiPickerSheet> {
               TextField(
                 controller: _controller,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Tìm theo tên hoặc mã...',
-                  prefixIcon: Icon(Icons.search_rounded),
+                decoration: InputDecoration(
+                  hintText: context.l10n.poiSearchHint,
+                  prefixIcon: const Icon(Icons.search_rounded),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/network/api_response_codes.dart';
 import 'package:hospital_app/core/network/session_manager.dart';
 import 'package:hospital_app/core/network/token_repository.dart';
@@ -44,9 +45,9 @@ class ErrorInterceptor extends Interceptor {
       // expired. Force a logout so the user is bounced back to login.
       unawaited(_handleSessionRejected(bodyCode, _extractServerMessage(err)));
     } else if (statusCode == ApiResponseCodes.httpForbidden) {
-      AppToast.showWarning('Bạn không có quyền thực hiện thao tác này.');
+      AppToast.showWarning(appL10n.errAccessDenied);
     } else if (statusCode == ApiResponseCodes.httpInternalServerError) {
-      AppToast.showWarning('Máy chủ đang gặp sự cố, vui lòng thử lại sau.');
+      AppToast.showWarning(appL10n.errServer);
     }
 
     // Could wrap the error in a custom Exception class before passing it along
@@ -65,11 +66,9 @@ class ErrorInterceptor extends Interceptor {
 
   String _sessionMessage(int? code, String? serverMessage) {
     if (code == ApiResponseCodes.accountLoggedInElsewhere) {
-      return 'Tài khoản đã đăng nhập trên thiết bị khác. '
-          'Vui lòng đăng nhập lại.';
+      return appL10n.errAccountElsewhere;
     }
-    return serverMessage ??
-        'Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.';
+    return serverMessage ?? appL10n.errSessionEnded;
   }
 
   int? _bodyCode(dynamic data) {
@@ -94,33 +93,33 @@ class ErrorInterceptor extends Interceptor {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return 'Kết nối tới máy chủ quá hạn, vui lòng thử lại.';
+        return appL10n.errTimeout;
       case DioExceptionType.badResponse:
         return _mapStatusCodeToMessage(dioException.response?.statusCode);
       case DioExceptionType.cancel:
-        return 'Yêu cầu đã bị hủy.';
+        return appL10n.errCancelled;
       case DioExceptionType.connectionError:
-        return 'Không có kết nối mạng.';
+        return appL10n.errNoNetwork;
       case DioExceptionType.unknown:
-        return 'Đã xảy ra lỗi, vui lòng thử lại.';
+        return appL10n.assetGenericError;
       default:
-        return 'Đã xảy ra lỗi, vui lòng thử lại.';
+        return appL10n.assetGenericError;
     }
   }
 
   String _mapStatusCodeToMessage(int? statusCode) {
     if (statusCode == ApiResponseCodes.httpBadRequest) {
-      return 'Yêu cầu không hợp lệ.';
+      return appL10n.errBadRequest;
     } else if (statusCode == ApiResponseCodes.httpUnauthorized) {
-      return 'Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.';
+      return appL10n.errSessionEnded;
     } else if (statusCode == ApiResponseCodes.httpForbidden) {
-      return 'Bạn không có quyền thực hiện thao tác này.';
+      return appL10n.errAccessDenied;
     } else if (statusCode == ApiResponseCodes.httpNotFound) {
-      return 'Không tìm thấy dữ liệu.';
+      return appL10n.errDataNotFound;
     } else if (statusCode == ApiResponseCodes.httpInternalServerError) {
-      return 'Máy chủ đang gặp sự cố, vui lòng thử lại sau.';
+      return appL10n.errServer;
     } else {
-      return 'Đã xảy ra lỗi, vui lòng thử lại.';
+      return appL10n.assetGenericError;
     }
   }
 

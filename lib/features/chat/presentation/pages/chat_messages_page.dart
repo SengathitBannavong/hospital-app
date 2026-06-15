@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
@@ -220,7 +221,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
     if (widget.roomName.isNotEmpty) return widget.roomName;
     final rooms = ref.read(chatRoomsProvider).rooms;
     final room = rooms.where((r) => r.id == widget.roomId).firstOrNull;
-    return room?.name ?? 'Phòng chat';
+    return room?.name ?? appL10n.chatRoomDefault;
   }
 
   @override
@@ -310,7 +311,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
     }
 
     if (state.messages.isEmpty) {
-      return const Center(child: Text('Chưa có tin nhắn nào'));
+      return Center(child: Text(context.l10n.chatNoMessagesYet));
     }
 
     // +1 slot for the top footer (older-messages indicator / load-more spinner).
@@ -371,7 +372,10 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
       onPressed: () =>
           ref.read(chatMessagesProvider(widget.roomId).notifier).loadMore(),
       icon: const Icon(Icons.expand_less_rounded, size: 18),
-      label: const Text('Tải tin nhắn cũ hơn', style: TextStyle(fontSize: 13)),
+      label: Text(
+        context.l10n.chatLoadOlder,
+        style: const TextStyle(fontSize: 13),
+      ),
     );
   }
 
@@ -394,7 +398,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
             IconButton(
               onPressed: state.isSending ? null : _pickImage,
               icon: const Icon(Icons.image_outlined),
-              tooltip: 'Gửi ảnh',
+              tooltip: context.l10n.chatSendImage,
             ),
             Expanded(
               child: TextField(
@@ -405,7 +409,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
                 maxLines: 4,
                 minLines: 1,
                 decoration: InputDecoration(
-                  hintText: 'Nhập tin nhắn...',
+                  hintText: context.l10n.chatInputHint,
                   filled: true,
                   fillColor: cs.surfaceContainerHighest,
                   contentPadding: const EdgeInsets.symmetric(
@@ -478,7 +482,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
-                    'Tin nhắn mới',
+                    context.l10n.chatNewMessages,
                     style: TextStyle(
                       color: cs.onPrimary,
                       fontSize: 13,
@@ -509,7 +513,7 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
               onPressed: () =>
                   ref.read(chatMessagesProvider(widget.roomId).notifier).load(),
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
+              label: Text(context.l10n.commonRetry),
             ),
           ],
         ),

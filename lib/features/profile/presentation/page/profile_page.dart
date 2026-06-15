@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -26,19 +27,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   bool _isUploadingAvatar = false;
 
   Future<void> _handleLogout() async {
+    final l10n = context.l10n;
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Đăng xuất'),
-        content: const Text('Bạn có chắc chắn muốn đăng xuất không?'),
+        title: Text(l10n.settingsLogout),
+        content: Text(l10n.profileLogoutConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy bỏ'),
+            child: Text(l10n.commonCancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Đăng xuất'),
+            child: Text(l10n.settingsLogout),
           ),
         ],
       ),
@@ -50,27 +52,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     if (!mounted) return;
 
-    AppToast.showSuccess('Đã đăng xuất thành công.');
+    AppToast.showSuccess(l10n.welcomeLogoutSuccess);
     context.go('/login');
   }
 
   Future<void> _handleRemoveAvatar() async {
+    final l10n = context.l10n;
     final currentProfile = ref.read(profileProvider).profile;
     if (currentProfile == null) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xóa ảnh đại diện'),
-        content: const Text('Bạn có chắc chắn muốn xóa ảnh đại diện không?'),
+        title: Text(l10n.profileRemoveAvatarTitle),
+        content: Text(l10n.profileRemoveAvatarConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy bỏ'),
+            child: Text(l10n.commonCancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Xóa'),
+            child: Text(l10n.commonDelete),
           ),
         ],
       ),
@@ -98,22 +101,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
 
     if (success && mounted) {
-      AppToast.showSuccess('Đã xóa ảnh đại diện.');
+      AppToast.showSuccess(l10n.profileAvatarRemoved);
     } else if (!success && mounted) {
       AppToast.showError(
-        ref.read(profileProvider).errorMessage ?? 'Không thể xóa ảnh đại diện.',
+        ref.read(profileProvider).errorMessage ?? l10n.profileAvatarRemoveError,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final profileState = ref.watch(profileProvider);
     final profile = profileState.profile;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Chỉnh sửa hồ sơ' : 'Hồ sơ người dùng'),
+        title: Text(
+          _isEditing ? l10n.profileEditTitle : l10n.aboutFeatureProfile,
+        ),
         actions: [
           if (!_isEditing) ...[
             IconButton(
@@ -129,7 +135,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
             IconButton(
               icon: const Icon(Icons.settings_outlined),
-              tooltip: 'Cài đặt',
+              tooltip: l10n.settingsTitle,
               onPressed: () => context.push('/settings'),
             ),
           ],
@@ -170,9 +176,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             final sizeBytes = await picked.length();
                             const maxBytes = 10 * 1024 * 1024;
                             if (sizeBytes > maxBytes) {
-                              AppToast.showError(
-                                'Ảnh vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.',
-                              );
+                              AppToast.showError(l10n.profileImageTooLarge);
                               return;
                             }
 
@@ -197,7 +201,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                   '',
                                 );
                                 AppToast.showError(
-                                  'Không thể tải ảnh lên: $msg',
+                                  l10n.profileUploadError(msg),
                                 );
                               }
                               return;
@@ -219,13 +223,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             }
 
                             if (success && mounted) {
-                              AppToast.showSuccess(
-                                'Cập nhật ảnh đại diện thành công.',
-                              );
+                              AppToast.showSuccess(l10n.profileAvatarUpdated);
                             } else if (!success && mounted) {
                               AppToast.showError(
                                 ref.read(profileProvider).errorMessage ??
-                                    'Không thể cập nhật ảnh đại diện.',
+                                    l10n.profileAvatarUpdateError,
                               );
                             }
                           },
@@ -243,14 +245,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                   .updateProfile(request);
                               if (success && mounted) {
                                 setState(() => _isEditing = false);
-                                AppToast.showSuccess(
-                                  'Cập nhật hồ sơ thành công.',
-                                );
+                                AppToast.showSuccess(l10n.profileUpdated);
                               }
                               if (!success && mounted) {
                                 AppToast.showError(
                                   ref.read(profileProvider).errorMessage ??
-                                      'Không thể cập nhật hồ sơ.',
+                                      l10n.profileUpdateError,
                                 );
                               }
                             },
@@ -289,7 +289,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           children: [
             const Icon(Icons.person_off_outlined, size: 48),
             const SizedBox(height: AppSpacing.md),
-            const Text('Không thể tải hồ sơ'),
+            Text(context.l10n.profileLoadError),
             const SizedBox(height: AppSpacing.xs),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.md),
@@ -303,7 +303,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     });
               },
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
+              label: Text(context.l10n.commonRetry),
             ),
           ],
         ),

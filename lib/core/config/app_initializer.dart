@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/services/firebase_notification_service.dart';
 import 'package:hospital_app/core/theme/theme_controller.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
@@ -50,6 +51,10 @@ class _AppInitializerState extends ConsumerState<AppInitializer> {
     final theme = settings?.theme;
     if (theme != null) {
       themeController.setThemeMode(_themeFromString(theme));
+    }
+    final language = settings?.language;
+    if (language != null) {
+      localeController.setLanguageCode(language);
     }
   }
 

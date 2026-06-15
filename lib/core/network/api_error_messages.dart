@@ -1,3 +1,4 @@
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/network/api_response_codes.dart';
 
 /// Maps a backend `{code, message}` pair to a user-friendly Vietnamese string.
@@ -14,65 +15,66 @@ import 'package:hospital_app/core/network/api_response_codes.dart';
 /// the [ErrorInterceptor] owns those (force-logout); the generic fallback keeps
 /// them safe if they ever reach here.
 String friendlyMessage(int? code, String? raw) {
+  final l10n = appL10n;
   switch (code) {
     // ── Request / parameter ──
     case ApiResponseCodes.badRequest:
     case ApiResponseCodes.invalidBodyOrSpam:
-      return 'Yêu cầu không hợp lệ.';
+      return l10n.errBadRequest;
     case ApiResponseCodes.missingParameter:
-      return 'Thiếu thông tin bắt buộc.';
+      return l10n.errMissingParameter;
     case ApiResponseCodes.invalidParameterType:
-      return 'Dữ liệu gửi lên không hợp lệ.';
+      return l10n.errInvalidParameterType;
     case ApiResponseCodes.invalidParameterValue:
-      return 'Giá trị không hợp lệ.';
+      return l10n.errInvalidParameterValue;
     case ApiResponseCodes.methodNotAllowed:
-      return 'Thao tác không được hỗ trợ.';
+      return l10n.errMethodNotAllowed;
 
     // ── Permission / limits ──
     case ApiResponseCodes.accessDenied:
     case ApiResponseCodes.permissionDenied:
     case ApiResponseCodes.adminRoleRequired:
-      return 'Bạn không có quyền thực hiện thao tác này.';
+      return l10n.errAccessDenied;
     case ApiResponseCodes.limitExceeded:
       // Asset context: only one wheelchair may be borrowed at a time.
-      return 'Bạn đang mượn thiết bị khác, vui lòng trả trước khi mượn thêm.';
+      return l10n.errLimitExceeded;
 
     // ── Auth / OTP ──
     case ApiResponseCodes.otpIncorrect:
-      return 'Mã OTP không đúng.';
+      return l10n.errOtpIncorrect;
     case ApiResponseCodes.otpExpired:
-      return 'Mã OTP đã hết hạn.';
+      return l10n.errOtpExpired;
     case ApiResponseCodes.userAlreadyExists:
-      return 'Tài khoản đã tồn tại.';
+      return l10n.errUserExists;
     case ApiResponseCodes.userNotFound:
-      return 'Không tìm thấy tài khoản.';
+      return l10n.errUserNotFound;
     case ApiResponseCodes.passwordIncorrect:
-      return 'Mật khẩu không đúng.';
+      return l10n.errPasswordIncorrect;
 
     // ── Map / routing ──
     case ApiResponseCodes.floorNotFound:
     case ApiResponseCodes.nodeNotFound:
     case ApiResponseCodes.edgeNotFound:
     case ApiResponseCodes.mapResourceNotFound:
-      return 'Không tìm thấy thông tin phù hợp trên hệ thống.';
+      return l10n.errMapNotFound;
     case ApiResponseCodes.invalidStartLocation:
-      return 'Vị trí bắt đầu không hợp lệ.';
+      return l10n.errInvalidStart;
     case ApiResponseCodes.invalidDestination:
-      return 'Điểm đến không hợp lệ.';
+      return l10n.errInvalidDestination;
     case ApiResponseCodes.pathNotFound:
-      return 'Không tìm thấy đường đi phù hợp.';
+      return l10n.errPathNotFound;
     case ApiResponseCodes.invalidLocationData:
-      return 'Dữ liệu vị trí không hợp lệ.';
+      return l10n.errInvalidLocationData;
     case ApiResponseCodes.densityDataUnavailable:
-      return 'Dữ liệu mật độ tạm thời không khả dụng.';
+      return l10n.errDensityUnavailable;
 
     // ── Medical / asset ──
     case ApiResponseCodes.clinicalTaskNotFound:
-      return 'Không tìm thấy nhiệm vụ.';
+      return l10n.errTaskNotFound;
     case ApiResponseCodes.assetNotFound:
-      return 'Không tìm thấy thiết bị.';
+      return l10n.errAssetNotFound;
     case ApiResponseCodes.assetNotAvailable:
-      return 'Thiết bị hiện không khả dụng.';
+      return l10n.errAssetNotAvailable;
 
     // ── Server / infrastructure ──
     case ApiResponseCodes.internalServerError:
@@ -81,10 +83,9 @@ String friendlyMessage(int? code, String? raw) {
     case ApiResponseCodes.dbConnectionFailed:
     case ApiResponseCodes.dbQueryFailed:
     case ApiResponseCodes.unexpectedException:
-      return 'Máy chủ đang gặp sự cố, vui lòng thử lại sau.';
+      return l10n.errServer;
     case ApiResponseCodes.hisServiceUnavailable:
-      return 'Hệ thống bệnh viện tạm thời không phản hồi, '
-          'vui lòng thử lại sau.';
+      return l10n.errHisUnavailable;
 
     default:
       final trimmed = raw?.trim();
@@ -96,6 +97,6 @@ String friendlyMessage(int? code, String? raw) {
           trimmed.toLowerCase() != 'success') {
         return trimmed;
       }
-      return 'Đã xảy ra lỗi, vui lòng thử lại.';
+      return l10n.assetGenericError;
   }
 }
