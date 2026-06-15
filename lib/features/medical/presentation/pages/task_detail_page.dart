@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../data/models/medical_task.dart';
 import '../providers/medical_providers.dart';
@@ -63,23 +64,26 @@ class TaskDetailPage extends ConsumerWidget {
       if (!context.mounted) return;
 
       if (result == null) {
-        _showSnackBar(context, 'Không có dữ liệu kết quả');
+        _showSnackBar(context, context.l10n.tdNoResultData);
         return;
       }
 
+      final l10n = context.l10n;
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Kết quả'),
+          title: Text(l10n.tdResultTitle),
           content: Text(
-            'Treatment: ${result.treatmentId}\n'
-            'Trạng thái: ${result.status}\n'
-            'Có kết quả: ${result.hasResult ? 'Có' : 'Chưa'}',
+            l10n.tdResultBody(
+              result.treatmentId,
+              result.status,
+              result.hasResult ? l10n.tdResultHas : l10n.tdResultNotYet,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Đóng'),
+              child: Text(l10n.commonClose),
             ),
           ],
         ),
@@ -94,16 +98,16 @@ class TaskDetailPage extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Hủy chỉ định'),
-        content: const Text('Bạn có chắc chắn muốn hủy không?'),
+        title: Text(context.l10n.tdCancelTitle),
+        content: Text(context.l10n.tdCancelConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Không'),
+            child: Text(context.l10n.commonNo),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Có'),
+            child: Text(context.l10n.commonYes),
           ),
         ],
       ),
@@ -117,7 +121,7 @@ class TaskDetailPage extends ConsumerWidget {
       () => ref
           .read(medicalRepositoryProvider)
           .cancelTask(treatmentId: task.treatmentId),
-      'Đã hủy chỉ định',
+      context.l10n.tdCancelled,
     );
   }
 
@@ -128,7 +132,7 @@ class TaskDetailPage extends ConsumerWidget {
     final canAct = !isCancelled && !isCompleted;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiết chỉ định')),
+      appBar: AppBar(title: Text(context.l10n.tdDetailTitle)),
       body: ListView(
         padding: AppSpacing.pagePadding,
         children: [
@@ -136,7 +140,10 @@ class TaskDetailPage extends ConsumerWidget {
           // Informational card (no inline callbacks -> no buttons here).
           TaskCard(task: task),
           const SizedBox(height: AppSpacing.lg),
-          Text('Thao tác', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            context.l10n.tdActions,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: AppSpacing.md),
           if (canAct)
             FilledButton.icon(
@@ -146,10 +153,10 @@ class TaskDetailPage extends ConsumerWidget {
                 () => ref
                     .read(medicalRepositoryProvider)
                     .checkinRoom(treatmentId: task.treatmentId),
-                'Check-in thành công',
+                context.l10n.tdCheckinSuccess,
               ),
               icon: const Icon(Icons.login_rounded),
-              label: const Text('Check-in'),
+              label: Text(context.l10n.tdCheckin),
             ),
           if (canAct) const SizedBox(height: AppSpacing.sm),
           if (canAct)
@@ -160,16 +167,16 @@ class TaskDetailPage extends ConsumerWidget {
                 () => ref
                     .read(medicalRepositoryProvider)
                     .checkoutRoom(treatmentId: task.treatmentId),
-                'Check-out thành công',
+                context.l10n.tdCheckoutSuccess,
               ),
               icon: const Icon(Icons.logout_rounded),
-              label: const Text('Check-out'),
+              label: Text(context.l10n.tdCheckout),
             ),
           if (canAct) const SizedBox(height: AppSpacing.sm),
           OutlinedButton.icon(
             onPressed: () => _showResultStatus(context, ref),
             icon: const Icon(Icons.assignment_turned_in_outlined),
-            label: const Text('Kết quả'),
+            label: Text(context.l10n.tdResultTitle),
           ),
           if (canAct) const SizedBox(height: AppSpacing.sm),
           if (canAct)
@@ -179,7 +186,7 @@ class TaskDetailPage extends ConsumerWidget {
                 foregroundColor: Theme.of(context).colorScheme.error,
               ),
               icon: const Icon(Icons.cancel_outlined),
-              label: const Text('Hủy chỉ định'),
+              label: Text(context.l10n.tdCancelTitle),
             ),
           const SizedBox(height: AppSpacing.xxl),
         ],

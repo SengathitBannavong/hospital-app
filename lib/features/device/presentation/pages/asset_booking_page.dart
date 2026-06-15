@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/device/data/repository/asset_repository.dart';
@@ -38,7 +39,7 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
       await ref.read(activeBookingProvider.notifier).book(widget.assetId);
       if (mounted) {
         setState(() => _isLoading = false);
-        AppToast.showSuccess('Đã mượn thiết bị ${widget.assetId} thành công!');
+        AppToast.showSuccess(context.l10n.abBookSuccess(widget.assetId));
         ref
           ..invalidate(assetStationsProvider)
           ..invalidate(assetHealthProvider(widget.assetId));
@@ -73,7 +74,7 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
           .release(assetId: widget.assetId, stationId: stationId);
       if (mounted) {
         setState(() => _isLoading = false);
-        AppToast.showSuccess('Đã trả thiết bị thành công!');
+        AppToast.showSuccess(context.l10n.mwReleaseSuccess);
         ref
           ..invalidate(assetStationsProvider)
           ..invalidate(assetHealthProvider(widget.assetId));
@@ -107,7 +108,7 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: Text('Thiết bị ${widget.assetId}'),
+        title: Text(context.l10n.abTitle(widget.assetId)),
       ),
       body: SingleChildScrollView(
         padding: AppSpacing.pageWithTop,
@@ -129,16 +130,28 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Thông tin thiết bị',
+                        context.l10n.abDeviceInfo,
                         style: context.textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      _Row(label: 'Mã thiết bị', value: info.assetId),
-                      _Row(label: 'Trạng thái', value: info.status),
+                      _Row(
+                        label: context.l10n.trackAssetCode,
+                        value: info.assetId,
+                      ),
+                      _Row(
+                        label: context.l10n.trackStatus,
+                        value: info.status,
+                      ),
                       if (info.condition != null)
-                        _Row(label: 'Tình trạng', value: info.condition!),
+                        _Row(
+                          label: context.l10n.trackCondition,
+                          value: info.condition!,
+                        ),
                       if (info.batteryLevel != null)
-                        _Row(label: 'Pin', value: info.batteryLevel!),
+                        _Row(
+                          label: context.l10n.trackBattery,
+                          value: info.batteryLevel!,
+                        ),
                     ],
                   ),
                 ),
@@ -152,7 +165,7 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
                 onPressed: () =>
                     context.push('/asset/report/${widget.assetId}'),
                 icon: const Icon(Icons.report_problem_outlined),
-                label: const Text('Báo hỏng'),
+                label: Text(context.l10n.mwReportBroken),
               ),
             ] else if (isUsedByOther) ...[
               const _InUseByOtherNotice(),
@@ -161,7 +174,7 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
                 onPressed: () =>
                     context.push('/asset/report/${widget.assetId}'),
                 icon: const Icon(Icons.report_problem_outlined),
-                label: const Text('Báo hỏng'),
+                label: Text(context.l10n.mwReportBroken),
               ),
             ] else if (!isBooked) ...[
               FilledButton.icon(
@@ -173,14 +186,14 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.add_rounded),
-                label: const Text('Mượn thiết bị'),
+                label: Text(context.l10n.abBookDevice),
               ),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(
                 onPressed: () =>
                     context.push('/asset/report/${widget.assetId}'),
                 icon: const Icon(Icons.report_problem_outlined),
-                label: const Text('Báo hỏng'),
+                label: Text(context.l10n.mwReportBroken),
               ),
             ] else ...[
               FilledButton.icon(
@@ -192,20 +205,20 @@ class _AssetBookingPageState extends ConsumerState<AssetBookingPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.logout_rounded),
-                label: const Text('Trả thiết bị'),
+                label: Text(context.l10n.homeReturnDevice),
               ),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(
                 onPressed: () => context.push('/asset/track/${widget.assetId}'),
                 icon: const Icon(Icons.location_on_outlined),
-                label: const Text('Theo dõi vị trí'),
+                label: Text(context.l10n.mwTrackLocation),
               ),
               const SizedBox(height: AppSpacing.md),
               TextButton.icon(
                 onPressed: () =>
                     context.push('/asset/report/${widget.assetId}'),
                 icon: const Icon(Icons.report_problem_outlined),
-                label: const Text('Báo hỏng'),
+                label: Text(context.l10n.mwReportBroken),
               ),
             ],
           ],
@@ -237,15 +250,14 @@ class _MaintenanceNotice extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Thiết bị đang bảo trì',
+                    context.l10n.abMaintenanceTitle,
                     style: context.textTheme.titleSmall?.copyWith(
                       color: context.colorScheme.onErrorContainer,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Thiết bị này tạm thời không khả dụng để mượn. '
-                    'Vui lòng chọn thiết bị khác.',
+                    context.l10n.abMaintenanceBody,
                     style: context.textTheme.bodySmall?.copyWith(
                       color: context.colorScheme.onErrorContainer,
                     ),
@@ -282,13 +294,12 @@ class _InUseByOtherNotice extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Thiết bị đang được sử dụng',
+                    context.l10n.abInUseTitle,
                     style: context.textTheme.titleSmall,
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Thiết bị này đang được người dùng khác mượn. '
-                    'Vui lòng chọn thiết bị khác.',
+                    context.l10n.abInUseBody,
                     style: context.textTheme.bodySmall?.copyWith(
                       color: context.colorScheme.onSurfaceVariant,
                     ),

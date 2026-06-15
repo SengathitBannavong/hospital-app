@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../../../../core/utils/dob_utils.dart';
@@ -92,13 +93,13 @@ class _ProfileFormState extends State<ProfileForm> {
           TextFormField(
             controller: _fullNameController,
             enabled: !widget.isSubmitting,
-            decoration: const InputDecoration(
-              labelText: 'Họ và tên',
-              prefixIcon: Icon(Icons.person_outline),
+            decoration: InputDecoration(
+              labelText: context.l10n.registerFullName,
+              prefixIcon: const Icon(Icons.person_outline),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Vui lòng nhập họ và tên';
+                return context.l10n.profileFullNameRequired;
               }
               return null;
             },
@@ -108,9 +109,9 @@ class _ProfileFormState extends State<ProfileForm> {
             controller: _dobController,
             enabled: !widget.isSubmitting,
             readOnly: true,
-            decoration: const InputDecoration(
-              labelText: 'Ngày sinh',
-              prefixIcon: Icon(Icons.calendar_today_outlined),
+            decoration: InputDecoration(
+              labelText: context.l10n.profileDob,
+              prefixIcon: const Icon(Icons.calendar_today_outlined),
             ),
             onTap: () => _selectDate(context),
           ),
@@ -124,14 +125,23 @@ class _ProfileFormState extends State<ProfileForm> {
                       _selectedGender = value;
                     });
                   },
-            decoration: const InputDecoration(
-              labelText: 'Giới tính',
-              prefixIcon: Icon(Icons.wc_outlined),
+            decoration: InputDecoration(
+              labelText: context.l10n.profileGender,
+              prefixIcon: const Icon(Icons.wc_outlined),
             ),
-            items: const [
-              DropdownMenuItem(value: 0, child: Text('Nam')),
-              DropdownMenuItem(value: 1, child: Text('Nữ')),
-              DropdownMenuItem(value: 2, child: Text('Khác')),
+            items: [
+              DropdownMenuItem(
+                value: 0,
+                child: Text(context.l10n.genderMale),
+              ),
+              DropdownMenuItem(
+                value: 1,
+                child: Text(context.l10n.genderFemale),
+              ),
+              DropdownMenuItem(
+                value: 2,
+                child: Text(context.l10n.genderOther),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -140,7 +150,7 @@ class _ProfileFormState extends State<ProfileForm> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: widget.isSubmitting ? null : widget.onCancel,
-                  child: const Text('Hủy'),
+                  child: Text(context.l10n.commonCancel),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -156,12 +166,14 @@ class _ProfileFormState extends State<ProfileForm> {
                           if (dobText.isNotEmpty) {
                             final parsedDob = DateTime.tryParse(dobText);
                             if (parsedDob == null) {
-                              AppToast.showError('Ngày sinh không hợp lệ.');
+                              AppToast.showError(
+                                context.l10n.profileInvalidDob,
+                              );
                               return;
                             }
                             if (!isAtLeastAge(parsedDob, 13)) {
                               AppToast.showError(
-                                'Bạn phải ít nhất 13 tuổi để đăng ký.',
+                                context.l10n.registerErrorMinAge,
                               );
                               return;
                             }
@@ -184,7 +196,7 @@ class _ProfileFormState extends State<ProfileForm> {
                           width: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Lưu'),
+                      : Text(context.l10n.commonSave),
                 ),
               ),
             ],

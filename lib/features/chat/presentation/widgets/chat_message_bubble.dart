@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/network/media_url.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import '../../data/models/chat_message.dart';
@@ -74,7 +75,9 @@ class ChatMessageBubble extends StatelessWidget {
                   if (isMe) ...[
                     const SizedBox(width: 6),
                     Text(
-                      message.isRead ? '✓✓ Read' : '✓ Sent',
+                      message.isRead
+                          ? context.l10n.chatMsgRead
+                          : context.l10n.chatMsgSent,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: cs.onSurfaceVariant,
                         fontSize: 10,
@@ -98,10 +101,10 @@ class ChatMessageBubble extends StatelessWidget {
   }
 
   String get _fallbackSideLabel => switch (message.senderType) {
-    'user' => 'Bệnh nhân',
-    'admin' => 'Quản trị viên',
-    'coordinator' => 'Điều phối viên',
-    _ => 'Nhân viên hỗ trợ',
+    'user' => appL10n.senderPatient,
+    'admin' => appL10n.senderAdmin,
+    'coordinator' => appL10n.senderCoordinator,
+    _ => appL10n.senderStaff,
   };
 
   Widget _buildContent(BuildContext context) {
@@ -127,7 +130,7 @@ class ChatMessageBubble extends StatelessWidget {
     final resolvedUrl = resolveMediaUrl(message.mediaUrl);
     if (resolvedUrl == null) {
       return Text(
-        'Không thể tải ảnh',
+        context.l10n.chatImageLoadError,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: isMe ? cs.onPrimary : cs.onSurface,
         ),
@@ -142,7 +145,7 @@ class ChatMessageBubble extends StatelessWidget {
         width: 220,
         height: 180,
         errorBuilder: (context, error, stackTrace) => Text(
-          'Không thể tải ảnh',
+          context.l10n.chatImageLoadError,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: isMe ? cs.onPrimary : cs.onSurface,
           ),
@@ -162,7 +165,7 @@ class ChatMessageBubble extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.xs),
         Text(
-          'Tin nhắn thoại',
+          context.l10n.chatVoiceMessage,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: isMe ? cs.onPrimary : cs.onSurface,
           ),

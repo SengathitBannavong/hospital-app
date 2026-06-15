@@ -10,6 +10,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/features/notification/data/models/app_notification.dart';
 import 'package:hospital_app/features/notification/presentation/providers/notification_provider.dart';
 
@@ -218,7 +219,7 @@ class FirebaseNotificationService {
     // Also add to in-memory notification list
     final appNotification = AppNotification(
       id: message.hashCode,
-      title: notification.title ?? 'Thông báo',
+      title: notification.title ?? appL10n.homeNotificationsTitle,
       message: notification.body ?? '',
       createdAt: DateTime.now().toIso8601String(),
       isRead: false,

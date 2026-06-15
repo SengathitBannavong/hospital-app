@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hospital_app/features/util/presentation/providers/util_providers.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 
 class ContactPage extends ConsumerWidget {
@@ -19,7 +20,7 @@ class ContactPage extends ConsumerWidget {
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/info'),
         ),
-        title: const Text('Liên hệ'),
+        title: Text(context.l10n.infoContact),
       ),
       body: contact.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -43,7 +44,7 @@ class ContactPage extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.lg),
 
                       Text(
-                        'Bệnh viện Trung tâm',
+                        context.l10n.contactHospitalName,
                         style: context.textTheme.headlineSmall,
                       ),
 
@@ -101,12 +102,15 @@ class _ContactErrorState extends StatelessWidget {
             const Icon(Icons.error_outline_rounded, size: 36),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Không thể tải thông tin liên hệ. Vui lòng thử lại.',
+              context.l10n.contactError,
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.md),
-            FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
+            FilledButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.commonRetry),
+            ),
           ],
         ),
       ),

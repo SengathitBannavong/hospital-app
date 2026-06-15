@@ -1,6 +1,7 @@
 // lib/features/sos/presentation/providers/sos_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import '../../data/models/sos_detail.dart';
 import '../../data/repository/sos_repository.dart';
 
@@ -72,7 +73,7 @@ class SosNotifier extends StateNotifier<SosState> {
       state = state.copyWith(
         isSending: false,
         detail: detail,
-        successMessage: 'Đã gửi tín hiệu SOS. Nhân viên đang trên đường đến!',
+        successMessage: appL10n.sosSentMessage,
       );
       return true;
     } catch (e) {

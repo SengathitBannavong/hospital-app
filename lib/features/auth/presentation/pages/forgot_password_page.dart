@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
@@ -32,7 +33,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     final phoneNumber = _phoneController.text.trim();
 
     if (phoneNumber.isEmpty) {
-      AppToast.showError('Vui lòng nhập số điện thoại.');
+      AppToast.showError(context.l10n.forgotErrorEmptyPhone);
       return;
     }
 
@@ -44,7 +45,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
           .forgotPassword(phoneNumber);
 
       if (mounted) {
-        AppToast.showSuccess('Mã xác thực đã được gửi.');
+        AppToast.showSuccess(context.l10n.forgotOtpSent);
         context.push(
           '/verify-otp/$phoneNumber/forgot_password',
           extra: {'otp_code': response.otpCode},
@@ -105,7 +106,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                         height: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
                       ),
                       Text(
-                        'Quên mật khẩu?',
+                        context.l10n.loginForgotPassword,
                         textAlign: TextAlign.center,
                         style: context.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -114,7 +115,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Nhập số điện thoại để nhận mã xác thực',
+                        context.l10n.forgotSubtitle,
                         textAlign: TextAlign.center,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
@@ -149,7 +150,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Xác minh tài khoản',
+                            context.l10n.forgotVerifyAccount,
                             style: context.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -161,7 +162,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                           ),
                           AuthTextField(
                             controller: _phoneController,
-                            hintText: 'Số điện thoại',
+                            hintText: context.l10n.authPhone,
                             keyboardType: TextInputType.phone,
                             prefixIcon: Icons.phone_outlined,
                             inputFormatters: [
@@ -195,9 +196,9 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                                             ),
                                       ),
                                     )
-                                  : const Text(
-                                      'Gửi mã xác thực',
-                                      style: TextStyle(
+                                  : Text(
+                                      context.l10n.forgotSendOtp,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -219,7 +220,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Đã nhớ mật khẩu?',
+                        context.l10n.authRememberedPassword,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: context.colorScheme.onSurfaceVariant,
                           fontSize: isSmallScreen ? 13 : null,
@@ -232,7 +233,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                           fontSize: isSmallScreen ? 13 : null,
                           fontWeight: FontWeight.bold,
                         ),
-                        child: const Text('Đăng nhập'),
+                        child: Text(context.l10n.authLogin),
                       ),
                     ],
                   ),

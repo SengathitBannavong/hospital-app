@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/app_colors.dart';
 
 class DeleteAccountService {
@@ -8,22 +9,18 @@ class DeleteAccountService {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xóa tài khoản'),
-        content: const Text(
-          'Bạn có chắc chắn muốn xóa tài khoản của mình không?\n'
-          'Hành động này không thể đảo ngược.\n'
-          'Tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn.',
-        ),
+        title: Text(context.l10n.settingsDeleteAccount),
+        content: Text(context.l10n.daConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
+            child: Text(context.l10n.commonCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Xóa',
-              style: TextStyle(color: AppColors.emergency),
+            child: Text(
+              context.l10n.commonDelete,
+              style: const TextStyle(color: AppColors.emergency),
             ),
           ),
         ],
@@ -38,24 +35,24 @@ class DeleteAccountService {
     return showDialog<String?>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xác nhận xóa tài khoản'),
+        title: Text(context.l10n.daPasswordTitle),
         content: TextField(
           controller: passwordController,
           obscureText: true,
-          decoration: const InputDecoration(
-            hintText: 'Nhập mật khẩu của bạn',
-            labelText: 'Mật khẩu',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: context.l10n.daPasswordHint,
+            labelText: context.l10n.authPassword,
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+            child: Text(context.l10n.commonCancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, passwordController.text),
-            child: const Text('Xóa'),
+            child: Text(context.l10n.commonDelete),
           ),
         ],
       ),
@@ -67,8 +64,8 @@ class DeleteAccountService {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Tài khoản đã được xóa thành công'),
-        content: const Text('Tài khoản của bạn đã được xóa thành công.'),
+        title: Text(context.l10n.daSuccessTitle),
+        content: Text(context.l10n.daSuccessBody),
         actions: [
           ElevatedButton(
             onPressed: () {
@@ -76,7 +73,7 @@ class DeleteAccountService {
               // Navigate to login screen
               context.go('/login');
             },
-            child: const Text('OK'),
+            child: Text(context.l10n.commonOk),
           ),
         ],
       ),
@@ -88,12 +85,12 @@ class DeleteAccountService {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Lỗi'),
+        title: Text(context.l10n.daErrorTitle),
         content: Text(message),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(context.l10n.commonOk),
           ),
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../data/models/queue_status.dart';
 
@@ -16,7 +17,7 @@ class QueueItem extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'POI #${status.poiId}',
+              context.l10n.queuePoi(status.poiId),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -24,19 +25,19 @@ class QueueItem extends StatelessWidget {
               children: [
                 Expanded(
                   child: _InfoTile(
-                    label: 'Số hiện tại',
+                    label: context.l10n.queueCurrentNumber,
                     value: status.currentNumber.toString(),
                   ),
                 ),
                 Expanded(
                   child: _InfoTile(
-                    label: 'Đang chờ',
+                    label: context.l10n.queueWaiting,
                     value: status.waitingCount.toString(),
                   ),
                 ),
                 Expanded(
                   child: _InfoTile(
-                    label: 'Chờ TB (phút)',
+                    label: context.l10n.queueAvgWait,
                     value: status.avgWaitMinutes.toStringAsFixed(0),
                   ),
                 ),

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/core/services/version_gate.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../../../../core/widgets/medical_info_card.dart';
@@ -19,9 +20,7 @@ import '../widgets/map_preview_card.dart';
 import 'package:go_router/go_router.dart';
 
 class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key, required this.title});
-
-  final String title;
+  const HomePage({super.key});
 
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
@@ -68,7 +67,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       context,
       onConfirm: () async {
         await ref.read(authStateProvider.notifier).logout();
-        if (mounted) AppToast.showSuccess('Đã đăng xuất');
+        if (mounted) AppToast.showSuccess(context.l10n.homeLoggedOut);
       },
     );
   }
@@ -97,39 +96,39 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text(context.l10n.homeTitle),
         actions: [
           Semantics(
             button: true,
-            label: 'Mở thông báo',
+            label: context.l10n.homeOpenNotifications,
             child: IconButton(
               icon: const NotificationBadge(
                 top: -6,
                 right: -6,
                 child: Icon(Icons.notifications_outlined),
               ),
-              tooltip: 'Thông báo',
+              tooltip: context.l10n.homeNotificationsTitle,
               onPressed: () => context.push('/notification'),
             ),
           ),
           Semantics(
             button: true,
-            label: 'Mở menu trang chủ',
+            label: context.l10n.homeOpenMenu,
             child: PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert),
-              tooltip: 'Menu',
+              tooltip: context.l10n.homeMenu,
               onSelected: _handleMenuSelection,
               itemBuilder: (context) => [
                 PopupMenuItem(
                   value: 'refresh',
                   enabled: !_isLoadingTasks,
                   child: Semantics(
-                    label: 'Tải lại trang chủ',
-                    child: const Row(
+                    label: context.l10n.homeReloadHome,
+                    child: Row(
                       children: [
-                        Icon(Icons.refresh_rounded),
-                        SizedBox(width: AppSpacing.sm),
-                        Text('Tải lại'),
+                        const Icon(Icons.refresh_rounded),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(context.l10n.homeReload),
                       ],
                     ),
                   ),
@@ -137,12 +136,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                 PopupMenuItem(
                   value: 'settings',
                   child: Semantics(
-                    label: 'Mở cài đặt',
-                    child: const Row(
+                    label: context.l10n.homeOpenSettings,
+                    child: Row(
                       children: [
-                        Icon(Icons.settings_outlined),
-                        SizedBox(width: AppSpacing.sm),
-                        Text('Cài đặt'),
+                        const Icon(Icons.settings_outlined),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(context.l10n.settingsTitle),
                       ],
                     ),
                   ),
@@ -150,12 +149,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                 PopupMenuItem(
                   value: 'logout',
                   child: Semantics(
-                    label: 'Đăng xuất khỏi tài khoản',
-                    child: const Row(
+                    label: context.l10n.homeLogoutAccount,
+                    child: Row(
                       children: [
-                        Icon(Icons.logout_rounded),
-                        SizedBox(width: AppSpacing.sm),
-                        Text('Đăng xuất'),
+                        const Icon(Icons.logout_rounded),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(context.l10n.settingsLogout),
                       ],
                     ),
                   ),
@@ -180,7 +179,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 50),
                 child: Text(
-                  'Truy cập nhanh',
+                  context.l10n.homeQuickAccess,
                   style: context.textTheme.titleMedium,
                 ),
               ),
@@ -193,7 +192,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       children: [
                         Expanded(
                           child: _QuickActionCard(
-                            title: 'Hàng đợi',
+                            title: context.l10n.homeActionQueue,
                             icon: Icons.people_outline,
                             onTap: () => context.push('/medical/queue'),
                           ),
@@ -201,7 +200,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: _QuickActionCard(
-                            title: 'Tìm xe lăn',
+                            title: context.l10n.homeActionFindWheelchair,
                             icon: Icons.accessible_rounded,
                             onTap: () => context.push('/asset/search'),
                           ),
@@ -213,7 +212,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       children: [
                         Expanded(
                           child: _QuickActionCard(
-                            title: 'Hỗ trợ',
+                            title: context.l10n.homeActionSupport,
                             icon: Icons.support_agent_rounded,
                             onTap: () => context.push('/staff'),
                           ),
@@ -221,7 +220,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: _QuickActionCard(
-                            title: 'Đơn thuốc',
+                            title: context.l10n.homeActionPrescription,
                             icon: Icons.receipt_long,
                             onTap: () => context.push('/medical/prescription'),
                           ),
@@ -233,7 +232,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       children: [
                         Expanded(
                           child: _QuickActionCard(
-                            title: 'Báo vật cản',
+                            title: context.l10n.homeActionReportObstacle,
                             icon: Icons.report_rounded,
                             color: AppColors.warning,
                             onTap: () => context.push('/flow/report-obstacle'),
@@ -255,7 +254,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       children: [
                         Expanded(
                           child: _QuickActionCard(
-                            title: 'Trạm thiết bị',
+                            title: context.l10n.homeActionDeviceStations,
                             icon: Icons.local_parking_rounded,
                             onTap: () => context.push('/asset/stations'),
                           ),
@@ -270,16 +269,19 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: AppSpacing.xl),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 150),
-                child: Text('Tổng quan', style: context.textTheme.titleMedium),
+                child: Text(
+                  context.l10n.homeOverview,
+                  style: context.textTheme.titleMedium,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 200),
                 child: MedicalInfoCard(
-                  label: 'Nhiệm vụ hiện tại',
+                  label: context.l10n.homeCurrentTasks,
                   value: _isLoadingTasks
-                      ? 'Đang tải...'
-                      : '$_taskCount Hoạt động',
+                      ? context.l10n.commonLoading
+                      : context.l10n.homeTasksActive(_taskCount),
                   icon: Icons.assignment_rounded,
                   onTap: _fetchTasks,
                 ),
@@ -298,7 +300,10 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: AppSpacing.xl),
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 200),
-                child: Text('Thông báo', style: context.textTheme.titleMedium),
+                child: Text(
+                  context.l10n.homeNotificationsTitle,
+                  style: context.textTheme.titleMedium,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               FadeSlideTransition(
@@ -343,12 +348,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   title: Text(
                     notifState.isLoading
-                        ? 'Đang tải thông báo...'
+                        ? context.l10n.homeNotificationsLoading
                         : unreadCount > 0
-                        ? 'Bạn có $unreadCount thông báo mới'
-                        : 'Không có thông báo mới',
+                        ? context.l10n.homeNotificationsUnread(unreadCount)
+                        : context.l10n.homeNotificationsNone,
                   ),
-                  subtitle: const Text('Nhấn để xem danh sách thông báo'),
+                  subtitle: Text(context.l10n.homeNotificationsTapToView),
                   trailing: const Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 16,
@@ -384,7 +389,10 @@ class _WeatherLoadingCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.md),
-            Text('Đang tải thời tiết...', style: context.textTheme.bodyMedium),
+            Text(
+              context.l10n.homeLoadingWeather,
+              style: context.textTheme.bodyMedium,
+            ),
           ],
         ),
       ),
@@ -400,7 +408,7 @@ class _WeatherSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = weather.descriptions.isEmpty
-        ? 'Thời tiết hiện tại'
+        ? context.l10n.homeWeatherCurrent
         : weather.descriptions.first;
 
     return Card(
@@ -424,8 +432,11 @@ class _WeatherSummaryCard extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    '$description • Độ ẩm ${weather.humidity}% • '
-                    'Gió ${weather.windSpeed.round()} km/h',
+                    context.l10n.homeWeatherDetail(
+                      description,
+                      weather.humidity,
+                      weather.windSpeed.round(),
+                    ),
                     style: context.textTheme.bodySmall?.copyWith(
                       color: context.colorScheme.onSurfaceVariant,
                     ),
@@ -458,8 +469,8 @@ class _ActiveBookingCard extends ConsumerWidget {
               Icons.accessible_rounded,
               color: context.colorScheme.onSurfaceVariant,
             ),
-            title: const Text('Chưa mượn xe lăn nào'),
-            subtitle: const Text('Nhấn để tìm hoặc khôi phục lượt mượn'),
+            title: Text(context.l10n.homeNoBooking),
+            subtitle: Text(context.l10n.homeNoBookingSubtitle),
             trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
             onTap: () => context.push('/asset/my'),
           ),
@@ -487,7 +498,7 @@ class _ActiveBookingCard extends ConsumerWidget {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
-                        'Xe lăn đang mượn · ${booking.assetId}',
+                        context.l10n.homeActiveBooking(booking.assetId),
                         style: context.textTheme.titleSmall?.copyWith(
                           color: context.colorScheme.onPrimaryContainer,
                         ),
@@ -509,7 +520,7 @@ class _ActiveBookingCard extends ConsumerWidget {
                       onPressed: () =>
                           context.push('/asset/track/${booking.assetId}'),
                       icon: const Icon(Icons.location_on_outlined, size: 18),
-                      label: const Text('Theo dõi'),
+                      label: Text(context.l10n.homeTrack),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -518,7 +529,7 @@ class _ActiveBookingCard extends ConsumerWidget {
                       onPressed: () =>
                           context.push('/asset/book/${booking.assetId}'),
                       icon: const Icon(Icons.logout_rounded, size: 18),
-                      label: const Text('Trả thiết bị'),
+                      label: Text(context.l10n.homeReturnDevice),
                     ),
                   ),
                 ],

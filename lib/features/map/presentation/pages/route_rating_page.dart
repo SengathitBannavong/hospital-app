@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
@@ -29,7 +30,7 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
 
   Future<void> _submit() async {
     if (_rating == 0) {
-      AppToast.showError('Vui lòng chọn số sao đánh giá.');
+      AppToast.showError(context.l10n.feedbackErrorNoRating);
       return;
     }
 
@@ -50,7 +51,7 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
           _isSubmitting = false;
           _submitted = true;
         });
-        AppToast.showSuccess('Cảm ơn bạn đã đánh giá tuyến đường!');
+        AppToast.showSuccess(context.l10n.rrThanks);
       }
     } catch (e) {
       if (mounted) {
@@ -68,7 +69,7 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Đánh giá tuyến đường'),
+        title: Text(context.l10n.rrTitle),
       ),
       body: SingleChildScrollView(
         padding: AppSpacing.pageWithTop,
@@ -92,7 +93,7 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
-                              'Mã tuyến: ${widget.routeId}',
+                              context.l10n.rrRouteId(widget.routeId),
                               style: context.textTheme.bodySmall?.copyWith(
                                 color: context.colorScheme.onSurfaceVariant,
                               ),
@@ -102,7 +103,7 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'Chất lượng tuyến đường',
+                        context.l10n.rrQuality,
                         style: context.textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -110,7 +111,7 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
                         children: [
                           for (var i = 1; i <= 5; i++)
                             IconButton(
-                              tooltip: '$i sao',
+                              tooltip: context.l10n.feedbackStars(i),
                               onPressed: _isSubmitting
                                   ? null
                                   : () => setState(() => _rating = i),
@@ -130,26 +131,29 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
                         enabled: !_isSubmitting,
                         minLines: 3,
                         maxLines: 5,
-                        decoration: const InputDecoration(
-                          labelText: 'Nhận xét (tùy chọn)',
-                          hintText: 'Chia sẻ cảm nhận về tuyến đường...',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: context.l10n.rrCommentLabel,
+                          hintText: context.l10n.rrCommentHint,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        'Tuyến đường có chính xác không?',
+                        context.l10n.rrAccurateQuestion,
                         style: context.textTheme.titleSmall,
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment<bool>(value: true, label: Text('Có')),
+                          segments: [
+                            ButtonSegment<bool>(
+                              value: true,
+                              label: Text(context.l10n.commonYes),
+                            ),
                             ButtonSegment<bool>(
                               value: false,
-                              label: Text('Không'),
+                              label: Text(context.l10n.commonNo),
                             ),
                           ],
                           selected: {_isAccurate},
@@ -174,7 +178,7 @@ class _RouteRatingPageState extends ConsumerState<RouteRatingPage> {
                                 ),
                               )
                             : const Icon(Icons.send_rounded),
-                        label: const Text('Gửi đánh giá'),
+                        label: Text(context.l10n.feedbackSubmit),
                       ),
                     ],
                   ),
@@ -203,20 +207,23 @@ class _SuccessState extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            'Đã gửi đánh giá!',
+            context.l10n.rrSuccessTitle,
             style: context.textTheme.titleLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Cảm ơn bạn đã giúp cải thiện chất lượng hướng dẫn.',
+            context.l10n.rrSuccessSubtitle,
             textAlign: TextAlign.center,
             style: context.textTheme.bodyMedium?.copyWith(
               color: context.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          FilledButton(onPressed: onBack, child: const Text('Quay lại')),
+          FilledButton(
+            onPressed: onBack,
+            child: Text(context.l10n.commonBack),
+          ),
         ],
       ),
     );

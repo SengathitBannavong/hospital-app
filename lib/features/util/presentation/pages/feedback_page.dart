@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/util/presentation/providers/util_providers.dart';
@@ -25,7 +26,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
 
   Future<void> _submit() async {
     if (_rating == 0) {
-      AppToast.showError('Vui lòng chọn số sao đánh giá.');
+      AppToast.showError(context.l10n.feedbackErrorNoRating);
       return;
     }
 
@@ -40,7 +41,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           );
       ref.invalidate(feedbackSummaryProvider);
       if (!mounted) return;
-      AppToast.showSuccess('Cảm ơn bạn đã đánh giá!');
+      AppToast.showSuccess(context.l10n.feedbackThanks);
       context.pop();
     } catch (error) {
       if (mounted) {
@@ -63,7 +64,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Đánh giá ứng dụng'),
+        title: Text(context.l10n.profileRateApp),
       ),
       body: SingleChildScrollView(
         padding: AppSpacing.pageWithTop,
@@ -77,8 +78,10 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                 child: Padding(
                   padding: AppSpacing.cardPadding,
                   child: Text(
-                    'Đã có ${item.totalFeedbacks} đánh giá • '
-                    '${item.averageRating.toStringAsFixed(1)}★',
+                    context.l10n.feedbackSummary(
+                      item.totalFeedbacks,
+                      item.averageRating.toStringAsFixed(1),
+                    ),
                     style: context.textTheme.titleMedium,
                   ),
                 ),
@@ -92,7 +95,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Bạn hài lòng mức nào?',
+                      context.l10n.feedbackHowSatisfied,
                       style: context.textTheme.titleMedium,
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -100,7 +103,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                       children: [
                         for (var i = 1; i <= 5; i++)
                           IconButton(
-                            tooltip: '$i sao',
+                            tooltip: context.l10n.feedbackStars(i),
                             onPressed: _isSubmitting
                                 ? null
                                 : () => setState(() => _rating = i),
@@ -119,19 +122,19 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                       enabled: !_isSubmitting,
                       minLines: 4,
                       maxLines: 6,
-                      decoration: const InputDecoration(
-                        labelText: 'Góp ý',
-                        hintText: 'Nhập chia sẻ của bạn',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.feedbackCommentLabel,
+                        hintText: context.l10n.feedbackCommentHint,
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Tooltip(
-                      message: 'Tính năng đính kèm ảnh sẽ sớm có mặt',
+                      message: context.l10n.feedbackImageTooltip,
                       child: OutlinedButton.icon(
                         onPressed: null,
                         icon: const Icon(Icons.image_outlined),
-                        label: const Text('Chọn ảnh (Sắp ra mắt)'),
+                        label: Text(context.l10n.feedbackPickImage),
                       ),
                     ),
                   ],
@@ -147,7 +150,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Gửi đánh giá'),
+                  : Text(context.l10n.feedbackSubmit),
             ),
           ],
         ),
@@ -175,7 +178,10 @@ class _SummaryLoadingCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.md),
-            Text('Đang tải đánh giá...', style: context.textTheme.bodyMedium),
+            Text(
+              context.l10n.feedbackLoading,
+              style: context.textTheme.bodyMedium,
+            ),
           ],
         ),
       ),

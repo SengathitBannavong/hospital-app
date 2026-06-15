@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/presentation/theme/map_tokens.dart';
@@ -166,7 +167,7 @@ class MapPoiMetadataPanel extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onFindWheelchair,
                 icon: const Icon(Icons.accessible_rounded),
-                label: const Text('Tìm xe lăn gần đây'),
+                label: Text(context.l10n.mlFindNearbyTitle),
               ),
             ),
           ],
@@ -177,7 +178,7 @@ class MapPoiMetadataPanel extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onRequestAssistance,
                 icon: const Icon(Icons.support_agent_rounded),
-                label: const Text('Yêu cầu hỗ trợ'),
+                label: Text(context.l10n.staffTitle),
               ),
             ),
           ],

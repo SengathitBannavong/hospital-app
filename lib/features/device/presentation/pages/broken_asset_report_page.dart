@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/device/presentation/providers/asset_providers.dart';
@@ -38,11 +39,11 @@ class _BrokenAssetReportPageState extends ConsumerState<BrokenAssetReportPage> {
     final assetId = _assetIdController.text.trim();
     final reason = _reasonController.text.trim();
     if (assetId.isEmpty) {
-      AppToast.showError('Vui lòng nhập mã thiết bị.');
+      AppToast.showError(context.l10n.baErrorNoAssetId);
       return;
     }
     if (reason.isEmpty) {
-      AppToast.showError('Vui lòng nhập mô tả tình trạng hỏng.');
+      AppToast.showError(context.l10n.baErrorNoReason);
       return;
     }
 
@@ -56,7 +57,7 @@ class _BrokenAssetReportPageState extends ConsumerState<BrokenAssetReportPage> {
           _isSubmitting = false;
           _submitted = true;
         });
-        AppToast.showSuccess('Đã báo cáo hỏng thiết bị thành công!');
+        AppToast.showSuccess(context.l10n.baSuccess);
       }
     } catch (e) {
       if (mounted) {
@@ -74,7 +75,7 @@ class _BrokenAssetReportPageState extends ConsumerState<BrokenAssetReportPage> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Báo hỏng thiết bị'),
+        title: Text(context.l10n.baTitle),
       ),
       body: SingleChildScrollView(
         padding: AppSpacing.pageWithTop,
@@ -90,17 +91,17 @@ class _BrokenAssetReportPageState extends ConsumerState<BrokenAssetReportPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Báo cáo thiết bị hỏng',
+                        context.l10n.baCardTitle,
                         style: context.textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       TextField(
                         controller: _assetIdController,
                         enabled: !_isSubmitting,
-                        decoration: const InputDecoration(
-                          labelText: 'Mã thiết bị *',
-                          hintText: 'vd: WL-001',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: context.l10n.baAssetCodeLabel,
+                          hintText: context.l10n.staffAssetCodeHint,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -109,10 +110,10 @@ class _BrokenAssetReportPageState extends ConsumerState<BrokenAssetReportPage> {
                         enabled: !_isSubmitting,
                         minLines: 4,
                         maxLines: 6,
-                        decoration: const InputDecoration(
-                          labelText: 'Mô tả tình trạng hỏng *',
-                          hintText: 'Mô tả chi tiết vấn đề...',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: context.l10n.baReasonLabel,
+                          hintText: context.l10n.baReasonHint,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xl),
@@ -126,7 +127,7 @@ class _BrokenAssetReportPageState extends ConsumerState<BrokenAssetReportPage> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text('Gửi báo cáo'),
+                            : Text(context.l10n.baSubmit),
                       ),
                     ],
                   ),
@@ -155,20 +156,20 @@ class _SuccessState extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            'Đã báo cáo thành công!',
+            context.l10n.baSuccessTitle,
             style: context.textTheme.titleLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Đội ngũ kỹ thuật sẽ xử lý sự cố sớm nhất có thể.',
+            context.l10n.baSuccessSubtitle,
             textAlign: TextAlign.center,
             style: context.textTheme.bodyMedium?.copyWith(
               color: context.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          FilledButton(onPressed: onBack, child: const Text('Quay lại')),
+          FilledButton(onPressed: onBack, child: Text(context.l10n.commonBack)),
         ],
       ),
     );

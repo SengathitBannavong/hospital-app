@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/map/data/models/map_poi.dart';
@@ -21,16 +22,19 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
   final _assetController = TextEditingController();
   final _noteController = TextEditingController();
   MapPoi? _poi;
-  String _assistanceType = 'Hỗ trợ di chuyển';
+  int _assistanceTypeIndex = 0;
   bool _isSubmitting = false;
   bool _submitted = false;
 
-  static const _types = [
-    'Hỗ trợ di chuyển',
-    'Hỗ trợ xe lăn',
-    'Hỗ trợ y tế',
-    'Hỗ trợ khác',
-  ];
+  List<String> _typeList(BuildContext context) {
+    final l10n = context.l10n;
+    return [
+      l10n.staffTypeMove,
+      l10n.staffTypeWheelchair,
+      l10n.staffTypeMedical,
+      l10n.staffTypeOther,
+    ];
+  }
 
   @override
   void initState() {
@@ -46,21 +50,25 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
   }
 
   Future<void> _pickPoi() async {
-    final poi = await showPoiPicker(context, title: 'Chọn vị trí hiện tại');
+    final poi = await showPoiPicker(
+      context,
+      title: context.l10n.staffPickLocationTitle,
+    );
     if (poi != null) setState(() => _poi = poi);
   }
 
   Future<void> _submit() async {
     final nodeId = _poi?.poiCode ?? '';
     if (nodeId.isEmpty) {
-      AppToast.showError('Vui lòng chọn vị trí của bạn.');
+      AppToast.showError(context.l10n.staffErrorSelectLocation);
       return;
     }
 
+    final assistanceType = _typeList(context)[_assistanceTypeIndex];
     final extraNote = _noteController.text.trim();
     final note = extraNote.isEmpty
-        ? '[$_assistanceType]'
-        : '[$_assistanceType] $extraNote';
+        ? '[$assistanceType]'
+        : '[$assistanceType] $extraNote';
 
     setState(() => _isSubmitting = true);
     try {
@@ -93,7 +101,7 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Yêu cầu hỗ trợ'),
+        title: Text(context.l10n.staffTitle),
       ),
       body: SingleChildScrollView(
         padding: AppSpacing.pageWithTop,
@@ -104,11 +112,13 @@ class _RequestStaffPageState extends ConsumerState<RequestStaffPage> {
                 onPickLocation: _pickPoi,
                 assetController: _assetController,
                 noteController: _noteController,
-                assistanceType: _assistanceType,
-                onTypeChanged: (v) => setState(() => _assistanceType = v),
+                assistanceType: _typeList(context)[_assistanceTypeIndex],
+                onTypeChanged: (v) => setState(
+                  () => _assistanceTypeIndex = _typeList(context).indexOf(v),
+                ),
                 onSubmit: _isSubmitting ? null : _submit,
                 isSubmitting: _isSubmitting,
-                types: _types,
+                types: _typeList(context),
               ),
       ),
     );
@@ -146,7 +156,10 @@ class _FormView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Loại hỗ trợ', style: context.textTheme.titleSmall),
+            Text(
+              context.l10n.staffTypeLabel,
+              style: context.textTheme.titleSmall,
+            ),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: AppSpacing.sm,
@@ -163,8 +176,8 @@ class _FormView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             PoiPickerField(
-              label: 'Vị trí hiện tại *',
-              hint: 'Chọn vị trí của bạn...',
+              label: context.l10n.staffCurrentLocationLabel,
+              hint: context.l10n.staffCurrentLocationHint,
               selected: selectedPoi,
               onTap: isSubmitting ? () {} : onPickLocation,
             ),
@@ -172,11 +185,11 @@ class _FormView extends StatelessWidget {
             TextField(
               controller: assetController,
               enabled: !isSubmitting,
-              decoration: const InputDecoration(
-                labelText: 'Mã thiết bị (nếu có)',
-                hintText: 'vd: WL-001',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.accessible_rounded),
+              decoration: InputDecoration(
+                labelText: context.l10n.staffAssetCodeLabel,
+                hintText: context.l10n.staffAssetCodeHint,
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.accessible_rounded),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -185,10 +198,10 @@ class _FormView extends StatelessWidget {
               enabled: !isSubmitting,
               minLines: 3,
               maxLines: 5,
-              decoration: const InputDecoration(
-                labelText: 'Ghi chú thêm',
-                hintText: 'Mô tả tình huống cần hỗ trợ...',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.staffNoteLabel,
+                hintText: context.l10n.staffNoteHint,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -201,7 +214,7 @@ class _FormView extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.support_agent_rounded),
-              label: const Text('Gửi yêu cầu'),
+              label: Text(context.l10n.staffSubmit),
             ),
           ],
         ),
@@ -226,13 +239,13 @@ class _SuccessView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Yêu cầu đã được gửi!',
+              context.l10n.staffSuccessTitle,
               style: context.textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Nhân viên sẽ đến hỗ trợ bạn trong thời gian sớm nhất.',
+              context.l10n.staffSuccessSubtitle,
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium?.copyWith(
                 color: context.colorScheme.onSurfaceVariant,
@@ -242,7 +255,7 @@ class _SuccessView extends StatelessWidget {
             FilledButton(
               onPressed: () =>
                   context.canPop() ? context.pop() : context.go('/'),
-              child: const Text('Quay lại'),
+              child: Text(context.l10n.commonBack),
             ),
           ],
         ),

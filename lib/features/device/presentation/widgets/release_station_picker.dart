@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/device/data/models/asset_station.dart';
 import 'package:hospital_app/features/device/presentation/providers/asset_providers.dart';
@@ -19,7 +20,7 @@ Future<String?> showReleaseStationPicker(BuildContext context, WidgetRef ref) {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Trả thiết bị tại trạm', style: ctx.textTheme.titleMedium),
+              Text(ctx.l10n.releaseAtStation, style: ctx.textTheme.titleMedium),
               const SizedBox(height: AppSpacing.md),
               stations.when(
                 loading: () => const Padding(
@@ -35,9 +36,9 @@ Future<String?> showReleaseStationPicker(BuildContext context, WidgetRef ref) {
                 ),
                 data: (list) {
                   if (list.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(AppSpacing.lg),
-                      child: Text('Không có trạm thiết bị nào.'),
+                    return Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Text(ctx.l10n.stationsEmpty),
                     );
                   }
                   return Flexible(
@@ -72,8 +73,8 @@ class _StationTile extends StatelessWidget {
     final capacity = station.capacity;
     final isFull = capacity > 0 && available >= capacity;
     final subtitle = isFull
-        ? '$available/$capacity (đầy)'
-        : '$available/$capacity trống';
+        ? context.l10n.stationSlotFull(available, capacity)
+        : context.l10n.stationSlotFree(available, capacity);
 
     return ListTile(
       enabled: !isFull,

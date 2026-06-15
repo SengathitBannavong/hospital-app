@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/network/media_url.dart';
 import '../../../../core/theme/hospital_theme.dart';
 
@@ -48,7 +49,7 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
             children: <Widget>[
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: const Text('Thư viện'),
+                title: Text(context.l10n.profilePickGallery),
                 onTap: () {
                   _pickImage(ImageSource.gallery);
                   Navigator.of(context).pop();
@@ -56,7 +57,7 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_camera),
-                title: const Text('Máy ảnh'),
+                title: Text(context.l10n.profilePickCamera),
                 onTap: () {
                   _pickImage(ImageSource.camera);
                   Navigator.of(context).pop();
@@ -69,7 +70,7 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
                     color: context.colorScheme.error,
                   ),
                   title: Text(
-                    'Xóa ảnh đại diện',
+                    context.l10n.profileRemoveAvatarTitle,
                     style: TextStyle(color: context.colorScheme.error),
                   ),
                   onTap: () {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
@@ -19,13 +20,24 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
   bool _isSubmitting = false;
   bool _submitted = false;
 
-  static const _types = [
-    ('obstacle', 'Vật cản'),
-    ('wet_floor', 'Sàn ướt'),
-    ('construction', 'Đang thi công'),
-    ('crowd', 'Đông người'),
-    ('other', 'Khác'),
+  static const _typeKeys = [
+    'obstacle',
+    'wet_floor',
+    'construction',
+    'crowd',
+    'other',
   ];
+
+  String _typeLabel(BuildContext context, String key) {
+    final l10n = context.l10n;
+    return switch (key) {
+      'obstacle' => l10n.obstacleTypeObstacle,
+      'wet_floor' => l10n.obstacleTypeWetFloor,
+      'construction' => l10n.obstacleTypeConstruction,
+      'crowd' => l10n.obstacleTypeCrowd,
+      _ => l10n.genderOther,
+    };
+  }
 
   @override
   void dispose() {
@@ -37,12 +49,12 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
   Future<void> _submit() async {
     final locationText = _locationController.text.trim();
     if (locationText.isEmpty) {
-      AppToast.showError('Vui lòng nhập mã vị trí (grid location).');
+      AppToast.showError(context.l10n.obErrorNoLocation);
       return;
     }
     final gridLocation = int.tryParse(locationText);
     if (gridLocation == null) {
-      AppToast.showError('Mã vị trí phải là số nguyên.');
+      AppToast.showError(context.l10n.obErrorNotInteger);
       return;
     }
 
@@ -67,7 +79,7 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
           _isSubmitting = false;
           _submitted = true;
         });
-        AppToast.showSuccess('Đã báo cáo vật cản thành công!');
+        AppToast.showSuccess(context.l10n.obSuccess);
       }
     } catch (e) {
       if (mounted) {
@@ -85,7 +97,7 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Báo cáo vật cản'),
+        title: Text(context.l10n.mlObstacleTitle),
       ),
       body: SingleChildScrollView(
         padding: AppSpacing.pageWithTop,
@@ -100,20 +112,23 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('Loại vật cản', style: context.textTheme.titleSmall),
+                      Text(
+                        context.l10n.obTypeLabel,
+                        style: context.textTheme.titleSmall,
+                      ),
                       const SizedBox(height: AppSpacing.sm),
                       Wrap(
                         spacing: AppSpacing.sm,
                         runSpacing: AppSpacing.xs,
-                        children: _types
+                        children: _typeKeys
                             .map(
-                              (t) => ChoiceChip(
-                                label: Text(t.$2),
-                                selected: _obstacleType == t.$1,
+                              (key) => ChoiceChip(
+                                label: Text(_typeLabel(context, key)),
+                                selected: _obstacleType == key,
                                 onSelected: _isSubmitting
                                     ? null
                                     : (_) =>
-                                          setState(() => _obstacleType = t.$1),
+                                          setState(() => _obstacleType = key),
                               ),
                             )
                             .toList(),
@@ -123,13 +138,12 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
                         controller: _locationController,
                         enabled: !_isSubmitting,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Mã vị trí *',
-                          hintText: 'Nhập số grid location (vd: 342)',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.pin_drop_outlined),
-                          helperText:
-                              'Tìm mã vị trí trên bản đồ hoặc hỏi nhân viên',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.obLocationLabel,
+                          hintText: context.l10n.obLocationHint,
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.pin_drop_outlined),
+                          helperText: context.l10n.obLocationHelper,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -138,10 +152,10 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
                         enabled: !_isSubmitting,
                         minLines: 3,
                         maxLines: 5,
-                        decoration: const InputDecoration(
-                          labelText: 'Mô tả thêm',
-                          hintText: 'Mô tả tình trạng vật cản...',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: context.l10n.obNoteLabel,
+                          hintText: context.l10n.obNoteHint,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xl),
@@ -156,7 +170,7 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
                                 ),
                               )
                             : const Icon(Icons.report_rounded),
-                        label: const Text('Gửi báo cáo'),
+                        label: Text(context.l10n.baSubmit),
                       ),
                     ],
                   ),
@@ -187,20 +201,23 @@ class _SuccessState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Đã gửi báo cáo!',
+              context.l10n.obSuccessTitle,
               style: context.textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Cảm ơn bạn đã thông báo vật cản. Đội ngũ sẽ xử lý sớm nhất.',
+              context.l10n.obSuccessSubtitle,
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium?.copyWith(
                 color: context.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            FilledButton(onPressed: onBack, child: const Text('Quay lại')),
+            FilledButton(
+              onPressed: onBack,
+              child: Text(context.l10n.commonBack),
+            ),
           ],
         ),
       ),

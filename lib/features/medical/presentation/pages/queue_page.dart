@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/l10n/locale_controller.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../map/data/models/map_poi.dart';
 import '../../../map/presentation/widgets/poi_picker.dart';
@@ -20,7 +21,10 @@ class _QueuePageState extends ConsumerState<QueuePage> {
   int? get _poiId => _poi?.poiId;
 
   Future<void> _pickPoi() async {
-    final poi = await showPoiPicker(context, title: 'Chọn phòng khám');
+    final poi = await showPoiPicker(
+      context,
+      title: context.l10n.queuePickRoom,
+    );
     if (poi != null) setState(() => _poi = poi);
   }
 
@@ -52,7 +56,11 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppSpacing.sm),
-            Text('Giờ mở cửa: ${roomOpen.openHours ?? 'Không rõ'}'),
+            Text(
+              context.l10n.queueOpenHours(
+                roomOpen.openHours ?? context.l10n.queueUnknown,
+              ),
+            ),
             const SizedBox(height: AppSpacing.xs),
             Row(
               children: [
@@ -63,7 +71,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 Text(
-                  roomOpen.isOpen ? 'Đang mở' : 'Đang đóng',
+                  roomOpen.isOpen
+                      ? context.l10n.queueOpen
+                      : context.l10n.queueClosed,
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(color: statusColor),
@@ -81,7 +91,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     final poiId = _poiId;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Hàng đợi')),
+      appBar: AppBar(title: Text(context.l10n.homeActionQueue)),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
@@ -90,22 +100,20 @@ class _QueuePageState extends ConsumerState<QueuePage> {
           children: [
             const SizedBox(height: AppSpacing.md),
             PoiPickerField(
-              label: 'Phòng khám',
-              hint: 'Chọn phòng khám...',
+              label: context.l10n.queueRoomLabel,
+              hint: context.l10n.queueRoomHint,
               selected: _poi,
               onTap: _pickPoi,
             ),
             const SizedBox(height: AppSpacing.lg),
             if (poiId == null)
-              const Text(
-                'Hãy chọn phòng khám để xem trạng thái hàng đợi và giờ mở cửa.',
-              )
+              Text(context.l10n.queueSelectPrompt)
             else ...[
               ref
                   .watch(medicalRoomOpenProvider(poiId))
                   .when(
                     data: (roomOpen) => roomOpen == null
-                        ? const Text('Không có dữ liệu phòng')
+                        ? Text(context.l10n.queueNoRoomData)
                         : _buildRoomOpenCard(context, roomOpen),
                     loading: () => const Padding(
                       padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
@@ -123,7 +131,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                   .watch(medicalQueueProvider(poiId))
                   .when(
                     data: (queue) => queue == null
-                        ? const Text('Không có dữ liệu hàng đợi')
+                        ? Text(context.l10n.queueNoQueueData)
                         : QueueItem(status: queue),
                     loading: () => const Padding(
                       padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),

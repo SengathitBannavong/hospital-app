@@ -104,7 +104,7 @@ class _RouteHistorySheet extends StatelessWidget {
                               IconButton(
                                 icon: const Icon(Icons.star_rounded),
                                 color: Colors.amber.shade700,
-                                tooltip: 'Đánh giá tuyến',
+                                tooltip: context.l10n.rhRateRoute,
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () => onRate(entry),
                               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
@@ -16,7 +17,7 @@ class WelcomePage extends ConsumerWidget {
       return;
     }
 
-    AppToast.showSuccess('Đã đăng xuất thành công.');
+    AppToast.showSuccess(context.l10n.welcomeLogoutSuccess);
     // GoRouter will automatically redirect to /login due to authState change
   }
 
@@ -57,7 +58,7 @@ class WelcomePage extends ConsumerWidget {
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 200),
                 child: Text(
-                  'Chào mừng trở lại!',
+                  context.l10n.welcomeTitle,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
@@ -66,8 +67,7 @@ class WelcomePage extends ConsumerWidget {
               FadeSlideTransition(
                 delay: const Duration(milliseconds: 300),
                 child: Text(
-                  'Phiên đăng nhập của bạn đã được lưu an toàn. '
-                  'Tiếp tục sử dụng ứng dụng hoặc đăng xuất khi hoàn tất.',
+                  context.l10n.welcomeSubtitle,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -98,7 +98,7 @@ class WelcomePage extends ConsumerWidget {
                               Icons.arrow_forward_rounded,
                               size: 20,
                             ),
-                            label: const Text('Tiếp tục vào ứng dụng'),
+                            label: Text(context.l10n.welcomeContinue),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.md),
@@ -107,7 +107,7 @@ class WelcomePage extends ConsumerWidget {
                           child: OutlinedButton.icon(
                             onPressed: () => _logout(context, ref),
                             icon: const Icon(Icons.logout_rounded, size: 20),
-                            label: const Text('Đăng xuất'),
+                            label: Text(context.l10n.settingsLogout),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Theme.of(
                                 context,

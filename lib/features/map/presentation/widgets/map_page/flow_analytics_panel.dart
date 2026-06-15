@@ -71,7 +71,7 @@ class _FlowAnalyticsPanel extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   visualDensity: VisualDensity.compact,
                   constraints: const BoxConstraints(),
-                  tooltip: 'Đóng',
+                  tooltip: context.l10n.commonClose,
                   onPressed: onClose,
                 ),
               ],

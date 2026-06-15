@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 
 class MapPreviewCard extends StatelessWidget {
@@ -14,8 +15,8 @@ class MapPreviewCard extends StatelessWidget {
         width: double.infinity,
         child: Semantics(
           button: true,
-          label: 'Mở bản đồ bệnh viện',
-          hint: 'Tìm đường đến phòng ban',
+          label: context.l10n.mapPreviewOpen,
+          hint: context.l10n.mapPreviewSubtitle,
           child: InkWell(
             borderRadius: AppRadius.borderLg,
             onTap: () => context.go('/map'),
@@ -35,12 +36,12 @@ class MapPreviewCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Bản đồ bệnh viện',
+                          context.l10n.mapPreviewTitle,
                           style: context.textTheme.titleMedium,
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Tìm đường đến phòng ban',
+                          context.l10n.mapPreviewSubtitle,
                           style: context.textTheme.bodySmall?.copyWith(
                             color: context.colorScheme.onSurfaceVariant,
                           ),

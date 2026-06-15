@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import '../providers/chat_provider.dart';
@@ -53,9 +54,9 @@ class _ChatRoomsPageState extends ConsumerState<ChatRoomsPage> {
         elevation: 0,
         title: Row(
           children: [
-            const Text(
-              'Tin nhắn',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              context.l10n.chatRoomsTitle,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             if (state.totalUnread > 0) ...[
               const SizedBox(width: AppSpacing.xs),
@@ -126,14 +127,14 @@ class _ChatRoomsPageState extends ConsumerState<ChatRoomsPage> {
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: AppSpacing.pageWithTop,
-        children: const [
-          SizedBox(height: AppSpacing.xxl),
+        children: [
+          const SizedBox(height: AppSpacing.xxl),
           Center(
             child: Column(
               children: [
-                Icon(Icons.chat_bubble_outline_rounded, size: 48),
-                SizedBox(height: AppSpacing.md),
-                Text('Chưa có cuộc trò chuyện nào'),
+                const Icon(Icons.chat_bubble_outline_rounded, size: 48),
+                const SizedBox(height: AppSpacing.md),
+                Text(context.l10n.chatNoConversations),
               ],
             ),
           ),
@@ -151,14 +152,14 @@ class _ChatRoomsPageState extends ConsumerState<ChatRoomsPage> {
           children: [
             const Icon(Icons.chat_bubble_outline_rounded, size: 48),
             const SizedBox(height: AppSpacing.md),
-            const Text('Không thể tải tin nhắn'),
+            Text(context.l10n.chatLoadError),
             const SizedBox(height: AppSpacing.xs),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.md),
             ElevatedButton.icon(
               onPressed: () => ref.read(chatRoomsProvider.notifier).refresh(),
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
+              label: Text(context.l10n.commonRetry),
             ),
           ],
         ),

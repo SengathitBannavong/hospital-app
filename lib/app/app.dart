@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/navigation/app_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/theme/theme_controller.dart';
@@ -7,6 +8,7 @@ import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/config/app_initializer.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/chat/presentation/providers/chat_provider.dart';
+import 'package:hospital_app/l10n/app_localizations.dart';
 
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
@@ -20,7 +22,7 @@ class MyApp extends ConsumerWidget {
     }
 
     return ListenableBuilder(
-      listenable: themeController,
+      listenable: Listenable.merge([themeController, localeController]),
       builder: (context, child) {
         return MaterialApp.router(
           routerConfig: router,
@@ -33,6 +35,9 @@ class MyApp extends ConsumerWidget {
           theme: HospitalTheme.light,
           darkTheme: HospitalTheme.dark,
           themeMode: themeController.themeMode,
+          locale: localeController.locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) {
             return AppInitializer(child: child ?? const SizedBox.shrink());
           },

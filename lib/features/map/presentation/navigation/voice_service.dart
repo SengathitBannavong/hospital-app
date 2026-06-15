@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/features/map/data/models/route_step.dart';
 import 'package:hospital_app/features/map/presentation/navigation/step_tracker.dart';
 
@@ -107,14 +108,14 @@ String? maneuverToVoiceKey(StepManeuver maneuver) {
 @visibleForTesting
 String? builtInVoiceText(String key) {
   return switch (key) {
-    'go_straight' => 'Đi thẳng',
-    'turn_left' => 'Rẽ trái',
-    'turn_right' => 'Rẽ phải',
-    'arrived' => 'Đã đến đích',
-    'elevator_up' => 'Đi thang máy lên',
-    'elevator_down' => 'Đi thang máy xuống',
-    'stairs_up' => 'Đi cầu thang lên',
-    'stairs_down' => 'Đi cầu thang xuống',
+    'go_straight' => appL10n.voiceGoStraight,
+    'turn_left' => appL10n.voiceTurnLeft,
+    'turn_right' => appL10n.voiceTurnRight,
+    'arrived' => appL10n.voiceArrived,
+    'elevator_up' => appL10n.voiceElevatorUp,
+    'elevator_down' => appL10n.voiceElevatorDown,
+    'stairs_up' => appL10n.voiceStairsUp,
+    'stairs_down' => appL10n.voiceStairsDown,
     _ => null,
   };
 }

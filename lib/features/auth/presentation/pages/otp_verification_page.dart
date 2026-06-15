@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/features/auth/data/models/auth_user.dart';
@@ -53,13 +54,13 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
     if (response?.otpCode != null && mounted) {
       setState(() => _mockOtpCode = response!.otpCode);
     }
-    AppToast.showSuccess('Đã gửi lại mã');
+    if (mounted) AppToast.showSuccess(context.l10n.otpResent);
   }
 
   Future<void> _verifyOtp() async {
     final otp = _otpController.text.trim();
     if (otp.length < 6) {
-      AppToast.showError('Vui lòng nhập đầy đủ mã OTP.');
+      AppToast.showError(context.l10n.otpErrorIncomplete);
       return;
     }
 
@@ -69,7 +70,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
       // Forgot-password: don't call verify_otp here — reset_password accepts
       // the OTP and a prior verification may consume it.
       if (widget.otpType == 'forgot_password') {
-        AppToast.showSuccess('Tiếp tục đặt lại mật khẩu.');
+        AppToast.showSuccess(context.l10n.otpContinueReset);
         if (mounted) {
           context.push('/reset-password/${widget.phoneNumber}/$otp');
         }
@@ -93,7 +94,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
             .login(widget.phoneNumber, widget.password!);
       }
 
-      AppToast.showSuccess('Xác thực thành công!');
+      if (mounted) AppToast.showSuccess(context.l10n.otpVerifySuccess);
       if (mounted) context.go('/');
     } catch (error) {
       if (!mounted) return;
@@ -116,13 +117,13 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
             children: [
               const SizedBox(height: AppSpacing.xl),
               Text(
-                'Xác thực OTP',
+                context.l10n.otpTitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Mã OTP đã được gửi đến số ${widget.phoneNumber}',
+                context.l10n.otpSentTo(widget.phoneNumber),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
@@ -136,7 +137,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                         InkWell(
                           onTap: () {
                             _otpController.text = _mockOtpCode!;
-                            AppToast.showSuccess('Đã điền mã OTP');
+                            AppToast.showSuccess(context.l10n.otpFilled);
                           },
                           borderRadius: AppRadius.borderMd,
                           child: Container(
@@ -161,7 +162,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Mã OTP (mock)',
+                                        context.l10n.otpMockLabel,
                                         style: context.textTheme.labelSmall,
                                       ),
                                       Text(
@@ -190,9 +191,9 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                       const SizedBox(height: AppSpacing.xl),
                       OtpCountdownButton(
                         onSendOtp: _resendOtp,
-                        buttonLabel: 'Gửi lại mã',
-                        resendLabel: 'Gửi lại mã',
-                        errorMessage: 'Không thể gửi lại mã. Vui lòng thử lại.',
+                        buttonLabel: context.l10n.otpResendButton,
+                        resendLabel: context.l10n.otpResendButton,
+                        errorMessage: context.l10n.otpResendError,
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       SizedBox(
@@ -210,7 +211,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                                     ),
                                   ),
                                 )
-                              : const Text('Xác nhận'),
+                              : Text(context.l10n.commonConfirm),
                         ),
                       ),
                     ],

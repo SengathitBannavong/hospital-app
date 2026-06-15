@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/device/data/models/asset_station.dart';
 import 'package:hospital_app/features/device/presentation/providers/asset_providers.dart';
@@ -18,11 +19,11 @@ class AssetStationsPage extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Trạm thiết bị'),
+        title: Text(context.l10n.homeActionDeviceStations),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Làm mới',
+            tooltip: context.l10n.deviceRefresh,
             onPressed: () => ref.invalidate(assetStationsProvider),
           ),
         ],
@@ -35,7 +36,7 @@ class AssetStationsPage extends ConsumerWidget {
         ),
         data: (list) {
           if (list.isEmpty) {
-            return const Center(child: Text('Không có trạm thiết bị nào.'));
+            return Center(child: Text(context.l10n.stationsEmpty));
           }
           return ListView.separated(
             padding: AppSpacing.pageWithTop,
@@ -89,10 +90,13 @@ class _StationCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Row(
               children: [
-                _InfoChip(label: '$available xe trống', color: color),
+                _InfoChip(
+                  label: context.l10n.stationAvailable(available),
+                  color: color,
+                ),
                 const SizedBox(width: AppSpacing.sm),
                 _InfoChip(
-                  label: 'Sức chứa: $capacity',
+                  label: context.l10n.stationCapacity(capacity),
                   color: context.colorScheme.secondary,
                 ),
               ],
@@ -161,7 +165,10 @@ class _ErrorState extends StatelessWidget {
               style: context.textTheme.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.md),
-            FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
+            FilledButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.commonRetry),
+            ),
           ],
         ),
       ),

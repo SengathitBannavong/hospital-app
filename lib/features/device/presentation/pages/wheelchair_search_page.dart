@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/features/device/data/models/asset_device.dart';
 import 'package:hospital_app/features/device/presentation/providers/asset_providers.dart';
@@ -29,7 +30,10 @@ class _WheelchairSearchPageState extends ConsumerState<WheelchairSearchPage> {
   }
 
   Future<void> _pickPoi() async {
-    final poi = await showPoiPicker(context, title: 'Chọn vị trí của bạn');
+    final poi = await showPoiPicker(
+      context,
+      title: context.l10n.wsPickLocationTitle,
+    );
     if (poi != null) setState(() => _selectedPoi = poi);
   }
 
@@ -41,15 +45,15 @@ class _WheelchairSearchPageState extends ConsumerState<WheelchairSearchPage> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Tìm xe lăn'),
+        title: Text(context.l10n.homeActionFindWheelchair),
       ),
       body: Column(
         children: [
           Padding(
             padding: AppSpacing.pageWithTop,
             child: PoiPickerField(
-              label: 'Vị trí của bạn',
-              hint: 'Chọn vị trí để tìm xe lăn gần đó...',
+              label: context.l10n.wsYourLocation,
+              hint: context.l10n.wsYourLocationHint,
               selected: _selectedPoi,
               onTap: _pickPoi,
             ),
@@ -81,7 +85,7 @@ class _Results extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Nhập mã vị trí để tìm xe lăn gần đó',
+              context.l10n.wsEnterLocationPrompt,
               style: context.textTheme.bodyMedium?.copyWith(
                 color: context.colorScheme.onSurfaceVariant,
               ),
@@ -111,7 +115,7 @@ class _Results extends ConsumerWidget {
               FilledButton(
                 onPressed: () =>
                     ref.invalidate(wheelchairSearchProvider(nodeId!)),
-                child: const Text('Thử lại'),
+                child: Text(context.l10n.commonRetry),
               ),
             ],
           ),
@@ -119,8 +123,8 @@ class _Results extends ConsumerWidget {
       ),
       data: (devices) {
         if (devices.isEmpty) {
-          return const Center(
-            child: Text('Không có xe lăn trống gần vị trí này.'),
+          return Center(
+            child: Text(context.l10n.wsNoWheelchairs),
           );
         }
         return ListView.separated(
@@ -147,7 +151,9 @@ class _DeviceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = device.isAvailable ? Colors.green : Colors.red;
-    final statusLabel = device.isAvailable ? 'Có sẵn' : 'Không khả dụng';
+    final statusLabel = device.isAvailable
+        ? context.l10n.wsAvailable
+        : context.l10n.wsUnavailable;
 
     return Card(
       child: ListTile(
@@ -162,14 +168,15 @@ class _DeviceCard extends StatelessWidget {
           children: [
             Text(statusLabel, style: TextStyle(color: statusColor)),
             if (device.batteryLevel != null)
-              Text('Pin: ${device.batteryLevel}%'),
-            if (device.distance != null) Text('Cách ${device.distance}m'),
+              Text(context.l10n.wsBatteryPercent(device.batteryLevel!)),
+            if (device.distance != null)
+              Text(context.l10n.wsDistance(device.distance!)),
           ],
         ),
         trailing: device.isAvailable
             ? FilledButton.tonal(
                 onPressed: () => context.push('/asset/book/${device.assetId}'),
-                child: const Text('Mượn'),
+                child: Text(context.l10n.wsBorrow),
               )
             : null,
       ),

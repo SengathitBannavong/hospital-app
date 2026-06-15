@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/services/chat_websocket_service.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/util/data/repository/util_repository.dart';
@@ -610,8 +611,8 @@ class ChatMessagesNotifier extends StateNotifier<ChatMessagesState>
   String _lastMessagePreview(ChatMessage msg) {
     if (msg.content.isNotEmpty) return msg.content;
     return switch (msg.type) {
-      'image' => '[Hình ảnh]',
-      'voice' => '[Tin nhắn thoại]',
+      'image' => appL10n.chatImagePlaceholder,
+      'voice' => appL10n.chatVoicePlaceholder,
       _ => '',
     };
   }

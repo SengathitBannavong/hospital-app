@@ -122,7 +122,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/',
-                builder: (context, state) => const HomePage(title: 'Trang chủ'),
+                builder: (context, state) => const HomePage(),
               ),
             ],
           ),
