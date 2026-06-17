@@ -15,6 +15,7 @@ import 'models/map_sync_full.dart';
 import 'models/route_clear_history.dart';
 import 'models/route_history.dart';
 import 'models/route_mode.dart';
+import 'models/search_history.dart';
 
 enum _MapHttpMethod { get, post, delete }
 
@@ -119,6 +120,51 @@ class MapRepository {
           .toList(),
     );
     return pois ?? [];
+  }
+
+  /// Records a committed search in the user's history. Best-effort: callers
+  /// fire this without awaiting and ignore failures, so it never blocks or
+  /// breaks the search UX. The history then surfaces via [getSearchHistory].
+  Future<void> saveSearch({
+    required String keyword,
+    int? mapId,
+    int? poiId,
+    String? resultName,
+  }) async {
+    await _request<dynamic>(
+      method: _MapHttpMethod.post,
+      endpoint: ApiEndpoints.saveSearch,
+      data: {
+        'keyword': keyword,
+        'map_id': ?mapId,
+        'poi_id': ?poiId,
+        if (resultName != null && resultName.isNotEmpty)
+          'result_name': resultName,
+      },
+      fromJson: (json) => json,
+    );
+  }
+
+  Future<SearchHistory> getSearchHistory({int page = 1, int limit = 20}) async {
+    return (await _request<SearchHistory>(
+      method: _MapHttpMethod.get,
+      endpoint: ApiEndpoints.getSearchHistory,
+      queryParameters: {'page': page, 'limit': limit},
+      fromJson: (json) => SearchHistory.fromJson(json as Map<String, dynamic>),
+      requireData: true,
+    ))!;
+  }
+
+  Future<bool> clearSearchHistory() async {
+    final result = await _request<bool>(
+      method: _MapHttpMethod.delete,
+      endpoint: ApiEndpoints.clearSearchHistory,
+      fromJson: (json) {
+        if (json is Map) return json['cleared'] == true;
+        return json == true;
+      },
+    );
+    return result ?? false;
   }
 
   Future<MapSyncFull> syncFull({required int mapId}) async {

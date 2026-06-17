@@ -797,6 +797,10 @@
   },
   "mapSearchTryShorter": "Try a shorter word, or pick a suggestion.",
   "mapSearchFailed": "Search failed",
+  "mapRecentSearches": "Recent searches",
+  "mapRecentSearchesEmpty": "Your recent searches will appear here.",
+  "mapRecentSearchesClear": "Clear",
+  "mapNoticeSearchHistoryCleared": "Search history cleared",
 
   "mapNoticePositionManual": "Position set manually",
   "mapNoticeMapSynced": "Map synced",

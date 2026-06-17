@@ -32,6 +32,9 @@ class ApiEndpoints {
   static const String getEdges = 'map/get_edges';
   static const String getMeta = 'map/get_meta';
   static const String searchLocation = 'map/search_location';
+  static const String saveSearch = 'map/save_search';
+  static const String getSearchHistory = 'map/get_search_history';
+  static const String clearSearchHistory = 'map/clear_search_history';
   static const String syncFull = 'map/sync_full';
 
   // Route
@@ -102,6 +105,7 @@ class ApiEndpoints {
   static const String assetBook = 'asset/book_asset';
   static const String assetRelease = 'asset/release_asset';
   static const String assetReportBroken = 'asset/report_broken_asset';
+  static const String assetMyBooking = 'asset/my_booking';
 
   // Staff
   static const String staffRequestStaff = 'staff/request_staff';

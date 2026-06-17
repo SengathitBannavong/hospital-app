@@ -16,6 +16,7 @@ import 'package:hospital_app/features/map/data/models/map_poi.dart';
 import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/data/models/route_history.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
+import 'package:hospital_app/features/map/data/models/search_history.dart';
 import 'package:hospital_app/features/map/data/models/map_sync_full.dart';
 import 'package:hospital_app/features/map/data/services/flow_service.dart';
 import 'package:hospital_app/features/map/data/services/map_cache_service.dart';
@@ -220,6 +221,11 @@ final mapObstaclesProvider = FutureProvider.family<List<MapObstacle>, int>((
 
 final routeHistoryProvider = FutureProvider.autoDispose<RouteHistory>((ref) {
   return ref.watch(mapRepositoryProvider).getRouteHistory();
+});
+
+// The user's recent map searches, shown when the search box is open but empty.
+final searchHistoryProvider = FutureProvider.autoDispose<SearchHistory>((ref) {
+  return ref.watch(mapRepositoryProvider).getSearchHistory();
 });
 
 // Fetch map metadata by mapId. Rows and cols must come from the backend,

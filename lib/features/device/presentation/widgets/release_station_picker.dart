@@ -11,53 +11,61 @@ Future<String?> showReleaseStationPicker(BuildContext context, WidgetRef ref) {
   return showModalBottomSheet<String>(
     context: context,
     showDragHandle: true,
-    builder: (ctx) {
-      final stations = ref.watch(assetStationsProvider);
-      return SafeArea(
-        child: Padding(
-          padding: AppSpacing.pageWithTop,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(ctx.l10n.releaseAtStation, style: ctx.textTheme.titleMedium),
-              const SizedBox(height: AppSpacing.md),
-              stations.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(AppSpacing.lg),
-                  child: Center(child: CircularProgressIndicator()),
+    // Use a Consumer so the sheet rebuilds when assetStationsProvider resolves.
+    // A bare showModalBottomSheet builder runs once and would otherwise stay
+    // stuck on the loading spinner even after the data arrives.
+    builder: (ctx) => Consumer(
+      builder: (ctx, ref, _) {
+        final stations = ref.watch(assetStationsProvider);
+        return SafeArea(
+          child: Padding(
+            padding: AppSpacing.pageWithTop,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  ctx.l10n.releaseAtStation,
+                  style: ctx.textTheme.titleMedium,
                 ),
-                error: (err, _) => Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Text(
-                    err.toString().replaceFirst('Exception: ', ''),
-                    textAlign: TextAlign.center,
+                const SizedBox(height: AppSpacing.md),
+                stations.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(AppSpacing.lg),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
-                ),
-                data: (list) {
-                  if (list.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      child: Text(ctx.l10n.stationsEmpty),
-                    );
-                  }
-                  return Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: list.length,
-                      itemBuilder: (_, i) => _StationTile(
-                        station: list[i],
-                        onTap: (id) => Navigator.pop(ctx, id),
-                      ),
+                  error: (err, _) => Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Text(
+                      err.toString().replaceFirst('Exception: ', ''),
+                      textAlign: TextAlign.center,
                     ),
-                  );
-                },
-              ),
-            ],
+                  ),
+                  data: (list) {
+                    if (list.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Text(ctx.l10n.stationsEmpty),
+                      );
+                    }
+                    return Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: list.length,
+                        itemBuilder: (_, i) => _StationTile(
+                          station: list[i],
+                          onTap: (id) => Navigator.pop(ctx, id),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
+        );
+      },
+    ),
   );
 }
 
