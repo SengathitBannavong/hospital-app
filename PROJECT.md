@@ -1,6 +1,6 @@
 # Hospital App Project Checklist
 
-Last checked: 2026-06-15 (branch `add-eng-to-vn`, HEAD `5d1355f`; base `main` `e3e15ea`)
+Last checked: 2026-06-17 (branch `mod/feature-search-wheelchir`; base `main` `f3b937b`)
 
 This checklist is based on the current Flutter project structure under `lib/`, existing routes in `lib/core/navigation/app_router.dart`, providers, repositories, and visible feature pages.
 Admin-only web, traffic-control, and algorithm-engine features are intentionally out of scope for this mobile checklist unless explicitly noted.
@@ -20,7 +20,21 @@ typing a code; per-task check-in/out/result/cancel extracted into a dedicated
 — with legend, route history, and flow analytics folded into a More sheet, and
 offline-cache clearing moved to Settings).
 
-**Current branch (`add-eng-to-vn`):** full English/Vietnamese localization via
+**Current branch (`mod/feature-search-wheelchir`):** wired three new backend
+endpoints. **Map search history** — a committed search (selecting a POI) is
+recorded best-effort via `map/save_search`; the search box's idle state now
+shows a **"Recent searches"** list from `map/get_search_history` (tap to re-run)
+with a **Clear** action (`map/clear_search_history`); models + repo methods +
+`searchHistoryProvider` added. **`asset/my_booking`** — `AssetRepository.getMyBooking()`
+returns the caller's current booking (or null); `ActiveBookingNotifier` now
+reconciles local Hive state against it on load and uses it as the authoritative
+source in `recover()`, with the old in-use discovery heuristic kept only as an
+offline / old-backend fallback. **Bug fix** — `showReleaseStationPicker` was
+stuck on its loading spinner because the `showModalBottomSheet` builder watched
+`assetStationsProvider` without a `Consumer` (runs once, never rebuilds); wrapped
+the body in a `Consumer` so it updates when the stations resolve.
+
+**Prior branch (`add-eng-to-vn`):** full English/Vietnamese localization via
 Flutter `gen-l10n` (ARB files `lib/l10n/app_en.arb` / `app_vi.arb`) with a
 persisted in-app language switch (`LocaleController` → secure storage,
 system-locale fallback); the **map module is now fully localized** (~110 keys
@@ -46,9 +60,10 @@ chat WebSocket `401`/`3009` still needs force-logout wiring; backend-synced
 active route guidance and Medical QR check-in/out remain backlog. **Asset /
 Wheelchair** is functional but leans on BE workarounds: `release_asset` keys off
 `station_name` not the PK (FE sends the name), every device error returns
-`message:"OK"` (FE maps by code), there is no `my_booking` endpoint (FE recovers
-the active booking heuristically), and `asset_stations` has no location (so
-release-by-position is impossible). See `doc/asset_wheelchair_backend_gap.md`.
+`message:"OK"` (FE maps by code), and `asset_stations` has no location (so
+release-by-position is impossible). `my_booking` shipped and is wired
+(2026-06-17), so booking recovery is now authoritative (heuristic kept only as
+an offline fallback). See `doc/asset_wheelchair_backend_gap.md`.
 
 ## Overall Status
 
@@ -119,6 +134,7 @@ routing, and patient-facing flow analytics. Major backlog tracking only.
 Done (major capabilities)
 
 - [x] Grid map: rendering, POI search + metadata sheet, legend, zoom/pan, recenter; first-paint-fast deferred walkable layer.
+- [x] **Search history (backend-backed):** committing a search (selecting a POI from results) records it via `map/save_search` (keyword + map_id + poi_id + result_name, best-effort/non-blocking); the search overlay's idle state shows a **"Recent searches"** list from `map/get_search_history` (`searchHistoryProvider`, tap re-runs the search) with a **Clear** action wired to `map/clear_search_history`. Live in-box search stays client-side filtering.
 - [x] Multi-floor: floor switcher; meta/nodes/edges/search/POI follow the active floor; route + search reset on floor change.
 - [x] Positioning: "you are here" (entrance default), long-press pin, QR scan (`poi_code`), "I'm here" on landmark POIs.
 - [x] Navigation (simulated): animated dot, mode-based speed, traveled/remaining split, camera follow, live distance/ETA, pause/resume/stop, ×0.5/×1/×2, arrival. (`route/order` now fires at navigation start — see the route-lifecycle bullet below.)
@@ -226,9 +242,11 @@ Scope: features available in `swagger.yaml` for patient/public/mobile use, exclu
   - [x] Errors map by **code** to Vietnamese (`core/network/api_error_messages.dart`); the backend's `message:"OK"` (returned even on errors) is never shown. `ErrorInterceptor` dev placeholders replaced too.
   - [x] **Release works** via a station picker (fullness shown, full disabled). The backend's `release_asset` resolves the station by **`station_name`** (not the PK), so the FE sends the name as `station_id` — verified end-to-end (`book→release→book` all `1000`).
   - [x] **Active booking persisted locally** (Hive `active_asset`); Home shows an active/idle wheelchair card; the booking screen gates release on the local "mine" flag (backend has no `booked_by`) and shows an "in use by other" state.
-  - [x] **"Xe lăn của tôi"** page (`/asset/my`) with **auto-recovery on entry**: rediscovers a lost booking (reinstall / another phone) by diffing `find_wheelchairs` against the inferred `WL-###` catalog and confirming `in_use` via `asset_health`; single match auto-adopted, else the user picks. `book` returning `1010` also triggers recovery.
+  - [x] **`asset/my_booking` wired (authoritative, 2026-06-17):** `AssetRepository.getMyBooking()` returns `{booking_id, asset_id, status, station_id}` or null. `ActiveBookingNotifier` reconciles the local Hive booking against it on load (clears a stale local booking if the server says none) and `recover()` asks `my_booking` **first** — exact, single result. The old `find_wheelchairs`/`asset_health` `WL-###` discovery heuristic is now only a fallback when that endpoint errors (old backend / offline).
+  - [x] **"Xe lăn của tôi"** page (`/asset/my`) with **auto-recovery on entry**; single match auto-adopted, else the user picks. `book` returning `1010` also triggers recovery.
+  - [x] **Release station picker spinner fix:** the modal's `showModalBottomSheet` builder watched `assetStationsProvider` directly (runs once, never rebuilds), so opening it mid-fetch froze on the spinner until close/reopen. Body wrapped in a `Consumer` so it rebuilds when the data resolves.
   - [x] **Book from map**: wheelchair-accessible POIs show "Tìm xe lăn gần đây" → opens the search prefilled with that POI.
-  - [ ] **BE blockers (relay to backend):** `release_asset` should accept the numeric `station_id` PK (keep `station_name` fallback); stop using `SuccessWithCode` for errors so `message` is descriptive (affects `book`'s `1010` too); add `GET asset/my_booking` (so the FE can drop the recovery heuristic — `device_bookings`/`FindActiveBookingByUser` already exist); add `poi_id`/coords to `asset_stations` so release-by-nearest-station/position is possible. Full writeup: `doc/asset_wheelchair_backend_gap.md`.
+  - [ ] **BE blockers (relay to backend):** `release_asset` should accept the numeric `station_id` PK (keep `station_name` fallback); stop using `SuccessWithCode` for errors so `message` is descriptive (affects `book`'s `1010` too); add `poi_id`/coords to `asset_stations` so release-by-nearest-station/position is possible. (**`GET asset/my_booking` ✓ shipped + wired 2026-06-17** — recovery heuristic demoted to an offline fallback.) Full writeup: `doc/asset_wheelchair_backend_gap.md`.
 - [x] Staff assistance request is wired: `staff/request_staff`.
 - [x] Chat/support UI is wired for rooms, messages, send, unread aggregation, mark-read, and `ws/chat`; create-room UI and some polish remain backlog.
 - [x] FAQ/help center uses `util/faq`, `util/about`, and `util/contact`.
@@ -356,7 +374,7 @@ gitignore + `git rm --cached` treatment.
 | 2 | **Chat WebSocket force-logout path** | FE | S | REST token rejection is handled globally, but WS validation can still return HTTP 401 / code `3009` outside Dio. Wire it to `SessionManager` and redirect to `/login`. |
 | 3 | **Fix Flow API contract mismatches** | FE+BE | S | `flow/edge_status` (app sends no required param + expects a list, backend wants a param + returns one) and `flow/get_density` (missing param, single vs list). Detail in `doc/overview_system.md`. |
 | 4 | **auth/logout (server) + auth/resend_otp route** | BE | S | logout is local-only; `resend_otp` service exists but has no route. Single-active-JWT REST rejection is already handled. |
-| 4b | **Asset BE fixes** | BE | S | (a) `release_asset` accept the numeric `station_id` PK (keep `station_name` fallback) so the FE can stop sending the renameable name; (b) stop `SuccessWithCode` on errors — return a descriptive `message` instead of `"OK"` (affects `book`'s `1010`, `release`'s `4004`); (c) add `GET asset/my_booking` so the FE drops the in-use recovery heuristic; (d) add `poi_id`/coords to `asset_stations` for release-by-nearest-station. Detail in `doc/asset_wheelchair_backend_gap.md`. |
+| 4b | **Asset BE fixes** | BE | S | (a) `release_asset` accept the numeric `station_id` PK (keep `station_name` fallback) so the FE can stop sending the renameable name; (b) stop `SuccessWithCode` on errors — return a descriptive `message` instead of `"OK"` (affects `book`'s `1010`, `release`'s `4004`); ~~(c) add `GET asset/my_booking`~~ **✓ done 2026-06-17 — wired, recovery heuristic now an offline fallback**; (d) add `poi_id`/coords to `asset_stations` for release-by-nearest-station. Detail in `doc/asset_wheelchair_backend_gap.md`. |
 | 5 | **Pre-demo QA pass** | FE | S | `dart format`, `flutter analyze`, `flutter test`; manually walk auth / map / medical / notification / settings / chat / SOS / asset / staff flows. |
 | 6 | **Demo prep** | — | S | seeded test account, backend URL/config, short demo script with an offline fallback. |
 

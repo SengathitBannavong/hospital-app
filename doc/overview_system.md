@@ -1,7 +1,10 @@
 # API Contract Overview — Frontend ↔ Backend
 
 _Full two-sided reconciliation, refreshed 2026-05-31. Backend side from codex
-audit on the backend repo plus current frontend usage._
+audit on the backend repo plus current frontend usage. **2026-06-17 (branch
+`mod/feature-search-wheelchir`):** added `map/save_search`,
+`map/get_search_history`, `map/clear_search_history`, and `asset/my_booking`
+rows — all wired and MATCH._
 
 Backend wraps **all** successful responses as `{ code, message, data }`
 (`pkg/response.go:162`); tables describe the shape of `data`. The app reads that
@@ -99,6 +102,9 @@ session-ended message.
 | map/get_depts | `MapDepartment[]` | `POIItem[]` or ward counts | **VERIFY** (shape may differ) |
 | map/search_location | `MapPoi[]` | `POIItem[]` | MATCH |
 | map/get_landmarks | `MapPoi[]` | `POIItem[]` | MATCH |
+| map/save_search | ignored (void, best-effort) | success wrapper | MATCH |
+| map/get_search_history | `SearchHistory {items, total, page, limit}` | same | MATCH |
+| map/clear_search_history | `bool` (reads `data.cleared`) | `{cleared:true}` | MATCH |
 | map/sync_full | `MapSyncFull {maps, pois}` | `{maps, pois}` | MATCH |
 
 ### Route
@@ -137,9 +143,10 @@ There is no `booked`/`reserved`/`occupied`/`borrowed`/`broken` token — FE must
 - `in_use` → currently booked / in use
 - `maintenance` → unavailable (not bookable, not booked; FE shows a disabled maintenance notice)
 
-The backend does **not** return `booked_by` / `user_id` / `is_mine`; ownership is enforced
-server-side by `asset/track_asset`, which returns **accessDenied (1009)** when the caller is
-not the holder.
+The backend does **not** return `booked_by` / `user_id` / `is_mine` on assets; ownership is
+enforced server-side by `asset/track_asset`, which returns **accessDenied (1009)** when the
+caller is not the holder. As of 2026-06-17 `asset/my_booking` is the authoritative answer to
+"which chair am I holding?" (no more in-use discovery heuristic except as an offline fallback).
 
 | Endpoint | Frontend expects | Backend returns | Verdict |
 | --- | --- | --- | --- |
@@ -147,6 +154,7 @@ not the holder.
 | asset/find_wheelchairs | `AssetDevice[]` | device list | MATCH |
 | asset/asset_health | `AssetTrack {status…}` | asset status payload | MATCH |
 | asset/track_asset | `AssetTrack` or **1009** if not owner | status payload / accessDenied | MATCH (FE maps 1009 → ownership message) |
+| asset/my_booking | `ActiveBooking?` `{booking_id, asset_id, …}` or null | `{booking_id, asset_id, status, station_id}` / null | MATCH (null = no active booking) |
 | asset/book_asset / release_asset / report_broken_asset | success wrapper | success wrapper | MATCH |
 
 ### Notification
@@ -229,6 +237,9 @@ not the holder.
 | map/get_depts | no params | optional `node_type`, `ward_id` | MATCH |
 | map/search_location | query `{keyword, map_id}` | `keyword`, optional `map_id`/`floor_id` | MATCH |
 | map/get_landmarks | query `{map_id}` | optional `map_id`/`floor_id` | MATCH |
+| map/save_search | `{keyword, map_id?, poi_id?, result_name?}` (auth) | `keyword` + optional `map_id`/`poi_id`/`result_name` | MATCH |
+| map/get_search_history | query `{page, limit}` (auth) | optional `page` (1), `limit` (20) | MATCH |
+| map/clear_search_history | no body, DELETE (auth) | auth, none | MATCH |
 | map/sync_full | query `{map_id}` | optional `map_id`/`floor_id` | MATCH |
 
 ### Route
@@ -268,6 +279,7 @@ not the holder.
 | asset/find_wheelchairs | query `{node_id, radius}` | `node_id` + optional `radius` | MATCH |
 | asset/asset_health | query `{asset_id}` | `asset_id` | MATCH |
 | asset/track_asset | query `{asset_id}` | `asset_id` (ownership enforced → 1009) | MATCH |
+| asset/my_booking | no params (auth) | auth, none | MATCH |
 | asset/book_asset | `{asset_id}` | `asset_id` | MATCH |
 | asset/release_asset | `{asset_id, station_id}` | `asset_id, station_id` | MATCH |
 | asset/report_broken_asset | `{asset_id, reason, image_url?}` | `asset_id, reason` + optional | MATCH |
