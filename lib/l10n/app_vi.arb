@@ -797,6 +797,10 @@
   },
   "mapSearchTryShorter": "Thử từ ngắn hơn, hoặc chọn một gợi ý.",
   "mapSearchFailed": "Tìm kiếm thất bại",
+  "mapRecentSearches": "Tìm kiếm gần đây",
+  "mapRecentSearchesEmpty": "Các tìm kiếm gần đây của bạn sẽ hiển thị ở đây.",
+  "mapRecentSearchesClear": "Xóa",
+  "mapNoticeSearchHistoryCleared": "Đã xóa lịch sử tìm kiếm",
 
   "mapNoticePositionManual": "Đã đặt vị trí thủ công",
   "mapNoticeMapSynced": "Đã đồng bộ bản đồ",

@@ -30,6 +30,35 @@ class AssetRepository {
   static String get _trackAccessDeniedMessage =>
       appL10n.assetInUseOrNoPermission;
 
+  /// The caller's current booking from the authoritative
+  /// `GET /api/asset/my_booking`, or `null` when they hold none. This replaces
+  /// the old in-use discovery heuristic: the backend now answers "which
+  /// wheelchair am I holding?" directly, so recovery is exact.
+  Future<ActiveBooking?> getMyBooking() async {
+    try {
+      final response = await _dio.get(ApiEndpoints.assetMyBooking);
+      final api = AuthApiResponse<dynamic>.fromJson(
+        response.data,
+        (json) => json,
+      );
+      if (api.code != ApiResponseCodes.success) {
+        throw Exception(friendlyMessage(api.code, api.message));
+      }
+      final data = api.data;
+      Map<String, dynamic>? map;
+      if (data is List && data.isNotEmpty && data.first is Map) {
+        map = Map<String, dynamic>.from(data.first as Map);
+      } else if (data is Map) {
+        map = Map<String, dynamic>.from(data);
+      }
+      if (map == null) return null;
+      final booking = ActiveBooking.fromJson(map);
+      return booking.assetId.isEmpty ? null : booking;
+    } on DioException catch (e) {
+      throw Exception(_error(e));
+    }
+  }
+
   Future<List<AssetStation>> getStations() async {
     try {
       final response = await _dio.get(ApiEndpoints.assetStations);

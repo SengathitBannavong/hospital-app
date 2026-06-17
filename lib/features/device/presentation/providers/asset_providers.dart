@@ -34,7 +34,32 @@ class ActiveBookingNotifier extends StateNotifier<ActiveBooking?> {
   final ActiveBookingStore _store;
 
   Future<void> _load() async {
+    // Show the locally-cached booking immediately, then reconcile against the
+    // backend's authoritative `my_booking` so a booking made (or released) on
+    // another device is reflected. Network failures keep the cached value.
     state = await _store.load();
+    await _refreshFromBackend();
+  }
+
+  /// Reconciles local state with the backend's authoritative current booking.
+  /// Best-effort: swallows errors (offline / old backend) so it never disturbs
+  /// the cached state. Returns the resolved booking (or null).
+  Future<ActiveBooking?> _refreshFromBackend() async {
+    try {
+      final remote = await _repository.getMyBooking();
+      if (remote == null) {
+        if (state != null) {
+          await _store.clear();
+          state = null;
+        }
+      } else {
+        await _store.save(remote);
+        state = remote;
+      }
+      return remote;
+    } catch (_) {
+      return state;
+    }
   }
 
   /// Books [assetId]; on success persists and exposes it as the active booking.
@@ -64,11 +89,24 @@ class ActiveBookingNotifier extends StateNotifier<ActiveBooking?> {
     state = booking;
   }
 
-  /// Discovers wheelchairs the backend reports as `in_use` so a booking the
-  /// local store lost (fresh install / another phone) can be recovered. If
-  /// exactly one is found it is adopted automatically; otherwise the candidates
-  /// are returned for the user to confirm which is theirs.
+  /// Recovers a booking the local store lost (fresh install / another phone).
+  ///
+  /// Asks the backend's authoritative `my_booking` first: if it reports a
+  /// booking it is adopted exactly and returned as the single candidate; if it
+  /// reports none, recovery stops (the user genuinely holds nothing). Only if
+  /// that endpoint is unavailable (old backend / network error) does it fall
+  /// back to the legacy in-use discovery heuristic, which returns candidates
+  /// for the user to confirm when several assets are in use.
   Future<List<String>> recover() async {
+    try {
+      final remote = await _repository.getMyBooking();
+      if (remote == null) return const [];
+      await _store.save(remote);
+      state = remote;
+      return [remote.assetId];
+    } catch (_) {
+      // Authoritative endpoint unavailable — fall back to the heuristic.
+    }
     final inUse = await _repository.discoverInUseAssets();
     if (inUse.length == 1) {
       await adopt(inUse.first);

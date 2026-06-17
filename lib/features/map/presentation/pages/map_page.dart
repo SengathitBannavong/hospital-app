@@ -18,6 +18,7 @@ import 'package:hospital_app/features/map/data/models/nav_state.dart';
 import 'package:hospital_app/features/map/data/models/route_history.dart';
 import 'package:hospital_app/features/map/data/models/route_history_entry.dart';
 import 'package:hospital_app/features/map/data/models/route_result.dart';
+import 'package:hospital_app/features/map/data/models/search_history.dart';
 import 'package:hospital_app/features/map/presentation/controllers/navigation_controller.dart';
 import 'package:hospital_app/features/map/presentation/pages/map_qr_scanner_page.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
@@ -28,6 +29,7 @@ import 'package:hospital_app/features/map/presentation/widgets/map_grid_painter.
 import 'package:hospital_app/features/map/presentation/widgets/map_legend_sheet.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_navigation_sheet.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_poi_metadata_panel.dart';
+import 'package:hospital_app/features/map/presentation/widgets/map_recent_searches_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_route_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_search_results_panel.dart';
 import 'package:hospital_app/features/map/presentation/widgets/map_top_bar.dart';
@@ -634,7 +636,18 @@ class _MapPageState extends ConsumerState<MapPage>
                               ),
                             ),
                           )
-                        : const SizedBox.shrink(key: ValueKey('idle')),
+                        : Padding(
+                            key: const ValueKey('recent'),
+                            padding: const EdgeInsets.only(top: AppSpacing.sm),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 280),
+                              child: MapRecentSearchesPanel(
+                                history: ref.watch(searchHistoryProvider),
+                                onSelect: _selectRecentSearch,
+                                onClear: _clearSearchHistory,
+                              ),
+                            ),
+                          ),
                   ),
                 ],
               )
@@ -1174,9 +1187,51 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   void _selectPoiFromSearch(MapPoi poi) {
+    _recordSearch(poi);
     _setRouteDestination(poi);
     _searchController.clear();
     _setSearchKeyword('', immediate: true);
+  }
+
+  // Persist the committed search to the backend history (best-effort, never
+  // blocks the selection), then refresh the recent-searches list.
+  void _recordSearch(MapPoi poi) {
+    final keyword = ref.read(searchKeywordProvider).trim();
+    if (keyword.isEmpty) return;
+    unawaited(
+      ref
+          .read(mapRepositoryProvider)
+          .saveSearch(
+            keyword: keyword,
+            mapId: poi.mapId,
+            poiId: poi.poiId,
+            resultName: poi.poiName,
+          )
+          .then((_) {
+            if (mounted) ref.invalidate(searchHistoryProvider);
+          })
+          .catchError((_) {}),
+    );
+  }
+
+  void _selectRecentSearch(SearchHistoryEntry entry) {
+    _searchController.text = entry.keyword;
+    _searchController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _searchController.text.length),
+    );
+    _setSearchKeyword(entry.keyword, immediate: true);
+  }
+
+  Future<void> _clearSearchHistory() async {
+    try {
+      await ref.read(mapRepositoryProvider).clearSearchHistory();
+    } catch (_) {
+      // Ignore — clearing history should never surface an error to the user.
+    }
+    if (!mounted) return;
+    ref.invalidate(searchHistoryProvider);
+    ref.read(mapInlineNoticeProvider.notifier).state =
+        context.l10n.mapNoticeSearchHistoryCleared;
   }
 
   void _clearRoute() {
