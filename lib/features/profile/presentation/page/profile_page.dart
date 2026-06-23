@@ -117,8 +117,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _isEditing ? l10n.profileEditTitle : l10n.aboutFeatureProfile,
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                _isEditing ? l10n.profileEditTitle : l10n.aboutFeatureProfile,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (profileState.isStale) ...[
+              const SizedBox(width: AppSpacing.sm),
+              _OfflineBadge(label: l10n.statusOffline),
+            ],
+          ],
         ),
         actions: [
           if (!_isEditing) ...[
@@ -313,5 +324,44 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   String _formatError(Object error) {
     return error.toString().replaceFirst('Exception: ', '');
+  }
+}
+
+class _OfflineBadge extends StatelessWidget {
+  const _OfflineBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.cloud_off_rounded,
+            size: 14,
+            color: colorScheme.onErrorContainer,
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            label,
+            style: context.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onErrorContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

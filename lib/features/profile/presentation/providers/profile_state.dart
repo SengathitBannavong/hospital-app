@@ -7,6 +7,7 @@ class ProfileState {
     required this.isRefreshing,
     required this.isSaving,
     required this.errorMessage,
+    this.isStale = false,
   });
 
   factory ProfileState.initial() {
@@ -25,6 +26,10 @@ class ProfileState {
   final bool isSaving;
   final String? errorMessage;
 
+  /// True when the displayed profile came from the offline cache because the
+  /// live fetch failed. Drives the offline indicator in the header.
+  final bool isStale;
+
   bool get hasProfile => profile != null;
   bool get isBusy => isLoading || isRefreshing || isSaving;
 
@@ -34,6 +39,7 @@ class ProfileState {
     bool? isRefreshing,
     bool? isSaving,
     String? errorMessage,
+    bool? isStale,
   }) {
     return ProfileState(
       profile: profile ?? this.profile,
@@ -41,6 +47,7 @@ class ProfileState {
       isRefreshing: isRefreshing ?? this.isRefreshing,
       isSaving: isSaving ?? this.isSaving,
       errorMessage: errorMessage,
+      isStale: isStale ?? this.isStale,
     );
   }
 }

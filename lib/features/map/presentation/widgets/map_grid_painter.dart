@@ -39,6 +39,10 @@ final Paint _userDotPaint = Paint()..color = MapTokens.userDot;
 final Paint _userDotStrokePaint = Paint()
   ..color = MapTokens.paintInk
   ..style = PaintingStyle.stroke;
+final Paint _destPoiHaloPaint = Paint()..color = MapSurface.background;
+final Paint _destPoiStrokePaint = Paint()
+  ..color = MapTokens.paintInk
+  ..style = PaintingStyle.stroke;
 
 class MapStaticPainter extends CustomPainter {
   final int rows;
@@ -283,6 +287,7 @@ class MapDynamicPainter extends CustomPainter {
   final Offset? debugTap;
   final Offset? debugPoiCenter;
   final bool? showDebug;
+  final MapPoi? destPoi;
 
   MapDynamicPainter({
     required this.rows,
@@ -295,6 +300,7 @@ class MapDynamicPainter extends CustomPainter {
     this.debugTap,
     this.debugPoiCenter,
     this.showDebug,
+    this.destPoi,
   });
 
   @override
@@ -328,6 +334,13 @@ class MapDynamicPainter extends CustomPainter {
       );
     }
 
+    // Redraw the destination POI on top of the route line. POIs live in the
+    // static layer below, so without this the route's end cap paints over the
+    // destination marker and hides it.
+    if (destPoi != null && routeLocations.isNotEmpty) {
+      _paintDestPoi(canvas, cellWidth, cellHeight);
+    }
+
     if (userDot != null) {
       _paintUserDot(canvas, cellWidth, cellHeight);
     }
@@ -341,6 +354,34 @@ class MapDynamicPainter extends CustomPainter {
         canvas.drawCircle(debugPoiCenter!, debugRadius, _debugPoiPaint);
       }
     }
+  }
+
+  void _paintDestPoi(Canvas canvas, double cellWidth, double cellHeight) {
+    final poi = destPoi;
+    if (poi == null) return;
+    if (poi.gridRow < 0 ||
+        poi.gridRow >= rows ||
+        poi.gridCol < 0 ||
+        poi.gridCol >= cols) {
+      return;
+    }
+    final center = Offset(
+      poi.gridCol * cellWidth + cellWidth / 2,
+      poi.gridRow * cellHeight + cellHeight / 2,
+    );
+    final radius = math.min(cellWidth, cellHeight) * 0.35;
+    final paint = _poiPaints[poi.poiType] ?? _poiFallbackPaint;
+
+    // Background-colored halo + ink stroke lift the marker clear of the route
+    // line it sits on, so the destination stays legible.
+    _destPoiStrokePaint.strokeWidth = math.max(1.5, radius * 0.32);
+    canvas.drawCircle(
+      center,
+      radius + _destPoiStrokePaint.strokeWidth,
+      _destPoiHaloPaint,
+    );
+    canvas.drawCircle(center, radius, paint);
+    canvas.drawCircle(center, radius, _destPoiStrokePaint);
   }
 
   void _paintUserDot(Canvas canvas, double cellWidth, double cellHeight) {
@@ -523,6 +564,7 @@ class MapDynamicPainter extends CustomPainter {
         oldDelegate.visibleRect != visibleRect ||
         oldDelegate.debugTap != debugTap ||
         oldDelegate.debugPoiCenter != debugPoiCenter ||
+        oldDelegate.destPoi != destPoi ||
         (oldDelegate.showDebug ?? false) != (showDebug ?? false);
   }
 }
