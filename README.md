@@ -57,6 +57,34 @@ flutter test
 dart analyze lib test
 ```
 
+### Map base images
+
+Large floor maps are rendered from a pre-baked PNG (walls + floor only) instead of
+painting every grid cell, so the map stays smooth even at 300×500. POIs, the route, and
+the user dot are still drawn as live vectors on top of the image.
+
+Source grids live in `assets/map/{id}.map` (octile ASCII, `@` = wall, anything else =
+walkable). The tool rasterizes each one to `assets/map/{id}.png` at 8 px/cell, named by
+**mapId** — the same id the backend assigns and that
+`lib/features/map/data/map_asset_registry.dart` keys on.
+
+Regenerate all base PNGs from their `.map` sources:
+
+```bash
+flutter test tool/render_map_png.dart
+```
+
+It prints one line per map, e.g. `Rendered assets/map/5.map (500 x 300) -> assets/map/5.png`.
+
+When you add or edit a map:
+
+1. Drop the new grid at `assets/map/{id}.map`.
+2. Run the command above to (re)generate `assets/map/{id}.png`.
+3. Register the id in `kMapAssets` (`map_asset_registry.dart`) with its `rows`/`cols`.
+
+Maps with no registry entry fall back to the (still optimized) cell renderer — no PNG
+required.
+
 ### Continuous Integration
 
 GitHub Actions workflows in `.github/workflows/`:

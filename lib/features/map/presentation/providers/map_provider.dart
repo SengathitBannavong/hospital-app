@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
 import 'package:hospital_app/features/map/data/models/flow_snapshot.dart';
@@ -389,6 +391,63 @@ final walkableCellsProvider = Provider.family<Set<int>, int>((ref, mapId) {
   }
   return result;
 });
+
+// Memoized walkable runs provider that collapses walkable cells into
+// horizontal runs.
+final walkableRunsProvider = Provider.family<List<ui.Rect>, int>((ref, mapId) {
+  final meta = ref.watch(mapMetaProvider(mapId)).value;
+  if (meta == null) {
+    return const <ui.Rect>[];
+  }
+  final walkable = ref.watch(walkableCellsProvider(mapId));
+  final cols = meta.cols;
+  final rows = meta.rows;
+  final runs = <ui.Rect>[];
+
+  for (var row = 0; row < rows; row++) {
+    int? runStart;
+    for (var col = 0; col < cols; col++) {
+      final location = row * cols + col;
+      final isWalkable = walkable.contains(location);
+      if (isWalkable) {
+        runStart ??= col;
+      } else {
+        if (runStart != null) {
+          runs.add(ui.Rect.fromLTWH(
+            runStart.toDouble(),
+            row.toDouble(),
+            (col - runStart).toDouble(),
+            1.0,
+          ));
+          runStart = null;
+        }
+      }
+    }
+    if (runStart != null) {
+      runs.add(ui.Rect.fromLTWH(
+        runStart.toDouble(),
+        row.toDouble(),
+        (cols - runStart).toDouble(),
+        1.0,
+      ));
+    }
+  }
+  return runs;
+});
+
+// Provider to load image assets reactively.
+final mapImageProvider =
+    FutureProvider.family<ui.Image?, String>((ref, assetPath) async {
+  try {
+    final data = await rootBundle.load(assetPath);
+    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final frame = await codec.getNextFrame();
+    return frame.image;
+  } catch (e) {
+    return null;
+  }
+});
+
 
 final defaultUserPositionProvider = Provider.family<int?, int>((ref, mapId) {
   final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];

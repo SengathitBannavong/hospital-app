@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hospital_app/l10n/app_localizations.dart';
 import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/data/models/map_edge.dart';
 import 'package:hospital_app/features/map/data/models/map_floor.dart';
@@ -35,7 +36,11 @@ void main() {
           }),
           mapLastSyncedAtProvider.overrideWith((ref, mapId) async => null),
         ],
-        child: const MaterialApp(home: MapPage()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MapPage(),
+        ),
       ),
     );
 
@@ -72,7 +77,11 @@ void main() {
           }),
           mapLastSyncedAtProvider.overrideWith((ref, mapId) async => null),
         ],
-        child: const MaterialApp(home: MapPage()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MapPage(),
+        ),
       ),
     );
 
@@ -115,6 +124,8 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: ThemeData(useMaterial3: false),
           home: const MapPage(),
         ),
@@ -171,6 +182,8 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: ThemeData(useMaterial3: false),
           home: const MapPage(),
         ),
@@ -249,6 +262,9 @@ void main() {
             ),
           ],
           child: MaterialApp.router(
+            locale: const Locale('vi'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: ThemeData(useMaterial3: false),
             routerConfig: router,
           ),
@@ -304,11 +320,15 @@ void main() {
           mapLastSyncedAtProvider.overrideWith((ref, mapId) async => null),
         ],
         child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: ThemeData(useMaterial3: false),
           home: const MapPage(),
         ),
       ),
     );
+
 
     await tester.pump();
     await tester.tap(find.byIcon(Icons.menu_rounded));
@@ -322,7 +342,13 @@ void main() {
 
     expect(repository.clearCalls, 1);
     expect(find.text('Route history'), findsNothing);
-    expect(find.text('Route history cleared'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((widget) =>
+          widget is Text &&
+          (widget.data == 'Route history cleared' ||
+              widget.data == 'Đã xóa lịch sử lộ trình')),
+      findsOneWidget,
+    );
   });
 }
 
