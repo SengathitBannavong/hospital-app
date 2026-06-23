@@ -4,7 +4,10 @@ _Full two-sided reconciliation, refreshed 2026-05-31. Backend side from codex
 audit on the backend repo plus current frontend usage. **2026-06-17 (branch
 `mod/feature-search-wheelchir`):** added `map/save_search`,
 `map/get_search_history`, `map/clear_search_history`, and `asset/my_booking`
-rows — all wired and MATCH._
+rows — all wired and MATCH. **2026-06-23 (`main` @ `cc62f99`):** no contract
+changes — the test notification (#64, local/on-device only), large-floor map
+render rewrite (#65, client rendering), and strong-password policy + appointments
+copy (#66, client validation/navigation) touch no API surface._
 
 Backend wraps **all** successful responses as `{ code, message, data }`
 (`pkg/response.go:162`); tables describe the shape of `data`. The app reads that

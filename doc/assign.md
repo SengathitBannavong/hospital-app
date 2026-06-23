@@ -1,6 +1,6 @@
-# Contribution Assignment — `main` (57 commits)
+# Contribution Assignment — `main` (65 commits)
 
-_Updated 2026-06-14. HEAD `c154da0`. Ordered oldest → newest. "#" = PR number
+_Updated 2026-06-23. HEAD `cc62f99`. Ordered oldest → newest. "#" = PR number
 (or short hash for direct commits). Co-contributors are from `Co-Authored-By`._
 
 | # | Date (UTC+?) | Module | What it does (summary) | Main contributor | Co-contributor |
@@ -62,15 +62,22 @@ _Updated 2026-06-14. HEAD `c154da0`. Ordered oldest → newest. "#" = PR number
 | `3921912` | 2026-06-13 | Profile | Add clear-avatar action (send `avatar: ""` so a clear reaches the backend; "Xóa ảnh đại diện" picker entry + confirm dialog) | Bannavong | — |
 | #59 | 2026-06-13 | Map / Route / Auth | Wire backend route lifecycle (`route/order`→`route_id`, `cancel`, `pass_node` every 2s, `rate` with `is_accurate`) as telemetry+rating while the client A* engine stays routing authority; reachable rating page; shared `authLinkButtonStyle` helper (`inherit: false`, survives route transitions) | Bannavong | — |
 | #60 | 2026-06-14 | Asset / Core | Make Asset/Wheelchair flow usable end-to-end: shared code→Vietnamese error map (backend returns `message:"OK"` on errors), station-picker release sending `station_name`, local active-booking tracking + "Xe lăn của tôi" heuristic recovery, Home active-booking card + "Trạm thiết bị" shortcut, "Tìm xe lăn gần đây" on accessible map POIs; gap/`my_booking` docs into tracked `doc/` | Bannavong | — |
+| `bb0e8b6` | 2026-06-14 | Docs | Refresh `assign.md` (log #60) | Bannavong | — |
+| #61 | 2026-06-15 | Core / i18n | English/Vietnamese language switching foundation: `LocaleController` (persisted, system-locale fallback), `gen-l10n`/ARB pipeline wiring (`l10n.yaml`, app router, initializer), localized API error messages + interceptor/services | Soumek Xaynguyen (quanghot31lao) | quangngv |
+| #62 | 2026-06-15 | Map / i18n / CI | Localize the map module end-to-end (~110 ARB keys via `context.l10n`/`appL10n`); fix two longer-Vietnamese-label layout bugs (extended-FAB `StadiumBorder`, analytics-row `Expanded`); gitignore generated `app_localizations*.dart` and add a `flutter gen-l10n` step to CI + `pre_commit.sh` | Bannavong | — |
+| #63 | 2026-06-17 | Asset / Map | Wire 3 new backend endpoints: map search history (`map/save_search` + `get_search_history` "Recent searches" + `clear_search_history`) and authoritative `asset/my_booking` (heuristic demoted to offline fallback); fix release station-picker stuck spinner (wrap modal body in `Consumer`) | Bannavong | — |
+| #64 | 2026-06-23 | Notification / Settings | On-device **test notification**: `showTestNotification()` shows a local notification offline/online (independent of Firebase) + secure-storage FCM token cache (`getSavedToken`), Android 13+ `POST_NOTIFICATIONS` request; Settings "Gửi thông báo thử" tile also drops a matching in-app entry; restore the accidentally-deleted `flutter_ci.yml` quality gate | Soumek Xaynguyen (quanghot31lao) | quangngv |
+| #65 | 2026-06-23 | Map / Perf | Render large floors (300×500 = 150k cells) from a pre-baked bundled PNG base (`assets/map/{id}.png`, `map_asset_registry.dart`) drawn once via `drawImageRect`; split `MapGridPainter` into `MapStaticPainter` (base+POIs, own `RepaintBoundary`) and `MapDynamicPainter` (route+dot, only per-frame layer); `walkableRunsProvider` collapses cells into per-row runs for the fallback renderer; `tool/render_map_png.dart` rasterizer | Bannavong | — |
+| #66 | 2026-06-23 | Auth / Home / Medical | Enforce a strong-password policy (≥8 chars w/ upper, lower, digit, symbol via shared `FormValidators.isStrongPassword`) across register/reset/change-password (was 6-char); wire the Home appointments card to `/medical` (was a no-op refetch); patient-friendly copy ("My appointments / Lịch khám của tôi", "{n} upcoming") in en/vi | Bannavong | — |
 
 ## Contributor summary
 
 | Person | Lead commits | Also co-contributed |
 |---|---|---|
-| **Bannavong** (bannavong.sa239717) | 40 — core, theme, CI, map, route, flow, medical, docs, responsive UI, auth/profile fixes, patient-facing optimization (#51), backend-logout/FCM lifecycle (`30988f5`), Phase 0 hygiene (#56), offline voice guidance (#58) + voice/route-pill fixes, clear-avatar (`3921912`), backend route lifecycle (#59), Asset/Wheelchair end-to-end (#60) | #17, #25, #29, #31, #30, #37, #55 |
+| **Bannavong** (bannavong.sa239717) | 44 — core, theme, CI, map, route, flow, medical, docs, responsive UI, auth/profile fixes, patient-facing optimization (#51), backend-logout/FCM lifecycle (`30988f5`), Phase 0 hygiene (#56), offline voice guidance (#58) + voice/route-pill fixes, clear-avatar (`3921912`), backend route lifecycle (#59), Asset/Wheelchair end-to-end (#60), map i18n + layout fixes (#62), search-history/my_booking wiring (#63), map render perf (#65), strong-password/appointments copy (#66) | #17, #25, #29, #31, #30, #37, #55 |
 | **Vongphet Pasithphone** (pasithphone.v220116) | 9 — auth (#7, #22), async/UI (#17), reset-password (#25), notification tests (#48), dob validation fix (#50), map action-menu/page-slide (#54), edge-swipe nav (#55), delete-account fix (#57) | #29 |
 | **Kimheng99** (nutkimheng000) | 3 — notification UI (#18), notifications/info/nav (#29), FAQ/utility screens (#49) | — |
-| **Soumek Xaynguyen** (aka quangngv / quanghot31lao) | 3 — profile page (#8), unified Settings page (#31), chat (#45) | — |
+| **Soumek Xaynguyen** (aka quangngv / quanghot31lao) | 5 — profile page (#8), unified Settings page (#31), chat (#45), i18n language-switch foundation (#61), test notification (#64) | — |
 | **Samkol Meng Leang** (CodeLeang) | 2 — auth/core/home pages (#5), SOS + home utility shortcuts (#30) | — |
 | **Punleu-Oun** (ounpunleu7975) | 1 — util wiring: Info hub, Home, app update, feedback (#37) | — |
 

@@ -46,6 +46,13 @@ own back button.
 └── /medical/prescription → PrescriptionPage
 ```
 
+:::note[Patient-friendly copy]
+User-facing strings now read as **appointments** rather than "tasks": the list
+title and empty state use "My appointments / Lịch khám của tôi" (matching the
+Home overview card's "{n} upcoming" count) in both en/vi. Internally the data
+layer still models these as `MedicalTask`/`medicalTasksProvider`.
+:::
+
 :::note[Task actions moved to a detail page]
 The per-task **check-in / check-out / result / cancel** actions used to live
 inline on the list card. They now live on a dedicated `TaskDetailPage`

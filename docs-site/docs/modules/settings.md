@@ -33,6 +33,7 @@ a partial update.
 ├── 👤 Tài khoản    → Change password (/change-password) · Logout (confirm dialog)
 ├── 🎨 Giao diện    → Theme SegmentedButton (Light / System / Dark)  [persisted]
 ├── 🔔 Thông báo    → Enable notifications switch                    [persisted]
+│   └── 🧪 "Gửi thông báo thử" → showTestNotification() (local, offline-capable)
 ├── 🌐 Ngôn ngữ     → Language dropdown (vi / en)                    [persisted]
 └── ℹ️  Thông tin   → Help (/help) · About dialog · Version (1.0.0)
 ```
@@ -44,6 +45,13 @@ a partial update.
 - On app launch / login: `AppInitializer` loads settings once and applies the
   saved `theme` so the choice survives restarts — persistence is server-side, not
   local `SharedPreferences`.
+
+## Test notification
+- The **Thông báo** section includes a "Gửi thông báo thử" tile that fires a
+  local notification via `FirebaseNotificationService.showTestNotification()`.
+  Local notifications are on-device, so it works **offline** and **without
+  Firebase** (`ENABLE_FIREBASE` may be off); it also drops a matching entry into
+  the in-app notification list and toasts success/failure.
 
 ## Notes
 - The page requires authentication + network (it is backend-backed); it is only

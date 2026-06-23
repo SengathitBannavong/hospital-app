@@ -9,7 +9,11 @@ sidebar_position: 3
 The **Map Module** (`lib/features/map`) is the most technologically complex component of the application. It handles custom 2D grid rendering, graph-based pathfinding, and turn-by-turn simulated navigation within the hospital.
 
 :::warning[Performance Considerations]
-To ensure 60fps rendering even on lower-end devices, the map bypasses traditional Flutter Widget trees for its core view. Instead, it utilizes a custom `CustomPainter` (`MapGridPainter`) to paint directly to the canvas.
+To ensure 60fps rendering even on lower-end devices, the map bypasses traditional Flutter Widget trees for its core view. Instead, it paints directly to the canvas with custom `CustomPainter`s. The painter is split into two layers: a **static** layer (`MapStaticPainter` — base image / walkable cells + POIs) that repaints only when its data changes, and a **dynamic** layer (`MapDynamicPainter` — route + user dot) that is the only per-frame layer during navigation. Each layer sits under its own `RepaintBoundary`.
+:::
+
+:::tip[Large-floor rendering]
+A big hospital floor can be 300×500 = 150k cells; looping a `drawRect` over every cell each frame stalled pan/zoom and route animation. Each map now ships a **pre-baked PNG base image** (walls + floor only) at `assets/map/{id}.png`, resolved by `mapId` through `data/map_asset_registry.dart` and drawn once via `drawImageRect`. POIs, route, and the user dot stay live vectors on top. Maps without a baked PNG fall back to an optimized cell renderer where `walkableRunsProvider` collapses walkable cells into per-row runs (hundreds of rects instead of 150k). `tool/render_map_png.dart` rasterizes `assets/map/{id}.map` → `{id}.png` at 8 px/cell.
 :::
 
 ## State Management
@@ -31,8 +35,8 @@ The Map module heavily relies on custom canvas painting over standard widget tre
 ```text
 📦 MapPage
 ├── 🏗️ Stack
-│   ├── 🖌️ CustomPaint (MapGridPainter)
-│   │   └── 🗺️ Renders Nodes, Edges, Route Path
+│   ├── 🖌️ CustomPaint (MapStaticPainter — base image / cells + POIs, own RepaintBoundary)
+│   │   └── 🖌️ CustomPaint (MapDynamicPainter — route + user dot, per-frame layer)
 │   ├── 🔍 Collapsed search (icon → expands; status cluster hides while open)
 │   ├── 🟢 Status cluster + route pill (top-left)
 │   ├── 🔘 Left FAB rail — 3 buttons
@@ -129,9 +133,9 @@ final result = _engine.route(
 ```
 
 ### 4. 🔄 Canvas Reactivity (Rendering Layer)
-The Riverpod state is mutated with the new node array. The custom canvas, which actively watches the routing state, immediately triggers a high-performance repaint, drawing the highlighted path.
+The Riverpod state is mutated with the new node array. The dynamic canvas layer (`MapDynamicPainter`), which actively watches the routing state, immediately triggers a high-performance repaint, drawing the highlighted path — without forcing the static base/POI layer to repaint.
 ```dart
-// Inside MapGridPainter
+// Inside MapDynamicPainter
 if (routeNodes != null) {
   _drawHighlightedPath(canvas, routeNodes);
 }
@@ -244,7 +248,7 @@ a crowd-aware detour first, falling back to the cache, then to the backend
 
 ## Flow Analytics Overlays
 
-On top of the base grid, `MapGridPainter` renders live crowd-flow analytics,
+On top of the base grid, the map painters render live crowd-flow analytics,
 each behind its own visibility toggle in the analytics panel. Every overlay is
 **offline-first** — a failed fetch degrades to cached or empty data and never
 throws into the widget tree.

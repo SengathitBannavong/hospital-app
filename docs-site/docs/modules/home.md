@@ -43,7 +43,7 @@ The UI is composed of animated, highly-reusable components designed to give a pr
         │       ├── "Báo vật cản"  (warning) → push('/flow/report-obstacle')
         │       └── "SOS"          (emergency) → push('/sos')
         ├── 🌟 FadeSlideTransition — "Tổng quan"
-        │   └── 📇 MedicalInfoCard (Active Tasks — real count)
+        │   └── 📇 MedicalInfoCard ("My appointments / Lịch khám của tôi", real count → go('/medical'))
         ├── 🌟 FadeSlideTransition
         │   └── 🌤️ _WeatherSummaryCard (weatherProvider · util/weather)
         └── 🌟 FadeSlideTransition — "Thông báo"
@@ -58,6 +58,14 @@ under Utilities. SOS and obstacle-report keep their emergency/warning colors via
 `_QuickActionCard.color`. The fake appointment counter, the static "doctors
 available" card, and the nav-duplicating Map/Medical/Profile actions remain
 removed.
+:::
+
+:::note[Appointments card]
+The "Tổng quan" `MedicalInfoCard` now uses patient-friendly copy — **"My
+appointments / Lịch khám của tôi"** with an "{n} upcoming" count instead of the
+old "task" vocabulary — and tapping it **navigates to `/medical`**
+(`context.go('/medical')`). It was previously a no-op that only re-fetched the
+count.
 :::
 
 - **Core Reusable Components**: `FadeSlideTransition`, `MedicalInfoCard`, `NotificationBadge`.

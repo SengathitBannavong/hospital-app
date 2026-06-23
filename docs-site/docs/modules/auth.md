@@ -48,6 +48,14 @@ The module is composed of several specialized screens utilizing shared core comp
 Unauthenticated users attempting to access protected routes are automatically redirected to the `LoginPage` via the global `go_router` configuration listening to the `authStateProvider`.
 :::
 
+:::info[Strong-password policy]
+Register, reset-password, and change-password all enforce a shared
+**strong-password policy** via `FormValidators.isStrongPassword`: at least 8
+characters containing an uppercase letter, a lowercase letter, a digit, and a
+symbol (previously a flat 6-character minimum). A failing field surfaces the
+localized `authPasswordWeak` message (en/vi).
+:::
+
 ## State Taxonomy
 
 Before diving into the flow, it's crucial to understand where data lives in the Auth module:

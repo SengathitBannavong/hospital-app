@@ -49,6 +49,22 @@ enabled, it requests permission, registers the device token via
 `user/set_devtoken` (sending `device_token` + `platform`), and prepends
 foreground messages into the list. See `FIREBASE.md` at the repo root.
 
+The service also keeps a **secure-storage copy of the FCM token**
+(`getSavedToken()` prefers the live SDK value and falls back to the cached copy
+when offline) so the token survives cases where `getToken()` needs the network.
+
+## Test Notification (on-device)
+
+Settings exposes a **"Gửi thông báo thử"** tile that fires a local notification
+through `FirebaseNotificationService.showTestNotification()`. Because local
+notifications are handled entirely on-device, this works **offline and online**
+and is **independent of Firebase / server push** — the local-notifications plugin
+is initialized lazily (`_ensureLocalReady()`, idempotent) and requests the
+Android 13+ `POST_NOTIFICATIONS` permission, so it functions even when
+`ENABLE_FIREBASE` is false. Sending also drops a matching `AppNotification` into
+the in-app list (via `addFirebaseNotification`) so the entry appears in the inbox
+too, then toasts success/failure.
+
 ## State Taxonomy
 
 - **Server State (Cached)**: `notificationProvider` holds the paginated list of notifications and handles the unread badge count. It is the primary source of truth.

@@ -130,13 +130,15 @@ The map feature (`lib/features/map/`) renders a hospital floor grid with POIs, w
   - Route state — `routeStartProvider`, `routeDestProvider`, `routeModeProvider`, `routeResultProvider`, `routeLocationsProvider`.
 - **Utils**: `presentation/utils/search_utils.dart` — accent-insensitive `normalizeForSearch` with top-level `RegExp` instances (parsed once).
 - **Tokens**: `presentation/theme/map_tokens.dart` — `MapMotion` durations/curves, `MapSurface` colors, `MapPoiPalette` (muted, semantically grouped POI palette + labels).
-- **Painter**: `widgets/map_grid_painter.dart` — pooled `Paint` objects, viewport culling, animated `routeProgress` (0–1) for route draw-on.
+- **Painter**: `widgets/map_grid_painter.dart` — now split into two layers for large-floor performance: `MapStaticPainter` (base image / merged walkable runs + POIs, under its own `RepaintBoundary`, repaints only on data change) and `MapDynamicPainter` (route + user dot, the only per-frame layer). Both use pooled `Paint` objects, viewport culling, and an animated `routeProgress` (0–1) for route draw-on.
+- **Baked base image**: large hospital floors (e.g. 300×500 = 150k cells) lagged when each frame looped every grid cell with a `drawRect`. Each map now ships a pre-baked PNG (walls + floor only) at `assets/map/{id}.png`, resolved by `mapId` via `data/map_asset_registry.dart` and drawn once with `drawImageRect`; POIs, route, and the user dot stay live vectors on top. Maps without a registry entry fall back to the optimized cell renderer (`walkableRunsProvider` collapses walkable cells into per-row runs so the fallback draws hundreds of rects instead of 150k). `tool/render_map_png.dart` rasterizes `assets/map/{id}.map` → `{id}.png` at 8 px/cell (workflow documented in `README.md`).
 - **Page**: `pages/map_page.dart` — full-screen grid with collapsible overlays, floor selector, analytics panel, status cluster, route pill, and route planning sheets. The left FAB rail is **three buttons** (QR, recenter, More); legend, route history, and flow analytics fold into a **More** sheet. Search collapses to an icon by default. POI taps, route planning, route history, obstacle reporting, and the legend all open as modal bottom sheets, leaving the map unobstructed.
 - **Widgets**: `map_top_bar`, `map_search_results_panel` (skeleton + suggestion chips), `map_poi_metadata_panel`, `map_route_panel`, `map_route_status`, `map_legend_sheet`, `map_navigation_sheet`, `poi_picker` (reusable `PoiPickerField` / `showPoiPicker`, shared by queue/wheelchair/staff flows), and `map_page/*` focused widgets.
 
 ### Performance notes
 - `MapPage.build` scopes provider reads with `.select()` to avoid full-tree rebuilds.
-- `CustomPaint` is wrapped in `RepaintBoundary`; the painter uses identity comparisons in `shouldRepaint`.
+- The static layer (base image + POIs) and the dynamic layer (route + dot) each sit under their own `RepaintBoundary`; only the dynamic layer repaints per animation tick, so pan/zoom and route draw-on stay smooth even on the largest floors.
+- Each `CustomPaint` painter uses identity comparisons in `shouldRepaint`.
 - POI tap uses `poiByCellProvider` (O(1) cell index, 3×3 neighborhood search) instead of a linear scan.
 - Vietnamese search normalization is computed once per POI and cached in `normalizedPoiNamesProvider`.
 
