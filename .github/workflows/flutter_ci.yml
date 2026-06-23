@@ -1,0 +1,40 @@
+name: Flutter Quality Bot
+
+on:
+        workflow_dispatch:
+        push:
+                branches: [main]
+        pull_request:
+                branches: [main]
+
+jobs:
+        quality-check:
+                runs-on: ubuntu-latest
+
+                steps:
+                        - uses: actions/checkout@v4
+
+                        - name: Setup Flutter
+                          uses: subosito/flutter-action@v2
+                          with:
+                                  channel: "stable"
+
+                        - name: Install dependencies
+                          run: flutter pub get
+
+                        - name: Generate localizations (l10n)
+                          run: flutter gen-l10n
+
+                        - name: Generate models (Freezed/JSON)
+                          run: dart run build_runner build --delete-conflicting-outputs
+
+                        - name: Check Formatting (Spaces/Indentation)
+                          # This will fail if the code is not formatted correctly
+                          run: dart format --output=none --set-exit-if-changed .
+
+                        - name: Create placeholder .env for asset resolution
+                          run: touch .env
+
+                        - name: Analyze Code (Errors/Complexity/Depth)
+                          # This will fail if there are linter warnings or errors
+                          run: flutter analyze
