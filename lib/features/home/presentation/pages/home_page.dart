@@ -283,7 +283,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ? context.l10n.commonLoading
                       : context.l10n.homeTasksActive(_taskCount),
                   icon: Icons.assignment_rounded,
-                  onTap: _fetchTasks,
+                  onTap: () => context.go('/medical'),
                 ),
               ),
               weather.when(

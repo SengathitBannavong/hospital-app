@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
+import 'package:hospital_app/core/utils/form_validators.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/auth_text_field.dart';
@@ -62,8 +63,8 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
       return;
     }
 
-    if (newPassword.length < 6) {
-      AppToast.showError(context.l10n.changePwdErrorShortNew);
+    if (!FormValidators.isStrongPassword(newPassword)) {
+      AppToast.showError(context.l10n.authPasswordWeak);
       return;
     }
 

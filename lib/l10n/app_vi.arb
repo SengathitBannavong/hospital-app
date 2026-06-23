@@ -134,6 +134,7 @@
   "registerPhoneInvalid": "Số điện thoại không hợp lệ",
   "registerSecurityInfo": "Thông tin bảo mật",
   "registerPasswordMin": "Mật khẩu tối thiểu 6 ký tự",
+  "authPasswordWeak": "Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.",
   "registerConfirmPasswordError": "Vui lòng xác nhận mật khẩu",
   "registerPasswordMismatch": "Mật khẩu không khớp",
   "registerButton": "Đăng ký",
@@ -324,8 +325,8 @@
     "placeholders": { "date": { "type": "Object" } }
   },
   "presMedList": "Danh sách thuốc",
-  "mlTitle": "Chỉ định khám",
-  "mlEmptyTasks": "Chưa có chỉ định nào",
+  "mlTitle": "Lịch khám của tôi",
+  "mlEmptyTasks": "Chưa có lịch khám nào",
   "mlHistoryToday": "Lịch sử hôm nay",
   "mlNoHistory": "Chưa có lịch sử",
   "mlQueueSubtitle": "Xem số thứ tự",
@@ -571,8 +572,8 @@
   "homeActionReportObstacle": "Báo vật cản",
   "homeActionDeviceStations": "Trạm thiết bị",
   "homeOverview": "Tổng quan",
-  "homeCurrentTasks": "Nhiệm vụ hiện tại",
-  "homeTasksActive": "{count} Hoạt động",
+  "homeCurrentTasks": "Lịch khám của tôi",
+  "homeTasksActive": "{count} sắp tới",
   "@homeTasksActive": {
     "placeholders": { "count": { "type": "int" } }
   },

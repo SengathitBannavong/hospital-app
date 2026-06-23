@@ -40,6 +40,21 @@ class FormValidators {
     return null;
   }
 
+  /// Strong password policy: at least 8 characters and must contain an
+  /// uppercase letter, a lowercase letter, a digit, and a symbol.
+  ///
+  /// Returns `true` when [value] satisfies every rule. Used by the register,
+  /// reset-password, and change-password flows; callers surface a localized
+  /// message (`l10n.authPasswordWeak`) when this returns `false`.
+  static bool isStrongPassword(String? value) {
+    if (value == null || value.length < 8) return false;
+    final hasUpper = value.contains(RegExp(r'[A-Z]'));
+    final hasLower = value.contains(RegExp(r'[a-z]'));
+    final hasDigit = value.contains(RegExp(r'[0-9]'));
+    final hasSymbol = value.contains(RegExp(r'[^A-Za-z0-9]'));
+    return hasUpper && hasLower && hasDigit && hasSymbol;
+  }
+
   /// Validates password confirmation matches original password
   static String? validatePasswordConfirmation(String? value, String password) {
     if (value == null || value.isEmpty) {

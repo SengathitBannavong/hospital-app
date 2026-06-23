@@ -134,6 +134,7 @@
   "registerPhoneInvalid": "Invalid phone number",
   "registerSecurityInfo": "Security information",
   "registerPasswordMin": "Password must be at least 6 characters",
+  "authPasswordWeak": "Password must be at least 8 characters and include uppercase, lowercase, a number, and a symbol.",
   "registerConfirmPasswordError": "Please confirm your password",
   "registerPasswordMismatch": "Passwords do not match",
   "registerButton": "Register",
@@ -324,8 +325,8 @@
     "placeholders": { "date": { "type": "Object" } }
   },
   "presMedList": "Medication list",
-  "mlTitle": "Medical orders",
-  "mlEmptyTasks": "No orders yet",
+  "mlTitle": "My appointments",
+  "mlEmptyTasks": "No appointments yet",
   "mlHistoryToday": "Today's history",
   "mlNoHistory": "No history yet",
   "mlQueueSubtitle": "View queue number",
@@ -571,8 +572,8 @@
   "homeActionReportObstacle": "Report obstacle",
   "homeActionDeviceStations": "Device stations",
   "homeOverview": "Overview",
-  "homeCurrentTasks": "Current tasks",
-  "homeTasksActive": "{count} active",
+  "homeCurrentTasks": "My appointments",
+  "homeTasksActive": "{count} upcoming",
   "@homeTasksActive": {
     "placeholders": { "count": { "type": "int" } }
   },
