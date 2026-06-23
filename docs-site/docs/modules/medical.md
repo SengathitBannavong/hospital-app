@@ -49,7 +49,7 @@ own back button.
 :::note[Patient-friendly copy]
 User-facing strings now read as **appointments** rather than "tasks": the list
 title and empty state use "My appointments / Lịch khám của tôi" (matching the
-Home overview card's "{n} upcoming" count) in both en/vi. Internally the data
+Home overview card's "`{n}` upcoming" count) in both en/vi. Internally the data
 layer still models these as `MedicalTask`/`medicalTasksProvider`.
 :::
 

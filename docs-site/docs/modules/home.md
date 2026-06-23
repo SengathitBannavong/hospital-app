@@ -62,7 +62,7 @@ removed.
 
 :::note[Appointments card]
 The "Tổng quan" `MedicalInfoCard` now uses patient-friendly copy — **"My
-appointments / Lịch khám của tôi"** with an "{n} upcoming" count instead of the
+appointments / Lịch khám của tôi"** with an "`{n}` upcoming" count instead of the
 old "task" vocabulary — and tapping it **navigates to `/medical`**
 (`context.go('/medical')`). It was previously a no-op that only re-fetched the
 count.
