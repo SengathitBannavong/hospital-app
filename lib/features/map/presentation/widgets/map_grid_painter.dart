@@ -375,7 +375,11 @@ class MapDynamicPainter extends CustomPainter {
     // Background-colored halo + ink stroke lift the marker clear of the route
     // line it sits on, so the destination stays legible.
     _destPoiStrokePaint.strokeWidth = math.max(1.5, radius * 0.32);
-    canvas.drawCircle(center, radius + _destPoiStrokePaint.strokeWidth, _destPoiHaloPaint);
+    canvas.drawCircle(
+      center,
+      radius + _destPoiStrokePaint.strokeWidth,
+      _destPoiHaloPaint,
+    );
     canvas.drawCircle(center, radius, paint);
     canvas.drawCircle(center, radius, _destPoiStrokePaint);
   }
