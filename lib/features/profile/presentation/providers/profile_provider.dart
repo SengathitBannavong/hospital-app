@@ -37,13 +37,29 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         isRefreshing: false,
         isSaving: false,
         errorMessage: null,
+        isStale: false,
       );
     } catch (error) {
+      // Live fetch failed (e.g. offline). Fall back to the cached profile so
+      // the page still renders, flagged stale to surface the offline status.
+      final cached = state.profile ?? await _repository.getCachedProfile();
+      if (cached != null) {
+        state = state.copyWith(
+          profile: cached,
+          isLoading: false,
+          isRefreshing: false,
+          isSaving: false,
+          errorMessage: _formatError(error),
+          isStale: true,
+        );
+        return;
+      }
       state = state.copyWith(
         isLoading: false,
         isRefreshing: false,
         isSaving: false,
         errorMessage: _formatError(error),
+        isStale: false,
       );
       rethrow;
     }
@@ -60,6 +76,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         isRefreshing: false,
         isSaving: false,
         errorMessage: null,
+        isStale: false,
       );
       return true;
     } catch (error) {

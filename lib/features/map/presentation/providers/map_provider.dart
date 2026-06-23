@@ -348,20 +348,23 @@ final normalizedPoiNamesProvider = Provider.family<Map<int, String>, int>((
   ref,
   mapId,
 ) {
-  final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];
+  final nodes =
+      ref.watch(mapNodesProvider(mapId)).valueOrNull ?? const <MapPoi>[];
   return {for (final poi in nodes) poi.poiId: normalizeForSearch(poi.poiName)};
 });
 
 // O(1) lookup by poiId.
 final poiByIdProvider = Provider.family<Map<int, MapPoi>, int>((ref, mapId) {
-  final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];
+  final nodes =
+      ref.watch(mapNodesProvider(mapId)).valueOrNull ?? const <MapPoi>[];
   return {for (final poi in nodes) poi.poiId: poi};
 });
 
 // O(1) lookup keyed by row*cols+col. Skips out-of-bounds POIs.
 final poiByCellProvider = Provider.family<Map<int, MapPoi>, int>((ref, mapId) {
-  final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];
-  final meta = ref.watch(mapMetaProvider(mapId)).value;
+  final nodes =
+      ref.watch(mapNodesProvider(mapId)).valueOrNull ?? const <MapPoi>[];
+  final meta = ref.watch(mapMetaProvider(mapId)).valueOrNull;
   if (meta == null) {
     return const <int, MapPoi>{};
   }
@@ -382,7 +385,8 @@ final poiByCellProvider = Provider.family<Map<int, MapPoi>, int>((ref, mapId) {
 
 // Walkable cell set derived from edges. Stable identity until edges change.
 final walkableCellsProvider = Provider.family<Set<int>, int>((ref, mapId) {
-  final edges = ref.watch(mapEdgesProvider(mapId)).value ?? const <MapEdge>[];
+  final edges =
+      ref.watch(mapEdgesProvider(mapId)).valueOrNull ?? const <MapEdge>[];
   final result = <int>{};
   for (final edge in edges) {
     result
@@ -395,7 +399,7 @@ final walkableCellsProvider = Provider.family<Set<int>, int>((ref, mapId) {
 // Memoized walkable runs provider that collapses walkable cells into
 // horizontal runs.
 final walkableRunsProvider = Provider.family<List<ui.Rect>, int>((ref, mapId) {
-  final meta = ref.watch(mapMetaProvider(mapId)).value;
+  final meta = ref.watch(mapMetaProvider(mapId)).valueOrNull;
   if (meta == null) {
     return const <ui.Rect>[];
   }
@@ -455,7 +459,8 @@ final mapImageProvider = FutureProvider.family<ui.Image?, String>((
 });
 
 final defaultUserPositionProvider = Provider.family<int?, int>((ref, mapId) {
-  final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];
+  final nodes =
+      ref.watch(mapNodesProvider(mapId)).valueOrNull ?? const <MapPoi>[];
   final walkable = ref.watch(walkableCellsProvider(mapId));
 
   if (nodes.isNotEmpty) {
@@ -486,7 +491,8 @@ final adjacencyProvider = Provider.family<Map<int, List<int>>, int>((
   ref,
   mapId,
 ) {
-  final edges = ref.watch(mapEdgesProvider(mapId)).value ?? const <MapEdge>[];
+  final edges =
+      ref.watch(mapEdgesProvider(mapId)).valueOrNull ?? const <MapEdge>[];
   final result = <int, List<int>>{};
   for (final edge in edges) {
     result.putIfAbsent(edge.fromLocation, () => <int>[]).add(edge.toLocation);

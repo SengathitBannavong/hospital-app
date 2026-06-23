@@ -299,7 +299,8 @@ class _MapPageState extends ConsumerState<MapPage>
         ? ref.watch(corridorStatusProvider(activeMapId))
         : const <EdgeStatus>[];
     final nodes =
-        ref.watch(mapNodesProvider(activeMapId)).value ?? const <MapPoi>[];
+        ref.watch(mapNodesProvider(activeMapId)).valueOrNull ??
+        const <MapPoi>[];
     final walkable = _loadWalkableLayer
         ? ref.watch(walkableCellsProvider(activeMapId))
         : const <int>{};
@@ -313,8 +314,8 @@ class _MapPageState extends ConsumerState<MapPage>
     final mapImage = mapAsset != null
         ? ref.watch(mapImageProvider(mapAsset.png)).valueOrNull
         : null;
-    final rows = metaAsync.value?.rows ?? _defaultRows;
-    final cols = metaAsync.value?.cols ?? _defaultCols;
+    final rows = metaAsync.valueOrNull?.rows ?? _defaultRows;
+    final cols = metaAsync.valueOrNull?.cols ?? _defaultCols;
     final routeLocations = shouldWatchRoute
         ? ref.watch(routeLocationsProvider)
         : const <int>[];
@@ -323,6 +324,7 @@ class _MapPageState extends ConsumerState<MapPage>
     // render before a destination is picked. routeResultProvider still returns
     // null while dest is unset, so this triggers no routing work.
     final navDot = ref.watch(navDotProvider);
+    final routeDest = ref.watch(routeDestProvider);
     final navProgress = ref.watch(navProgressProvider);
     ref.watch(navigationControllerProvider);
     final defaultUserPosition = userPosition == null && nodes.isNotEmpty
@@ -408,6 +410,7 @@ class _MapPageState extends ConsumerState<MapPage>
             routeLocations: routeLocations,
             navDot: navDot,
             navProgress: navProgress,
+            destPoi: routeDest,
           ),
 
           _buildSearchOverlay(
@@ -419,6 +422,12 @@ class _MapPageState extends ConsumerState<MapPage>
             nodes: nodes,
             activeMapId: activeMapId,
           ),
+
+          // Offline + no POI data loaded (cache empty). The base floor image
+          // may still render, but search/routing are unavailable — surface why
+          // so a half-empty map doesn't look like a crash.
+          if (isOnline == false && nodes.isEmpty && !nodesLoading)
+            _buildOfflineBanner(activeMapId),
 
           if (hasRoute)
             _buildRoutePillOverlay(
@@ -491,6 +500,7 @@ class _MapPageState extends ConsumerState<MapPage>
     required List<int> routeLocations,
     required NavDot? navDot,
     required double navProgress,
+    required MapPoi? destPoi,
   }) {
     return Positioned(
       top: 0,
@@ -580,6 +590,7 @@ class _MapPageState extends ConsumerState<MapPage>
                               debugTap: _debugTapScene,
                               debugPoiCenter: _debugPoiCenter,
                               showDebug: _showDebugHitTest,
+                              destPoi: destPoi,
                             ),
                           );
                         },
@@ -721,6 +732,50 @@ class _MapPageState extends ConsumerState<MapPage>
                     onClear: () => setState(() => _routePillCollapsed = true),
                   ),
                 ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOfflineBanner(int activeMapId) {
+    final l10n = context.l10n;
+    final scheme = context.colorScheme;
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(AppSpacing.lg),
+        padding: AppSpacing.pageWithTop,
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: scheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              l10n.mapOfflineTitle,
+              style: context.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(l10n.mapOfflineBody, textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.md),
+            FilledButton.icon(
+              onPressed: () {
+                ref
+                  ..invalidate(mapNodesProvider(activeMapId))
+                  ..invalidate(mapEdgesProvider(activeMapId))
+                  ..invalidate(mapMetaProvider(activeMapId));
+              },
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(l10n.commonReconnect),
+            ),
+          ],
         ),
       ),
     );
@@ -1424,7 +1479,7 @@ class _MapPageState extends ConsumerState<MapPage>
             final routeResult = ref.watch(routeResultProvider);
             final routeLocations = ref.watch(routeLocationsProvider);
             final nodes =
-                ref.watch(mapNodesProvider(_defaultMapId)).value ??
+                ref.watch(mapNodesProvider(_defaultMapId)).valueOrNull ??
                 const <MapPoi>[];
             return SafeArea(
               top: false,
