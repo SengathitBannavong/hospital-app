@@ -7,6 +7,7 @@ import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
 import 'package:hospital_app/core/utils/dob_utils.dart';
+import 'package:hospital_app/core/utils/form_validators.dart';
 import 'package:hospital_app/core/widgets/fade_slide_transition.dart';
 import 'package:hospital_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:hospital_app/features/auth/presentation/widgets/auth_link_button_style.dart';
@@ -404,9 +405,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                 visualDensity: VisualDensity.compact,
                               ),
                               validator: (value) =>
-                                  (value == null || value.trim().length < 6)
-                                  ? context.l10n.registerPasswordMin
-                                  : null,
+                                  FormValidators.isStrongPassword(value)
+                                  ? null
+                                  : context.l10n.authPasswordWeak,
                             ),
                             const SizedBox(height: AppSpacing.md),
                             AuthTextField(
