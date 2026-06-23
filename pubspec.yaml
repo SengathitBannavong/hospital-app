@@ -75,6 +75,13 @@ dev_dependencies:
   json_serializable: ^6.8.0
   mockito: ^5.4.4
 
+# Pin path_provider_android to the 2.2.x line. The 2.3.x release pulls in the
+# native `jni`/`jni_flutter` plugins, whose Android module fails to build with
+# AGP 8.11 (`:jni:compileDebugJavaWithJavac ... no value available`). The 2.2.x
+# line provides the same API without the JNI native dependency.
+dependency_overrides:
+  path_provider_android: ">=2.2.0 <2.3.0"
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
