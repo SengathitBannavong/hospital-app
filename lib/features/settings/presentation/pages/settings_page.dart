@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../../core/l10n/locale_controller.dart';
+import '../../../../core/services/firebase_notification_service.dart';
 import '../../../../core/theme/hospital_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/app_toast.dart';
 import '../../../../core/utils/delete_account_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../map/presentation/providers/map_provider.dart';
+import '../../../notification/data/models/app_notification.dart';
 import '../../../notification/data/models/notification_settings_model.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 
@@ -59,6 +61,40 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     localeController.setLanguageCode(code);
     await _save(settings.copyWith(language: code));
   }
+
+  /// Fires an on-device (local) notification. Works offline and online since
+  /// it doesn't depend on the network or a server push. Also drops a matching
+  /// entry into the in-app notification list so it shows up there too.
+  Future<void> _sendTestNotification() async {
+    final l10n = context.l10n;
+    final shown = await FirebaseNotificationService.instance
+        .showTestNotification(
+          title: l10n.testNotificationTitle,
+          body: l10n.testNotificationBody,
+        );
+    if (!mounted) {
+      return;
+    }
+
+    ref
+        .read(notificationProvider.notifier)
+        .addFirebaseNotification(
+          AppNotification(
+            id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            title: l10n.testNotificationTitle,
+            message: l10n.testNotificationBody,
+            createdAt: DateTime.now().toIso8601String(),
+            isRead: false,
+          ),
+        );
+
+    if (shown) {
+      AppToast.showSuccess(l10n.testNotificationSent);
+    } else {
+      AppToast.showError(l10n.testNotificationFailed);
+    }
+  }
+
 
   Future<void> _saveTheme(
     NotificationSettingsModel settings,
@@ -181,6 +217,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           onChanged: (value) {
             _save(settings.copyWith(notification: value));
           },
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: Icon(
+                  Icons.notifications_paused_rounded,
+                  color: cs.primary,
+                ),
+                title: Text(l10n.settingsTestNotification),
+                subtitle: Text(l10n.settingsTestNotificationSubtitle),
+                trailing: const Icon(Icons.send_rounded),
+                onTap: _sendTestNotification,
+              ),
+            ],
+          ),
         ),
 
         const SizedBox(height: AppSpacing.xl),

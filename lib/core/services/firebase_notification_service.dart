@@ -10,6 +10,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/features/notification/data/models/app_notification.dart';
 import 'package:hospital_app/features/notification/presentation/providers/notification_provider.dart';
@@ -43,7 +44,13 @@ class FirebaseNotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
+  static const _storage = FlutterSecureStorage();
+  static const _tokenKey = 'fcm_device_token';
+
   bool _initialized = false;
+  // Local notifications are independent of Firebase, so they can be set up and
+  // used even when ENABLE_FIREBASE is false (offline / test notifications).
+  bool _localReady = false;
 
   // Android notification channel
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
@@ -68,7 +75,7 @@ class FirebaseNotificationService {
     await _requestPermission();
 
     // 2. Setup local notifications (for foreground display on Android)
-    await _setupLocalNotifications();
+    await _ensureLocalReady();
 
     // 3. Register background handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
@@ -109,6 +116,7 @@ class FirebaseNotificationService {
       debugPrint('[FCM] Token: $token');
 
       if (token != null) {
+        await _cacheToken(token);
         await _registerTokenWithBackend(token);
       }
 
@@ -147,7 +155,36 @@ class FirebaseNotificationService {
 
   Future<void> _onTokenRefresh(String token) async {
     debugPrint('[FCM] Token refreshed');
+    await _cacheToken(token);
     await _registerTokenWithBackend(token);
+  }
+
+  /// Persist the FCM token locally so it can be read while offline (the SDK
+  /// also caches its own copy, but a secure-storage copy is resilient across
+  /// the cases where `getToken()` needs the network).
+  Future<void> _cacheToken(String token) async {
+    try {
+      await _storage.write(key: _tokenKey, value: token);
+    } catch (e) {
+      debugPrint('[FCM] cacheToken error: $e');
+    }
+  }
+
+  /// Returns a usable FCM token, preferring the live SDK value (cached by the
+  /// SDK, usually available offline) and falling back to our secure-storage
+  /// copy when the device has no network and the SDK can't resolve one.
+  Future<String?> getSavedToken() async {
+    final live = await getCurrentToken();
+    if (live != null && live.isNotEmpty) {
+      await _cacheToken(live);
+      return live;
+    }
+    try {
+      return await _storage.read(key: _tokenKey);
+    } catch (e) {
+      debugPrint('[FCM] getSavedToken error: $e');
+      return null;
+    }
   }
 
   // ─── Permission ──────────────────────────────────────────────────────────
@@ -163,12 +200,17 @@ class FirebaseNotificationService {
 
   // ─── Local Notifications Setup ───────────────────────────────────────────
 
-  Future<void> _setupLocalNotifications() async {
+  /// Initializes the local-notifications plugin (idempotent) and requests the
+  /// runtime notification permission on Android 13+ / iOS. Safe to call even
+  /// when Firebase is disabled, so test/offline notifications still work.
+  Future<void> _ensureLocalReady() async {
+    if (_localReady) return;
+
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
     );
 
     await _localNotifications.initialize(
@@ -178,12 +220,54 @@ class FirebaseNotificationService {
       },
     );
 
-    // Create Android channel
-    await _localNotifications
+    final android = _localNotifications
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(_channel);
+        >();
+    // Create Android channel + request POST_NOTIFICATIONS (Android 13+) so
+    // local notifications can be shown.
+    await android?.createNotificationChannel(_channel);
+    await android?.requestNotificationsPermission();
+
+    _localReady = true;
+  }
+
+  // ─── Test / On-demand Local Notification ─────────────────────────────────
+
+  /// Shows a local notification immediately. Works **offline** (no network and
+  /// no Firebase needed) and **online**, since local notifications are handled
+  /// entirely on-device. Returns `false` if the platform rejected it.
+  Future<bool> showTestNotification({
+    required String title,
+    required String body,
+  }) async {
+    try {
+      await _ensureLocalReady();
+      await _localNotifications.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title,
+        body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channel.id,
+            _channel.name,
+            channelDescription: _channel.description,
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+      );
+      return true;
+    } catch (e) {
+      debugPrint('[LocalNotif] showTestNotification error: $e');
+      return false;
+    }
   }
 
   // ─── Message Handlers ────────────────────────────────────────────────────
