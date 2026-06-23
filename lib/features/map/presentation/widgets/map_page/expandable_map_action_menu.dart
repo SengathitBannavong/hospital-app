@@ -165,7 +165,7 @@ class _ExpandableMapActionMenuState extends State<ExpandableMapActionMenu>
       ),
       child: SizeTransition(
         sizeFactor: animation,
-        axisAlignment: 1.0,
+        alignment: Alignment.bottomCenter,
         child: FadeTransition(
           opacity: animation,
           child: SlideTransition(

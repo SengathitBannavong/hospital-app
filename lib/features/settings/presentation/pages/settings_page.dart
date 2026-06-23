@@ -95,7 +95,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-
   Future<void> _saveTheme(
     NotificationSettingsModel settings,
     ThemeMode mode,
