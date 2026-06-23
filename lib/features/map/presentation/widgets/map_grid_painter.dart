@@ -1,5 +1,6 @@
 // ignore_for_file: lines_longer_than_80_chars, cascade_invocations
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:hospital_app/features/map/data/models/edge_status.dart';
@@ -39,10 +40,11 @@ final Paint _userDotStrokePaint = Paint()
   ..color = MapTokens.paintInk
   ..style = PaintingStyle.stroke;
 
-class MapGridPainter extends CustomPainter {
+class MapStaticPainter extends CustomPainter {
   final int rows;
   final int cols;
-  final Set<int> walkableLocations;
+  final List<Rect> walkableRuns;
+  final ui.Image? mapImage;
   final List<MapPoi> pois;
   final List<FlowCell> flowCells;
   final List<EdgeStatus> edgeStatuses;
@@ -51,6 +53,228 @@ class MapGridPainter extends CustomPainter {
   final bool showEdgeStatus;
   final List<FlowCell> bottlenecks;
   final bool showBottlenecks;
+
+  MapStaticPainter({
+    required this.rows,
+    required this.cols,
+    required this.walkableRuns,
+    this.mapImage,
+    required this.pois,
+    this.flowCells = const <FlowCell>[],
+    this.edgeStatuses = const <EdgeStatus>[],
+    this.obstacles = const <MapObstacle>[],
+    this.showFlowOverlay = false,
+    this.showEdgeStatus = false,
+    this.bottlenecks = const <FlowCell>[],
+    this.showBottlenecks = false,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cellWidth = size.width / cols;
+    final cellHeight = size.height / rows;
+
+    canvas.drawRect(Offset.zero & size, _backgroundPaint);
+
+    if (mapImage != null) {
+      canvas.drawImageRect(
+        mapImage!,
+        Rect.fromLTWH(
+          0,
+          0,
+          mapImage!.width.toDouble(),
+          mapImage!.height.toDouble(),
+        ),
+        Offset.zero & size,
+        Paint()..filterQuality = FilterQuality.medium,
+      );
+    } else {
+      for (final run in walkableRuns) {
+        canvas.drawRect(
+          Rect.fromLTWH(
+            run.left * cellWidth,
+            run.top * cellHeight,
+            run.width * cellWidth,
+            run.height * cellHeight,
+          ),
+          _walkablePaint,
+        );
+      }
+    }
+
+    if (showFlowOverlay && flowCells.isNotEmpty) {
+      _paintFlowOverlay(canvas, cellWidth, cellHeight);
+    }
+
+    if (showEdgeStatus && edgeStatuses.isNotEmpty) {
+      _paintEdgeStatus(canvas, cellWidth, cellHeight);
+    }
+
+    final radius = math.min(cellWidth, cellHeight) * 0.35;
+
+    for (final poi in pois) {
+      if (!_isPoiInBounds(poi)) continue;
+      final center = _poiCenter(poi, cellWidth, cellHeight);
+      final paint = _poiPaints[poi.poiType] ?? _poiFallbackPaint;
+      canvas.drawCircle(center, radius, paint);
+    }
+
+    if (showBottlenecks && bottlenecks.isNotEmpty) {
+      _paintBottlenecks(canvas, cellWidth, cellHeight);
+    }
+  }
+
+  void _paintFlowOverlay(Canvas canvas, double cellWidth, double cellHeight) {
+    final paint = Paint();
+    for (final cell in flowCells) {
+      final row = cell.location ~/ cols;
+      final col = cell.location % cols;
+      if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
+      final density = cell.density.clamp(0.0, 1.0).toDouble();
+      paint.color = Color.lerp(
+        MapTokens.debugPoi.withValues(alpha: 0.2),
+        MapTokens.debugTap.withValues(alpha: 0.6),
+        density,
+      )!;
+      canvas.drawRect(
+        Rect.fromLTWH(col * cellWidth, row * cellHeight, cellWidth, cellHeight),
+        paint,
+      );
+    }
+  }
+
+  void _paintEdgeStatus(Canvas canvas, double cellWidth, double cellHeight) {
+    final paint = Paint()
+      ..strokeWidth = math.min(cellWidth, cellHeight) * 0.28
+      ..strokeCap = StrokeCap.round;
+
+    for (final status in edgeStatuses) {
+      final fromRow = status.fromLocation ~/ cols;
+      final fromCol = status.fromLocation % cols;
+      final toRow = status.toLocation ~/ cols;
+      final toCol = status.toLocation % cols;
+
+      if (fromRow < 0 || fromRow >= rows || fromCol < 0 || fromCol >= cols) {
+        continue;
+      }
+      if (toRow < 0 || toRow >= rows || toCol < 0 || toCol >= cols) {
+        continue;
+      }
+
+      final fromCenter = _cellCenter(
+        status.fromLocation,
+        cellWidth,
+        cellHeight,
+      );
+      final toCenter = _cellCenter(status.toLocation, cellWidth, cellHeight);
+
+      if (status.blocked) {
+        paint.color = MapTokens.debugTap.withValues(alpha: 0.8);
+      } else {
+        paint.color = Color.lerp(
+          const Color(0x22FFB74D),
+          const Color(0xCCFF5722),
+          status.congestion.clamp(0.0, 1.0).toDouble(),
+        )!;
+      }
+
+      canvas.drawLine(fromCenter, toCenter, paint);
+    }
+  }
+
+  void _paintBottlenecks(Canvas canvas, double cellWidth, double cellHeight) {
+    final textPainter = TextPainter(textDirection: TextDirection.ltr);
+
+    for (var i = 0; i < bottlenecks.length; i++) {
+      final cell = bottlenecks[i];
+      final row = cell.location ~/ cols;
+      final col = cell.location % cols;
+
+      if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
+
+      final center = _cellCenter(cell.location, cellWidth, cellHeight);
+      final radius = math.min(cellWidth, cellHeight) * 0.38;
+
+      final pinPaint = Paint()
+        ..color = MapTokens.routeStop
+        ..style = PaintingStyle.fill;
+
+      final borderPaint = Paint()
+        ..color = MapTokens.paintInk
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      final shadowPaint = Paint()
+        ..color = MapTokens.paintInkShadow
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0);
+
+      canvas.drawCircle(center + const Offset(0, 1.5), radius, shadowPaint);
+      canvas.drawCircle(center, radius, pinPaint);
+      canvas.drawCircle(center, radius, borderPaint);
+
+      final textSpan = TextSpan(
+        text: '${i + 1}',
+        style: TextStyle(
+          color: MapTokens.paintInk,
+          fontSize: radius * 1.1,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+
+      textPainter.text = textSpan;
+      textPainter.layout();
+
+      final textOffset = Offset(
+        center.dx - textPainter.width / 2,
+        center.dy - textPainter.height / 2,
+      );
+      textPainter.paint(canvas, textOffset);
+    }
+  }
+
+  Offset _cellCenter(int location, double cellWidth, double cellHeight) {
+    final row = location ~/ cols;
+    final col = location % cols;
+    return Offset(
+      col * cellWidth + cellWidth / 2,
+      row * cellHeight + cellHeight / 2,
+    );
+  }
+
+  Offset _poiCenter(MapPoi poi, double cellWidth, double cellHeight) {
+    return Offset(
+      poi.gridCol * cellWidth + cellWidth / 2,
+      poi.gridRow * cellHeight + cellHeight / 2,
+    );
+  }
+
+  bool _isPoiInBounds(MapPoi poi) {
+    return poi.gridRow >= 0 &&
+        poi.gridRow < rows &&
+        poi.gridCol >= 0 &&
+        poi.gridCol < cols;
+  }
+
+  @override
+  bool shouldRepaint(covariant MapStaticPainter oldDelegate) {
+    return !identical(oldDelegate.pois, pois) ||
+        !identical(oldDelegate.walkableRuns, walkableRuns) ||
+        oldDelegate.mapImage != mapImage ||
+        !identical(oldDelegate.flowCells, flowCells) ||
+        !identical(oldDelegate.edgeStatuses, edgeStatuses) ||
+        !identical(oldDelegate.obstacles, obstacles) ||
+        !identical(oldDelegate.bottlenecks, bottlenecks) ||
+        oldDelegate.showFlowOverlay != showFlowOverlay ||
+        oldDelegate.showEdgeStatus != showEdgeStatus ||
+        oldDelegate.showBottlenecks != showBottlenecks ||
+        oldDelegate.rows != rows ||
+        oldDelegate.cols != cols;
+  }
+}
+
+class MapDynamicPainter extends CustomPainter {
+  final int rows;
+  final int cols;
   final List<int> routeLocations;
   final double routeProgress;
   final NavDot? userDot;
@@ -60,18 +284,9 @@ class MapGridPainter extends CustomPainter {
   final Offset? debugPoiCenter;
   final bool? showDebug;
 
-  MapGridPainter({
+  MapDynamicPainter({
     required this.rows,
     required this.cols,
-    required this.walkableLocations,
-    required this.pois,
-    this.flowCells = const <FlowCell>[],
-    this.edgeStatuses = const <EdgeStatus>[],
-    this.obstacles = const <MapObstacle>[],
-    this.showFlowOverlay = false,
-    this.showEdgeStatus = false,
-    this.bottlenecks = const <FlowCell>[],
-    this.showBottlenecks = false,
     required this.routeLocations,
     this.routeProgress = 1.0,
     this.userDot,
@@ -80,14 +295,12 @@ class MapGridPainter extends CustomPainter {
     this.debugTap,
     this.debugPoiCenter,
     this.showDebug,
-  }) : super(repaint: null);
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final cellWidth = size.width / cols;
     final cellHeight = size.height / rows;
-
-    canvas.drawRect(Offset.zero & size, _backgroundPaint);
 
     final clip = visibleRect;
     final colStart = clip == null
@@ -103,75 +316,8 @@ class MapGridPainter extends CustomPainter {
         ? rows - 1
         : (clip.bottom / cellHeight).ceil().clamp(0, rows - 1);
 
-    for (var row = rowStart; row <= rowEnd; row++) {
-      for (var col = colStart; col <= colEnd; col++) {
-        final location = row * cols + col;
-        if (!walkableLocations.contains(location)) continue;
-        canvas.drawRect(
-          Rect.fromLTWH(
-            col * cellWidth,
-            row * cellHeight,
-            cellWidth,
-            cellHeight,
-          ),
-          _walkablePaint,
-        );
-      }
-    }
-
     if (routeLocations.isNotEmpty && routeProgress > 0) {
       _paintRoute(
-        canvas,
-        cellWidth,
-        cellHeight,
-        rowStart,
-        rowEnd,
-        colStart,
-        colEnd,
-      );
-    }
-
-    if (showFlowOverlay && flowCells.isNotEmpty) {
-      _paintFlowOverlay(
-        canvas,
-        cellWidth,
-        cellHeight,
-        rowStart,
-        rowEnd,
-        colStart,
-        colEnd,
-      );
-    }
-
-    if (showEdgeStatus && edgeStatuses.isNotEmpty) {
-      _paintEdgeStatus(
-        canvas,
-        cellWidth,
-        cellHeight,
-        rowStart,
-        rowEnd,
-        colStart,
-        colEnd,
-      );
-    }
-
-    final radius = math.min(cellWidth, cellHeight) * 0.35;
-
-    for (final poi in pois) {
-      if (!_isPoiInBounds(poi)) continue;
-      if (poi.gridRow < rowStart ||
-          poi.gridRow > rowEnd ||
-          poi.gridCol < colStart ||
-          poi.gridCol > colEnd) {
-        continue;
-      }
-      final center = _poiCenter(poi, cellWidth, cellHeight);
-      final paint = _poiPaints[poi.poiType] ?? _poiFallbackPaint;
-      canvas.drawCircle(center, radius, paint);
-    }
-
-    if (showBottlenecks && bottlenecks.isNotEmpty) {
-      _paintBottlenecks(
         canvas,
         cellWidth,
         cellHeight,
@@ -210,36 +356,6 @@ class MapGridPainter extends CustomPainter {
     canvas.drawCircle(center, baseRadius * 1.85, _userDotRingPaint);
     canvas.drawCircle(center, baseRadius, _userDotPaint);
     canvas.drawCircle(center, baseRadius, _userDotStrokePaint);
-  }
-
-  void _paintFlowOverlay(
-    Canvas canvas,
-    double cellWidth,
-    double cellHeight,
-    int rowStart,
-    int rowEnd,
-    int colStart,
-    int colEnd,
-  ) {
-    final paint = Paint();
-    for (final cell in flowCells) {
-      final row = cell.location ~/ cols;
-      final col = cell.location % cols;
-      if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
-      if (row < rowStart || row > rowEnd || col < colStart || col > colEnd) {
-        continue;
-      }
-      final density = cell.density.clamp(0.0, 1.0).toDouble();
-      paint.color = Color.lerp(
-        MapTokens.debugPoi.withValues(alpha: 0.2),
-        MapTokens.debugTap.withValues(alpha: 0.6),
-        density,
-      )!;
-      canvas.drawRect(
-        Rect.fromLTWH(col * cellWidth, row * cellHeight, cellWidth, cellHeight),
-        paint,
-      );
-    }
   }
 
   void _paintRoute(
@@ -396,154 +512,9 @@ class MapGridPainter extends CustomPainter {
     );
   }
 
-  Offset _poiCenter(MapPoi poi, double cellWidth, double cellHeight) {
-    return Offset(
-      poi.gridCol * cellWidth + cellWidth / 2,
-      poi.gridRow * cellHeight + cellHeight / 2,
-    );
-  }
-
-  bool _isPoiInBounds(MapPoi poi) {
-    return poi.gridRow >= 0 &&
-        poi.gridRow < rows &&
-        poi.gridCol >= 0 &&
-        poi.gridCol < cols;
-  }
-
-  void _paintEdgeStatus(
-    Canvas canvas,
-    double cellWidth,
-    double cellHeight,
-    int rowStart,
-    int rowEnd,
-    int colStart,
-    int colEnd,
-  ) {
-    final paint = Paint()
-      ..strokeWidth = math.min(cellWidth, cellHeight) * 0.28
-      ..strokeCap = StrokeCap.round;
-
-    for (final status in edgeStatuses) {
-      final fromRow = status.fromLocation ~/ cols;
-      final fromCol = status.fromLocation % cols;
-      final toRow = status.toLocation ~/ cols;
-      final toCol = status.toLocation % cols;
-
-      if (fromRow < 0 || fromRow >= rows || fromCol < 0 || fromCol >= cols) {
-        continue;
-      }
-      if (toRow < 0 || toRow >= rows || toCol < 0 || toCol >= cols) {
-        continue;
-      }
-
-      final isFromVisible =
-          fromRow >= rowStart &&
-          fromRow <= rowEnd &&
-          fromCol >= colStart &&
-          fromCol <= colEnd;
-      final isToVisible =
-          toRow >= rowStart &&
-          toRow <= rowEnd &&
-          toCol >= colStart &&
-          toCol <= colEnd;
-      if (!isFromVisible && !isToVisible) {
-        continue;
-      }
-
-      final fromCenter = _cellCenter(
-        status.fromLocation,
-        cellWidth,
-        cellHeight,
-      );
-      final toCenter = _cellCenter(status.toLocation, cellWidth, cellHeight);
-
-      if (status.blocked) {
-        paint.color = MapTokens.debugTap.withValues(alpha: 0.8);
-      } else {
-        paint.color = Color.lerp(
-          const Color(0x22FFB74D),
-          const Color(0xCCFF5722),
-          status.congestion.clamp(0.0, 1.0).toDouble(),
-        )!;
-      }
-
-      canvas.drawLine(fromCenter, toCenter, paint);
-    }
-  }
-
-  void _paintBottlenecks(
-    Canvas canvas,
-    double cellWidth,
-    double cellHeight,
-    int rowStart,
-    int rowEnd,
-    int colStart,
-    int colEnd,
-  ) {
-    final textPainter = TextPainter(textDirection: TextDirection.ltr);
-
-    for (var i = 0; i < bottlenecks.length; i++) {
-      final cell = bottlenecks[i];
-      final row = cell.location ~/ cols;
-      final col = cell.location % cols;
-
-      if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
-      if (row < rowStart || row > rowEnd || col < colStart || col > colEnd) {
-        continue;
-      }
-
-      final center = _cellCenter(cell.location, cellWidth, cellHeight);
-      final radius = math.min(cellWidth, cellHeight) * 0.38;
-
-      final pinPaint = Paint()
-        ..color = MapTokens.routeStop
-        ..style = PaintingStyle.fill;
-
-      final borderPaint = Paint()
-        ..color = MapTokens.paintInk
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0;
-
-      final shadowPaint = Paint()
-        ..color = MapTokens.paintInkShadow
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0);
-
-      canvas.drawCircle(center + const Offset(0, 1.5), radius, shadowPaint);
-      canvas.drawCircle(center, radius, pinPaint);
-      canvas.drawCircle(center, radius, borderPaint);
-
-      final textSpan = TextSpan(
-        text: '${i + 1}',
-        style: TextStyle(
-          color: MapTokens.paintInk,
-          fontSize: radius * 1.1,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-
-      textPainter.text = textSpan;
-      textPainter.layout();
-
-      final textOffset = Offset(
-        center.dx - textPainter.width / 2,
-        center.dy - textPainter.height / 2,
-      );
-      textPainter.paint(canvas, textOffset);
-    }
-  }
-
   @override
-  bool shouldRepaint(covariant MapGridPainter oldDelegate) {
-    return !identical(oldDelegate.pois, pois) ||
-        !identical(oldDelegate.walkableLocations, walkableLocations) ||
-        !identical(oldDelegate.flowCells, flowCells) ||
-        !identical(oldDelegate.edgeStatuses, edgeStatuses) ||
-        !identical(oldDelegate.obstacles, obstacles) ||
-        !identical(oldDelegate.routeLocations, routeLocations) ||
-        !identical(oldDelegate.bottlenecks, bottlenecks) ||
-        oldDelegate.showFlowOverlay != showFlowOverlay ||
-        oldDelegate.showEdgeStatus != showEdgeStatus ||
-        oldDelegate.showBottlenecks != showBottlenecks ||
+  bool shouldRepaint(covariant MapDynamicPainter oldDelegate) {
+    return !identical(oldDelegate.routeLocations, routeLocations) ||
         oldDelegate.routeProgress != routeProgress ||
         oldDelegate.userDot != userDot ||
         oldDelegate.navProgress != navProgress ||

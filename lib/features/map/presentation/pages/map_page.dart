@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:hospital_app/features/map/data/map_asset_registry.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -301,6 +303,16 @@ class _MapPageState extends ConsumerState<MapPage>
     final walkable = _loadWalkableLayer
         ? ref.watch(walkableCellsProvider(activeMapId))
         : const <int>{};
+    final walkableRuns = _loadWalkableLayer
+        ? ref.watch(walkableRunsProvider(activeMapId))
+        : const <Rect>[];
+    // Resolve the bundled base image by mapId — the same id the API assigns
+    // and that the asset files (assets/map/{id}.png) are named after. A missing
+    // entry/file leaves mapImage null and falls back to the cell renderer.
+    final mapAsset = kMapAssets[activeMapId];
+    final mapImage = mapAsset != null
+        ? ref.watch(mapImageProvider(mapAsset.png)).valueOrNull
+        : null;
     final rows = metaAsync.value?.rows ?? _defaultRows;
     final cols = metaAsync.value?.cols ?? _defaultCols;
     final routeLocations = shouldWatchRoute
@@ -384,6 +396,8 @@ class _MapPageState extends ConsumerState<MapPage>
             rows: rows,
             cols: cols,
             walkable: walkable,
+            walkableRuns: walkableRuns,
+            mapImage: mapImage,
             nodes: nodes,
             flow: flow,
             flowVisible: flowVisible,
@@ -465,6 +479,8 @@ class _MapPageState extends ConsumerState<MapPage>
     required int rows,
     required int cols,
     required Set<int> walkable,
+    required List<Rect> walkableRuns,
+    required ui.Image? mapImage,
     required List<MapPoi> nodes,
     required FlowSnapshot? flow,
     required bool flowVisible,
@@ -523,21 +539,16 @@ class _MapPageState extends ConsumerState<MapPage>
                 child: SizedBox(
                   width: gridWidth,
                   height: gridHeight,
-                  child: RepaintBoundary(
-                    child: AnimatedBuilder(
-                      animation: Listenable.merge([controller, _routeAnim]),
-                      builder: (context, _) {
-                        final visibleRect = _visibleRectFor(
-                          controller.value,
-                          Size(constraints.maxWidth, constraints.maxHeight),
-                          Size(gridWidth, gridHeight),
-                        );
-                        return CustomPaint(
+                  child: Stack(
+                    children: [
+                      RepaintBoundary(
+                        child: CustomPaint(
                           size: Size(gridWidth, gridHeight),
-                          painter: MapGridPainter(
+                          painter: MapStaticPainter(
                             rows: rows,
                             cols: cols,
-                            walkableLocations: walkable,
+                            walkableRuns: walkableRuns,
+                            mapImage: mapImage,
                             pois: nodes,
                             flowCells: flow?.cells ?? const [],
                             edgeStatuses: corridorStatuses,
@@ -545,24 +556,35 @@ class _MapPageState extends ConsumerState<MapPage>
                             showEdgeStatus: edgeStatusVisible,
                             bottlenecks: bottlenecks,
                             showBottlenecks: bottlenecksVisible,
-                            routeLocations: routeLocations,
-                            routeProgress: _routeAnim.value,
-                            userDot: navDot,
-                            navProgress: navProgress,
-                            visibleRect: visibleRect,
-                            debugTap: _debugTapScene,
-                            debugPoiCenter: _debugPoiCenter,
-                            showDebug: _showDebugHitTest,
                           ),
-                          // foregroundPainter: MapDebugGridPainter(
-                          //   rows: rows,
-                          //   cols: cols,
-                          //   visibleRect: visibleRect,
-                          //   // labelCells: true,
-                          // ),
-                        );
-                      },
-                    ),
+                        ),
+                      ),
+                      AnimatedBuilder(
+                        animation: Listenable.merge([controller, _routeAnim]),
+                        builder: (context, _) {
+                          final visibleRect = _visibleRectFor(
+                            controller.value,
+                            Size(constraints.maxWidth, constraints.maxHeight),
+                            Size(gridWidth, gridHeight),
+                          );
+                          return CustomPaint(
+                            size: Size(gridWidth, gridHeight),
+                            painter: MapDynamicPainter(
+                              rows: rows,
+                              cols: cols,
+                              routeLocations: routeLocations,
+                              routeProgress: _routeAnim.value,
+                              userDot: navDot,
+                              navProgress: navProgress,
+                              visibleRect: visibleRect,
+                              debugTap: _debugTapScene,
+                              debugPoiCenter: _debugPoiCenter,
+                              showDebug: _showDebugHitTest,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),
