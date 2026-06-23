@@ -564,10 +564,7 @@ class _MapPageState extends ConsumerState<MapPage>
                         builder: (context, _) {
                           final visibleRect = _visibleRectFor(
                             controller.value,
-                            Size(
-                              constraints.maxWidth,
-                              constraints.maxHeight,
-                            ),
+                            Size(constraints.maxWidth, constraints.maxHeight),
                             Size(gridWidth, gridHeight),
                           );
                           return CustomPaint(

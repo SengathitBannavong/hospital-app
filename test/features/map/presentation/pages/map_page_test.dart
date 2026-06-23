@@ -329,7 +329,6 @@ void main() {
       ),
     );
 
-
     await tester.pump();
     await tester.tap(find.byIcon(Icons.menu_rounded));
     await tester.pumpAndSettle();
@@ -343,10 +342,12 @@ void main() {
     expect(repository.clearCalls, 1);
     expect(find.text('Route history'), findsNothing);
     expect(
-      find.byWidgetPredicate((widget) =>
-          widget is Text &&
-          (widget.data == 'Route history cleared' ||
-              widget.data == 'Đã xóa lịch sử lộ trình')),
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            (widget.data == 'Route history cleared' ||
+                widget.data == 'Đã xóa lịch sử lộ trình'),
+      ),
       findsOneWidget,
     );
   });

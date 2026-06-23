@@ -413,31 +413,37 @@ final walkableRunsProvider = Provider.family<List<ui.Rect>, int>((ref, mapId) {
         runStart ??= col;
       } else {
         if (runStart != null) {
-          runs.add(ui.Rect.fromLTWH(
-            runStart.toDouble(),
-            row.toDouble(),
-            (col - runStart).toDouble(),
-            1.0,
-          ));
+          runs.add(
+            ui.Rect.fromLTWH(
+              runStart.toDouble(),
+              row.toDouble(),
+              (col - runStart).toDouble(),
+              1.0,
+            ),
+          );
           runStart = null;
         }
       }
     }
     if (runStart != null) {
-      runs.add(ui.Rect.fromLTWH(
-        runStart.toDouble(),
-        row.toDouble(),
-        (cols - runStart).toDouble(),
-        1.0,
-      ));
+      runs.add(
+        ui.Rect.fromLTWH(
+          runStart.toDouble(),
+          row.toDouble(),
+          (cols - runStart).toDouble(),
+          1.0,
+        ),
+      );
     }
   }
   return runs;
 });
 
 // Provider to load image assets reactively.
-final mapImageProvider =
-    FutureProvider.family<ui.Image?, String>((ref, assetPath) async {
+final mapImageProvider = FutureProvider.family<ui.Image?, String>((
+  ref,
+  assetPath,
+) async {
   try {
     final data = await rootBundle.load(assetPath);
     final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
@@ -447,7 +453,6 @@ final mapImageProvider =
     return null;
   }
 });
-
 
 final defaultUserPositionProvider = Provider.family<int?, int>((ref, mapId) {
   final nodes = ref.watch(mapNodesProvider(mapId)).value ?? const <MapPoi>[];

@@ -2,11 +2,7 @@ class MapAsset {
   final String png;
   final int rows;
   final int cols;
-  const MapAsset({
-    required this.png,
-    required this.rows,
-    required this.cols,
-  });
+  const MapAsset({required this.png, required this.rows, required this.cols});
 }
 
 // Keyed by mapId — the id the backend assigns and that the asset files

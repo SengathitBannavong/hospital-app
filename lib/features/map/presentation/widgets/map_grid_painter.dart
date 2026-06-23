@@ -124,11 +124,7 @@ class MapStaticPainter extends CustomPainter {
     }
   }
 
-  void _paintFlowOverlay(
-    Canvas canvas,
-    double cellWidth,
-    double cellHeight,
-  ) {
+  void _paintFlowOverlay(Canvas canvas, double cellWidth, double cellHeight) {
     final paint = Paint();
     for (final cell in flowCells) {
       final row = cell.location ~/ cols;
@@ -147,11 +143,7 @@ class MapStaticPainter extends CustomPainter {
     }
   }
 
-  void _paintEdgeStatus(
-    Canvas canvas,
-    double cellWidth,
-    double cellHeight,
-  ) {
+  void _paintEdgeStatus(Canvas canvas, double cellWidth, double cellHeight) {
     final paint = Paint()
       ..strokeWidth = math.min(cellWidth, cellHeight) * 0.28
       ..strokeCap = StrokeCap.round;
@@ -190,11 +182,7 @@ class MapStaticPainter extends CustomPainter {
     }
   }
 
-  void _paintBottlenecks(
-    Canvas canvas,
-    double cellWidth,
-    double cellHeight,
-  ) {
+  void _paintBottlenecks(Canvas canvas, double cellWidth, double cellHeight) {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
     for (var i = 0; i < bottlenecks.length; i++) {
