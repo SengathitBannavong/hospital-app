@@ -877,7 +877,7 @@
   "navMuteVoice": "Mute voice",
   "navResume": "Resume",
   "navPause": "Pause",
-  "navStop": "Stop",
+  "navStop": "Cancel",
 
   "poiTypeEntrance": "Entrance",
   "poiTypeCorridor": "Corridor",
