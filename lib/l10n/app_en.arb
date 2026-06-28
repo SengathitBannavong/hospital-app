@@ -78,6 +78,7 @@
   "chatLoadOlder": "Load older messages",
   "chatSendImage": "Send image",
   "chatInputHint": "Type a message...",
+  "chatClosed": "This conversation is closed",
   "chatNewMessages": "New messages",
   "chatMsgRead": "✓✓ Read",
   "chatMsgSent": "✓ Sent",
