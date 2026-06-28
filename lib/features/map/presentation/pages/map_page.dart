@@ -1545,7 +1545,24 @@ class _MapPageState extends ConsumerState<MapPage>
   }
 
   void _setRouteDestination(MapPoi poi) {
+    // If a trip is in progress (incl. paused), the user has moved along the
+    // route. Carry that live position over to the resting position before
+    // tearing the trip down, otherwise the new route would restart from the
+    // original start POI (mirrors _stopNavigation).
+    final navPhase = ref.read(navPhaseProvider);
+    final wasActive =
+        navPhase == NavPhase.navigating ||
+        navPhase == NavPhase.paused ||
+        navPhase == NavPhase.arrived;
+    final current = wasActive
+        ? (ref.read(navCurrentLocationProvider) ??
+              ref.read(navigationControllerProvider).currentLocationApprox)
+        : null;
     ref.read(navigationControllerProvider).stop();
+    if (current != null) {
+      ref.read(userPositionProvider.notifier).state = current;
+      ref.read(locationSourceProvider.notifier).state = LocationSource.manual;
+    }
     final start = ref.read(userPositionProvider);
     ref.read(routeDestProvider.notifier).state = poi;
     if (start == poi.gridLocation) {
