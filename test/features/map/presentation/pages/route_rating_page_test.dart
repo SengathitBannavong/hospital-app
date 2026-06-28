@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hospital_app/l10n/app_localizations.dart';
 import 'package:hospital_app/features/map/data/map_repository.dart';
 import 'package:hospital_app/features/map/presentation/pages/route_rating_page.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
@@ -13,6 +14,9 @@ void main() {
       ProviderScope(
         overrides: [mapRepositoryProvider.overrideWithValue(repository)],
         child: const MaterialApp(
+          locale: Locale('vi'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: RouteRatingPage(routeId: 'server-route-1'),
         ),
       ),

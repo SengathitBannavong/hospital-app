@@ -313,7 +313,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // ── Traffic & Flow ───────────────────────────────────────
       GoRoute(
         path: '/flow/report-obstacle',
-        builder: (context, state) => const ObstacleReportPage(),
+        builder: (context, state) =>
+            ObstacleReportPage(gridLocation: state.extra as int?),
       ),
     ],
   );

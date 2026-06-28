@@ -4,21 +4,26 @@ import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/l10n/locale_controller.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
 import 'package:hospital_app/core/utils/app_toast.dart';
+import 'package:hospital_app/features/map/data/models/map_obstacle.dart';
 import 'package:hospital_app/features/map/presentation/providers/map_provider.dart';
 
 class ObstacleReportPage extends ConsumerStatefulWidget {
-  const ObstacleReportPage({super.key});
+  const ObstacleReportPage({super.key, required this.gridLocation});
+
+  /// Grid location captured from the user's current position on the map.
+  /// The user only reads this value here — it is never typed in.
+  final int? gridLocation;
 
   @override
   ConsumerState<ObstacleReportPage> createState() => _ObstacleReportPageState();
 }
 
 class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
-  final _locationController = TextEditingController();
   final _noteController = TextEditingController();
   String _obstacleType = 'obstacle';
   bool _isSubmitting = false;
   bool _submitted = false;
+  bool _sentOnline = true;
 
   static const _typeKeys = [
     'obstacle',
@@ -41,35 +46,35 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
 
   @override
   void dispose() {
-    _locationController.dispose();
     _noteController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final locationText = _locationController.text.trim();
-    if (locationText.isEmpty) {
+    final gridLocation = widget.gridLocation;
+    if (gridLocation == null) {
       AppToast.showError(context.l10n.obErrorNoLocation);
       return;
     }
-    final gridLocation = int.tryParse(locationText);
-    if (gridLocation == null) {
-      AppToast.showError(context.l10n.obErrorNotInteger);
-      return;
-    }
+
+    final note = _noteController.text.trim();
+    final obstacle = MapObstacle(
+      id: 'local-${DateTime.now().microsecondsSinceEpoch}',
+      gridLocation: gridLocation,
+      type: _obstacleType,
+      note: note.isEmpty ? null : note,
+      reportedAt: DateTime.now(),
+    );
 
     setState(() => _isSubmitting = true);
     try {
-      await ref
-          .read(mapRepositoryProvider)
-          .reportObstacle(
-            gridLocation: gridLocation,
-            type: _obstacleType,
-            note: _noteController.text.trim().isEmpty
-                ? null
-                : _noteController.text.trim(),
-          );
-      // Invalidate all cached obstacle providers so the map refreshes.
+      // Goes through the offline queue: posts immediately when online,
+      // otherwise persists locally and syncs on the next obstacle load.
+      final sentOnline = await ref
+          .read(reportQueueProvider)
+          .submitObstacle(obstacle);
+      // Invalidate cached obstacle providers so the map merges this report
+      // (from the server when online, or from the local queue when offline).
       final selectedMapId = ref.read(selectedFloorProvider);
       if (selectedMapId != null) {
         ref.invalidate(mapObstaclesProvider(selectedMapId));
@@ -78,8 +83,11 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
         setState(() {
           _isSubmitting = false;
           _submitted = true;
+          _sentOnline = sentOnline;
         });
-        AppToast.showSuccess(context.l10n.obSuccess);
+        AppToast.showSuccess(
+          sentOnline ? context.l10n.obSuccess : context.l10n.obSavedOffline,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -103,6 +111,9 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
         padding: AppSpacing.pageWithTop,
         child: _submitted
             ? _SuccessState(
+                subtitle: _sentOnline
+                    ? context.l10n.obSuccessSubtitle
+                    : context.l10n.obSavedOfflineSubtitle,
                 onBack: () =>
                     context.canPop() ? context.pop() : context.go('/'),
               )
@@ -134,16 +145,41 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
                             .toList(),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      TextField(
-                        controller: _locationController,
-                        enabled: !_isSubmitting,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: context.l10n.obLocationLabel,
-                          hintText: context.l10n.obLocationHint,
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.pin_drop_outlined),
-                          helperText: context.l10n.obLocationHelper,
+                      Text(
+                        context.l10n.obLocationLabel,
+                        style: context.textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.md,
+                        ),
+                        decoration: BoxDecoration(
+                          color: context.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: context.colorScheme.outlineVariant,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.pin_drop_outlined,
+                              color: context.colorScheme.primary,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                widget.gridLocation == null
+                                    ? context.l10n.obErrorNoLocation
+                                    : context.l10n.obstacleCell(
+                                        widget.gridLocation!,
+                                      ),
+                                style: context.textTheme.bodyLarge,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -172,6 +208,15 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
                             : const Icon(Icons.report_rounded),
                         label: Text(context.l10n.baSubmit),
                       ),
+                      const SizedBox(height: AppSpacing.sm),
+                      OutlinedButton(
+                        onPressed: _isSubmitting
+                            ? null
+                            : () => context.canPop()
+                                  ? context.pop()
+                                  : context.go('/'),
+                        child: Text(context.l10n.commonBack),
+                      ),
                     ],
                   ),
                 ),
@@ -182,8 +227,9 @@ class _ObstacleReportPageState extends ConsumerState<ObstacleReportPage> {
 }
 
 class _SuccessState extends StatelessWidget {
-  const _SuccessState({required this.onBack});
+  const _SuccessState({required this.subtitle, required this.onBack});
 
+  final String subtitle;
   final VoidCallback onBack;
 
   @override
@@ -207,7 +253,7 @@ class _SuccessState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              context.l10n.obSuccessSubtitle,
+              subtitle,
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium?.copyWith(
                 color: context.colorScheme.onSurfaceVariant,

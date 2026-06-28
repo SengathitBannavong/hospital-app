@@ -231,6 +231,14 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
     final myId = authUser?.userId ?? 0;
     final myRole = authUser?.role;
     final cs = Theme.of(context).colorScheme;
+    final isClosed =
+        ref
+            .watch(chatRoomsProvider)
+            .rooms
+            .where((room) => room.id == widget.roomId)
+            .firstOrNull
+            ?.status ==
+        'closed';
 
     ref
       ..listen<ChatMessagesState>(chatMessagesProvider(widget.roomId), (
@@ -291,8 +299,50 @@ class _ChatMessagesPageState extends ConsumerState<ChatMessagesPage> {
               ],
             ),
           ),
-          _buildInputBar(state),
+          isClosed ? _buildClosedBanner() : _buildInputBar(state),
         ],
+      ),
+    );
+  }
+
+  /// Shown in place of the input bar when the conversation is closed, so the
+  /// patient cannot keep chatting. The backend also rejects sends to a closed
+  /// room; this just makes that state visible instead of a failed send.
+  Widget _buildClosedBanner() {
+    final cs = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          border: Border(
+            top: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.lock_outline_rounded,
+              size: 18,
+              color: cs.onSurfaceVariant,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Flexible(
+              child: Text(
+                context.l10n.chatClosed,
+                textAlign: TextAlign.center,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

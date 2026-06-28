@@ -78,6 +78,7 @@
   "chatLoadOlder": "Tải tin nhắn cũ hơn",
   "chatSendImage": "Gửi ảnh",
   "chatInputHint": "Nhập tin nhắn...",
+  "chatClosed": "Cuộc trò chuyện đã đóng",
   "chatNewMessages": "Tin nhắn mới",
   "chatMsgRead": "✓✓ Đã xem",
   "chatMsgSent": "✓ Đã gửi",
@@ -529,15 +530,14 @@
   "obstacleTypeConstruction": "Đang thi công",
   "obstacleTypeCrowd": "Đông người",
   "obErrorNoLocation": "Vui lòng nhập mã vị trí (grid location).",
-  "obErrorNotInteger": "Mã vị trí phải là số nguyên.",
   "obSuccess": "Đã báo cáo vật cản thành công!",
   "obLocationLabel": "Mã vị trí *",
-  "obLocationHint": "Nhập số grid location (vd: 342)",
-  "obLocationHelper": "Tìm mã vị trí trên bản đồ hoặc hỏi nhân viên",
   "obNoteLabel": "Mô tả thêm",
   "obNoteHint": "Mô tả tình trạng vật cản...",
   "obSuccessTitle": "Đã gửi báo cáo!",
   "obSuccessSubtitle": "Cảm ơn bạn đã thông báo vật cản. Đội ngũ sẽ xử lý sớm nhất.",
+  "obSavedOffline": "Đã lưu ngoại tuyến — sẽ đồng bộ khi có mạng",
+  "obSavedOfflineSubtitle": "Bạn đang ngoại tuyến. Báo cáo đã được lưu và sẽ tự động gửi khi kết nối lại.",
   "rrTitle": "Đánh giá tuyến đường",
   "rrThanks": "Cảm ơn bạn đã đánh giá tuyến đường!",
   "rrRouteId": "Mã tuyến: {id}",
@@ -650,7 +650,6 @@
   "settingsDeletePasswordIncorrect": "Mật khẩu không chính xác. Vui lòng thử lại.",
 
   "commonHide": "Ẩn",
-  "commonOptional": "Tùy chọn",
   "commonClear": "Xóa",
 
   "mapScanQrTitle": "Quét mã QR",
@@ -668,6 +667,8 @@
   "mapTooltipShowNavigation": "Hiện chỉ đường",
   "mapTooltipRouteOptions": "Tùy chọn lộ trình",
   "mapStart": "Bắt đầu",
+  "mapActionReportObstacle": "Báo chướng ngại vật",
+  "mapNoticeReportNeedPosition": "Hãy đặt vị trí của bạn trước khi báo chướng ngại vật tại đây",
   "mapActionScanQr": "Quét QR",
   "mapActionLegend": "Chú giải bản đồ",
   "mapActionRouteHistory": "Lịch sử lộ trình",
@@ -688,13 +689,6 @@
     }
   },
 
-  "obstacleFieldType": "Loại",
-  "obstacleOptionBlockage": "Tắc nghẽn",
-  "obstacleOptionSpill": "Tràn đổ",
-  "obstacleOptionCrowd": "Đông người",
-  "obstacleOptionMaintenance": "Bảo trì",
-  "obstacleFieldNote": "Ghi chú",
-  "obstacleSubmit": "Gửi báo cáo",
 
   "rhRefresh": "Làm mới lịch sử",
   "timeUnknown": "Không rõ thời gian",
@@ -841,7 +835,6 @@
     }
   },
 
-  "obstacleReportTitle": "Báo cáo chướng ngại",
   "obstacleCell": "Ô {location}",
   "@obstacleCell": {
     "placeholders": {
@@ -884,7 +877,7 @@
   "navMuteVoice": "Tắt âm thanh",
   "navResume": "Tiếp tục",
   "navPause": "Tạm dừng",
-  "navStop": "Dừng",
+  "navStop": "Hủy",
 
   "poiTypeEntrance": "Lối vào",
   "poiTypeCorridor": "Hành lang",

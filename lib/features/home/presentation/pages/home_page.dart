@@ -232,15 +232,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                       children: [
                         Expanded(
                           child: _QuickActionCard(
-                            title: context.l10n.homeActionReportObstacle,
-                            icon: Icons.report_rounded,
-                            color: AppColors.warning,
-                            onTap: () => context.push('/flow/report-obstacle'),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: _QuickActionCard(
                             title: 'SOS',
                             icon: Icons.emergency_rounded,
                             color: AppColors.emergency,

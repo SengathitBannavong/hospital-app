@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hospital_app/l10n/app_localizations.dart';
 import 'package:hospital_app/features/notification/presentation/pages/notification_page.dart';
 import 'package:hospital_app/features/notification/presentation/widgets/notification_card.dart';
 import 'package:hospital_app/features/notification/presentation/providers/notification_provider.dart';
@@ -20,7 +21,11 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [notificationRepositoryProvider.overrideWithValue(mockRepo)],
-        child: const MaterialApp(home: NotificationPage()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: NotificationPage(),
+        ),
       ),
     );
 
