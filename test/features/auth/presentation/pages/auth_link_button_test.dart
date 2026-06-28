@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hospital_app/core/theme/hospital_theme.dart';
+import 'package:hospital_app/l10n/app_localizations.dart';
 import 'package:hospital_app/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/login_page.dart';
 import 'package:hospital_app/features/auth/presentation/pages/register_page.dart';
@@ -27,6 +28,9 @@ void main() {
         child: MaterialApp.router(
           theme: HospitalTheme.light,
           darkTheme: HospitalTheme.dark,
+          locale: const Locale('vi'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           routerConfig: router,
         ),
       ),
