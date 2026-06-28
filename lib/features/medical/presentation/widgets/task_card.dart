@@ -56,7 +56,15 @@ class TaskCard extends StatelessWidget {
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.xs,
                 children: [
-                  _InfoChip(label: context.l10n.tcRoom(task.poiName)),
+                  // Backend tasks carry poi_id but no poi_name, so fall back
+                  // to the room id when the name is empty.
+                  _InfoChip(
+                    label: context.l10n.tcRoom(
+                      task.poiName.isNotEmpty
+                          ? task.poiName
+                          : task.poiId.toString(),
+                    ),
+                  ),
                   if (task.wardName != null && task.wardName!.isNotEmpty)
                     _InfoChip(label: context.l10n.tcWard(task.wardName!)),
                   _InfoChip(label: context.l10n.tcPriority(task.priority)),

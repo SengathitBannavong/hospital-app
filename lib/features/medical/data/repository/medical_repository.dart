@@ -23,13 +23,31 @@ class MedicalRepository {
       );
 
       if (apiResponse.code == ApiResponseCodes.success) {
-        return apiResponse.data ?? [];
+        return _dedupeTasks(apiResponse.data ?? []);
       }
 
       throw Exception(apiResponse.message);
     } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
+  }
+
+  /// Collapses tasks that refer to the same appointment.
+  ///
+  /// The backend `sync_now` is non-idempotent and inserts fresh rows on every
+  /// sync, so duplicates share content (poi + task) but have distinct
+  /// `treatmentId`s. We key on the content signature, keeping the first
+  /// occurrence (the backend already orders by priority/sequence).
+  List<MedicalTask> _dedupeTasks(List<MedicalTask> tasks) {
+    final seen = <String>{};
+    final unique = <MedicalTask>[];
+    for (final task in tasks) {
+      final key = '${task.poiId}|${task.taskType}|${task.taskName}';
+      if (seen.add(key)) {
+        unique.add(task);
+      }
+    }
+    return unique;
   }
 
   Future<QueueStatus?> getQueue({required int poiId}) async {
