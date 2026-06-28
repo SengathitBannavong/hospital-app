@@ -529,15 +529,14 @@
   "obstacleTypeConstruction": "Under construction",
   "obstacleTypeCrowd": "Crowded",
   "obErrorNoLocation": "Please enter the grid location code.",
-  "obErrorNotInteger": "The location code must be an integer.",
   "obSuccess": "Obstacle reported successfully!",
   "obLocationLabel": "Location code *",
-  "obLocationHint": "Enter the grid location number (e.g. 342)",
-  "obLocationHelper": "Find the location code on the map or ask staff",
   "obNoteLabel": "Additional description",
   "obNoteHint": "Describe the obstacle...",
   "obSuccessTitle": "Report sent!",
   "obSuccessSubtitle": "Thank you for reporting the obstacle. Our team will handle it soon.",
+  "obSavedOffline": "Saved offline — will sync when you reconnect",
+  "obSavedOfflineSubtitle": "You're offline. Your report is saved and will be sent automatically once you reconnect.",
   "rrTitle": "Rate route",
   "rrThanks": "Thank you for rating this route!",
   "rrRouteId": "Route ID: {id}",
@@ -650,7 +649,6 @@
   "settingsDeletePasswordIncorrect": "Incorrect password. Please try again.",
 
   "commonHide": "Hide",
-  "commonOptional": "Optional",
   "commonClear": "Clear",
 
   "mapScanQrTitle": "Scan QR code",
@@ -668,6 +666,8 @@
   "mapTooltipShowNavigation": "Show navigation",
   "mapTooltipRouteOptions": "Route options",
   "mapStart": "Start",
+  "mapActionReportObstacle": "Report obstacle",
+  "mapNoticeReportNeedPosition": "Set your position first to report an obstacle here",
   "mapActionScanQr": "Scan QR",
   "mapActionLegend": "Map legend",
   "mapActionRouteHistory": "Route history",
@@ -688,13 +688,6 @@
     }
   },
 
-  "obstacleFieldType": "Type",
-  "obstacleOptionBlockage": "Blockage",
-  "obstacleOptionSpill": "Spill",
-  "obstacleOptionCrowd": "Crowd",
-  "obstacleOptionMaintenance": "Maintenance",
-  "obstacleFieldNote": "Note",
-  "obstacleSubmit": "Submit report",
 
   "rhRefresh": "Refresh history",
   "timeUnknown": "Unknown time",
@@ -841,7 +834,6 @@
     }
   },
 
-  "obstacleReportTitle": "Report obstacle",
   "obstacleCell": "Cell {location}",
   "@obstacleCell": {
     "placeholders": {

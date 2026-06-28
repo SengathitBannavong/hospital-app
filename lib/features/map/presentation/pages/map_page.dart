@@ -48,8 +48,6 @@ part '../widgets/map_page/flow_legend.dart';
 part '../widgets/map_page/legend_swatch.dart';
 part '../widgets/map_page/flow_analytics_panel.dart';
 part '../widgets/map_page/analytics_row.dart';
-part '../widgets/map_page/obstacle_report_draft.dart';
-part '../widgets/map_page/obstacle_report_sheet.dart';
 part '../widgets/map_page/route_poi_picker_sheet.dart';
 
 // debug
@@ -924,6 +922,19 @@ class _MapPageState extends ConsumerState<MapPage>
     );
   }
 
+  // Captures the user's current map position and opens the obstacle report
+  // pre-filled (read-only) with that grid location. The position must already
+  // be known (set via "I'm here" / long-press or a QR scan).
+  void _reportObstacleAtCurrentPosition() {
+    final position = ref.read(userPositionProvider);
+    if (position == null) {
+      ref.read(mapInlineNoticeProvider.notifier).state =
+          appL10n.mapNoticeReportNeedPosition;
+      return;
+    }
+    context.push('/flow/report-obstacle', extra: position);
+  }
+
   Widget _buildMapActionCluster(double mediaBottom) {
     return Positioned(
       left: AppSpacing.md,
@@ -931,6 +942,11 @@ class _MapPageState extends ConsumerState<MapPage>
       child: ExpandableMapActionMenu(
         tooltip: context.l10n.mapTooltipMapActions,
         actions: [
+          ExpandableMapActionMenuItem(
+            icon: Icons.report_rounded,
+            label: context.l10n.mapActionReportObstacle,
+            onPressed: _reportObstacleAtCurrentPosition,
+          ),
           ExpandableMapActionMenuItem(
             icon: Icons.qr_code_scanner_rounded,
             label: context.l10n.mapActionScanQr,

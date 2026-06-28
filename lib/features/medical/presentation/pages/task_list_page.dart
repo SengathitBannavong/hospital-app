@@ -133,13 +133,6 @@ class TaskListPage extends ConsumerWidget {
         onTap: () => context.push('/staff'),
       ),
       _ActionCard(
-        title: l10n.mlObstacleTitle,
-        subtitle: l10n.mlObstacleSubtitle,
-        icon: Icons.report_rounded,
-        color: AppColors.warning,
-        onTap: () => context.push('/flow/report-obstacle'),
-      ),
-      _ActionCard(
         title: l10n.mlInfoTitle,
         subtitle: l10n.mlInfoSubtitle,
         icon: Icons.info_outline_rounded,
